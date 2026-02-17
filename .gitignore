@@ -1,0 +1,46 @@
+# Node.js
+node_modules/
+dist/
+.env
+.env.edge
+.env.cloud
+build/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+env/
+venv/
+
+# Large Model Files (*.pt, *.pth, etc.)
+*.pt
+*.pth
+
+# Image & Log Directories
+Img/
+logs/
+
+# VSCode
+.vscode/
+.idea/
+
+# macOS
+.DS_Store
+
+# Logs
+*.log
+
+# Jupyter
+.ipynb_checkpoints/
+
+# Raspberry Pi specific (optional)
+*.deb
+*.img
+# Firebase credentials
+config/firebase_credential.json
+
+
+GEMINI.md
+.venv*/
