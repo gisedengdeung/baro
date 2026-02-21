@@ -63,7 +63,7 @@ class DBService:
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
                 """
-                SELECT edge_id, event_type, details_json,
+                SELECT id, edge_id, event_type, details_json,
                        log_risk_level, operation_mode, timestamp
                 FROM event_logs
                 ORDER BY timestamp DESC
@@ -81,6 +81,7 @@ class DBService:
 
             events.append(
                 {
+                    "id": row["id"],
                     "edge_id": row["edge_id"],
                     "event_type": row["event_type"],
                     "details": details,

@@ -57,6 +57,7 @@ class RuleEngine:
                 actions.append({"type": "TRIGGER_ALARM_CRITICAL", "details": {"reason": "LOTO_zone_intrusion"}})
                 log_action = {"type": "LOG_LOTO_ACTIVE", "details": {}}
             else:
+                actions.append({"type": "STOP_ALARM", "details": {"reason": "maintenance_zone_clear"}})
                 log_action = {"type": "LOG_MAINTENANCE_SAFE", "details": {}}
 
         elif mode == OperationMode.AUTOMATIC.value:
@@ -73,6 +74,7 @@ class RuleEngine:
                     actions.append({"type": "POWER_ON", "details": {"reason": "normal_operation"}})
                 if current_speed_percent < 100:
                     actions.append({"type": "RESUME_FULL_SPEED", "details": {"reason": "safety_zone_clear"}})
+                actions.append({"type": "STOP_ALARM", "details": {"reason": "safety_zone_clear"}})
                 log_action = {"type": "LOG_NORMAL_OPERATION", "details": {}}
 
         current_state = log_action["type"] if log_action else "NO_ACTION"

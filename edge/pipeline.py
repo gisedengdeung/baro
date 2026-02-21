@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import time
 from typing import Any, Dict, List
 
 from loguru import logger
@@ -150,18 +151,23 @@ class SafetyPipeline:
                 self.buzzer.trigger_high()
             elif action_type == "TRIGGER_ALARM_CRITICAL":
                 self.buzzer.trigger_critical()
+            elif action_type == "STOP_ALARM":
+                self.buzzer.stop()
 
             await self._send_log_from_action(action, risk_factors, mode)
 
     async def run(self) -> None:
         self._running = True
         loop = asyncio.get_running_loop()
+        target_fps = 15
+        frame_interval = 1.0 / target_fps
 
         while self._running:
             try:
+                _frame_start = time.monotonic()
                 await self._handle_commands()
 
-                frame = self.camera.read()
+                frame = await loop.run_in_executor(None, self.camera.read)
                 if frame is None:
                     await asyncio.sleep(0.1)
                     continue
@@ -252,7 +258,8 @@ class SafetyPipeline:
 
                 self.webrtc_peer.send_frame(display_frame)
                 self._was_locked = is_locked_now
-                await asyncio.sleep(0.01)
+                _elapsed = time.monotonic() - _frame_start
+                await asyncio.sleep(max(0.0, frame_interval - _elapsed))
             except Exception as exc:
                 logger.error(f"파이프라인 루프 예외: {exc}")
                 await self.cloud_client.report_log(
