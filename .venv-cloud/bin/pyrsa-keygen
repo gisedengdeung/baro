@@ -1,6 +1,0 @@
-#!/Users/Barcy/BarcyHub/Dev/workspace-barcy/team-project/conveyor-guard/.venv-cloud/bin/python3.12
-import sys
-from rsa.cli import keygen
-if __name__ == '__main__':
-    sys.argv[0] = sys.argv[0].removesuffix('.exe')
-    sys.exit(keygen())
