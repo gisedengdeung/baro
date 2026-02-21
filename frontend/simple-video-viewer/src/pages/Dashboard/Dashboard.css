@@ -1,0 +1,287 @@
+/* src/pages/Dashboard/Dashboard.css */
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap");
+
+:root {
+  --primary-bg: #1f2937;
+  --secondary-bg: #111827;
+  --accent-color: #f59e0b;
+  --accent-color-hover: #d48806;
+  --text-primary: #f9fafb;
+  --text-secondary: #d1d5db;
+  --border-color: #374151;
+
+  --status-ok: #10b981;
+  --status-warning: #f59e0b;
+  --status-danger: #ef4444;
+  --status-danger-dark: #dc2626;
+}
+
+/* This class will be added to the body tag by the Dashboard component */
+.dashboard-body-no-scroll {
+  overflow: hidden;
+}
+
+.dashboard {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
+  font-family: "Roboto", "Noto Sans KR", sans-serif;
+}
+
+/* Header */
+.header-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0 24px;
+  height: 60px;
+  background: var(--secondary-bg);
+  border-bottom: 1px solid var(--border-color);
+  flex-shrink: 0;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 16px; /* 두 요소 사이 간격 */
+}
+
+.logo {
+  font-size: 22px;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.factory-label {
+  font-size: 14px;
+  background-color: var(--primary-bg);
+  color: var(--text-secondary);
+  padding: 4px 12px;
+  border-radius: 6px;
+}
+
+.right-info {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
+.logout-btn {
+  background: var(--accent-color);
+  color: var(--secondary-bg);
+  font-weight: bold;
+  padding: 8px 16px;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.logout-btn:hover {
+  background: var(--accent-color-hover);
+}
+
+/* Main Layout */
+.main-layout {
+  display: flex;
+  flex: 1;
+  padding: 24px;
+  gap: 24px;
+  overflow: hidden;
+}
+
+/* Stream Panel */
+.stream-panel {
+  flex: 3;
+  background: var(--secondary-bg);
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.webcam-feed {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.webcam-error {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  color: var(--status-danger);
+  padding: 20px;
+}
+
+/* Control Panel */
+.control-panel {
+  flex: 1;
+  min-width: 450px;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.panel-card {
+  background: var(--secondary-bg);
+  border-radius: 8px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  transition:
+    box-shadow 0.3s ease,
+    transform 0.3s ease;
+  flex-grow: 0;
+  flex-shrink: 0;
+}
+
+.panel-card h3 {
+  margin: 0 0 16px;
+  font-size: 18px;
+  color: var(--accent-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+/* System Status Panel */
+.system-status {
+  text-align: center;
+}
+.status-indicator {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  font-size: 24px;
+  font-weight: bold;
+}
+.status-light {
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  animation: pulse 2s infinite;
+}
+.status-ok {
+  color: var(--status-ok);
+}
+.status-ok .status-light {
+  background-color: var(--status-ok);
+  box-shadow: 0 0 8px var(--status-ok);
+}
+.status-warning {
+  color: var(--status-warning);
+}
+.status-warning .status-light {
+  background-color: var(--status-warning);
+  box-shadow: 0 0 8px var(--status-warning);
+}
+.status-danger {
+  color: var(--status-danger);
+}
+.status-danger .status-light {
+  background-color: var(--status-danger);
+  box-shadow: 0 0 8px var(--status-danger);
+}
+
+@keyframes pulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.5;
+  }
+}
+
+/* Emergency Button */
+.emergency-stop-btn {
+  width: 100%;
+  padding: 16px;
+  background-color: var(--status-danger);
+  color: white;
+  font-size: 20px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.2s;
+}
+.emergency-stop-btn:hover {
+  background-color: var(--status-danger-dark);
+  transform: scale(1.02);
+}
+
+/* Control Buttons */
+.control-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 12px;
+}
+.control-buttons button {
+  padding: 12px;
+  font-size: 14px;
+  font-weight: 500;
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.control-buttons button:hover {
+  background-color: var(--accent-color);
+  color: var(--secondary-bg);
+  border-color: var(--accent-color);
+  transform: translateY(-2px);
+}
+
+/* Log Board */
+.log-board {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-height: 0; /* Allow the flex item to shrink */
+}
+
+.log-content {
+  flex: 1;
+  overflow-y: auto;
+  margin-top: 12px;
+  background-color: var(--primary-bg);
+  padding: 8px;
+  border-radius: 4px;
+}
+
+.log-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px;
+  border-bottom: 1px solid var(--border-color);
+  font-size: 14px;
+  transition: background-color 0.2s;
+}
+.log-item:hover {
+  background-color: #2b3a4e;
+}
+.log-item:last-child {
+  border-bottom: none;
+}
+
+.log-icon {
+  font-size: 16px;
+}
+.log-info .log-icon {
+  color: var(--text-secondary);
+}
+.log-warning .log-icon {
+  color: var(--status-warning);
+}
+.log-danger .log-icon {
+  color: var(--status-danger);
+}
