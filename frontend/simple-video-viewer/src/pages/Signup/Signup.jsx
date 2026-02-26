@@ -1,58 +1,103 @@
-import React from "react";
-import "./Signup.css";
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import useAuthStore from '../../store/useAuthStore';
+import './Signup.css';
 
 function Signup() {
+  const navigate = useNavigate();
+
+  const signup = useAuthStore((state) => state.signup);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const authError = useAuthStore((state) => state.error);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [role, setRole] = useState('operator');
+  const [localError, setLocalError] = useState(null);
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+    setLocalError(null);
+
+    if (password.length < 8) {
+      setLocalError('비밀번호는 최소 8자 이상이어야 합니다.');
+      return;
+    }
+
+    if (password !== confirmPassword) {
+      setLocalError('비밀번호 확인이 일치하지 않습니다.');
+      return;
+    }
+
+    try {
+      await signup(email, password, role);
+      navigate('/dashboard', { replace: true });
+    } catch (_error) {
+      // error message is handled by store state
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="container">
         <div className="heading">Sign Up</div>
-        {/* ===== 회원가입 폼 ===== */}
-        <form action className="form">
+        <form className="form" onSubmit={handleSubmit}>
           <input
             required
             className="input"
             type="email"
             name="email"
-            id="email"
+            id="signup-email"
             placeholder="E-mail"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
           />
           <input
             required
             className="input"
             type="password"
             name="password"
-            id="password"
-            placeholder="Password"
+            id="signup-password"
+            placeholder="Password (min 8)"
+            minLength={8}
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
           />
           <input
             required
             className="input"
             type="password"
             name="confirm-password"
-            id="confirm-password"
+            id="signup-confirm-password"
             placeholder="Confirm Password"
+            minLength={8}
+            value={confirmPassword}
+            onChange={(event) => setConfirmPassword(event.target.value)}
           />
+          <select
+            className="input"
+            name="role"
+            id="signup-role"
+            value={role}
+            onChange={(event) => setRole(event.target.value)}
+          >
+            <option value="operator">Operator</option>
+            <option value="admin">Admin</option>
+          </select>
+          {(localError || authError) && (
+            <div style={{ color: '#b00020', fontSize: '0.9rem', marginTop: '10px' }}>{localError || authError}</div>
+          )}
           <input
             className="login-button"
             type="submit"
-            defaultValue="Sign Up"
+            value={isLoading ? 'Signing Up...' : 'Sign Up'}
+            disabled={isLoading}
           />
         </form>
-        <div className="social-account-container">
-          <span className="title">Or Sign up with</span>
-          <div className="social-accounts">
-            <button className="social-button google">
-              <svg
-                className="svg"
-                xmlns="http://www.w3.org/2000/svg"
-                height="1em"
-                viewBox="0 0 488 512"
-              >
-                <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z" />
-              </svg>
-            </button>
-          </div>
-        </div>
+        <Link to="/login" className="signup-link">
+          Already have an account? Sign in
+        </Link>
       </div>
     </div>
   );

@@ -21,125 +21,142 @@ export const runtimeConfig = {
 
 export const getWsUrl = (path = '/ws/logs') => `${WS_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;
 
-const apiClient = axios.create({
+const baseConfig = {
   baseURL: API_BASE_URL,
+  withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
   },
-});
+};
+
+const rawClient = axios.create(baseConfig);
+const apiClient = axios.create(baseConfig);
+
+let refreshPromise = null;
+let authFailureHandler = null;
+
+export const setAuthFailureHandler = (handler) => {
+  authFailureHandler = typeof handler === 'function' ? handler : null;
+};
+
+const shouldSkipRefresh = (url = '') => {
+  return url.includes('/api/auth/login') || url.includes('/api/auth/logout') || url.includes('/api/auth/refresh');
+};
+
+apiClient.interceptors.response.use(
+  (response) => response,
+  async (error) => {
+    const originalRequest = error?.config;
+    const status = error?.response?.status;
+
+    if (!originalRequest || status !== 401 || originalRequest._retry || shouldSkipRefresh(originalRequest.url)) {
+      throw error;
+    }
+
+    originalRequest._retry = true;
+
+    try {
+      if (!refreshPromise) {
+        refreshPromise = rawClient.post('/api/auth/refresh').finally(() => {
+          refreshPromise = null;
+        });
+      }
+      await refreshPromise;
+      return apiClient(originalRequest);
+    } catch (refreshError) {
+      if (authFailureHandler) {
+        authFailureHandler();
+      }
+      throw refreshError;
+    }
+  }
+);
+
+export const authAPI = {
+  signup: async (email, password, role) => {
+    const response = await rawClient.post('/api/auth/signup', { email, password, role });
+    return response.data;
+  },
+  login: async (email, password) => {
+    const response = await rawClient.post('/api/auth/login', { email, password });
+    return response.data;
+  },
+  me: async () => {
+    const response = await rawClient.get('/api/auth/me');
+    return response.data;
+  },
+  refresh: async () => {
+    const response = await rawClient.post('/api/auth/refresh');
+    return response.data;
+  },
+  logout: async () => {
+    const response = await rawClient.post('/api/auth/logout');
+    return response.data;
+  },
+};
 
 export const logAPI = {
   getLogs: async (limit = 50) => {
-    try {
-      const response = await apiClient.get('/api/logs', { params: { limit } });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching logs:', error);
-      throw error;
-    }
+    const response = await apiClient.get('/api/logs', { params: { limit } });
+    return response.data;
   },
 };
 
 export const zoneAPI = {
   getZones: async () => {
-    try {
-      const response = await apiClient.get('/api/zones');
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching zones:', error);
-      throw error;
-    }
+    const response = await apiClient.get('/api/zones');
+    return response.data;
   },
   createZone: async (zoneData) => {
-    try {
-      const response = await apiClient.post('/api/zones', zoneData, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error creating zone:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/api/zones', zoneData, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
   updateZone: async (zoneId, zoneData) => {
-    try {
-      const response = await apiClient.put(`/api/zones/${zoneId}`, zoneData, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`Error updating zone ${zoneId}:`, error);
-      throw error;
-    }
+    const response = await apiClient.put(`/api/zones/${zoneId}`, zoneData, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
   deleteZone: async (zoneId) => {
-    try {
-      const response = await apiClient.delete(`/api/zones/${zoneId}`, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error(`Error deleting zone ${zoneId}:`, error);
-      throw error;
-    }
+    const response = await apiClient.delete(`/api/zones/${zoneId}`, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
 };
 
 export const controlAPI = {
   startAutomaticMode: async (confirmed = false) => {
-    try {
-      const response = await apiClient.post('/api/control/start_automatic', null, {
-        params: withEdgeId({ confirmed }),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error starting automatic mode:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/api/control/start_automatic', null, {
+      params: withEdgeId({ confirmed }),
+    });
+    return response.data;
   },
   startMaintenanceMode: async () => {
-    try {
-      const response = await apiClient.post('/api/control/start_maintenance', null, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error starting maintenance mode:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/api/control/start_maintenance', null, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
   stopSystem: async () => {
-    try {
-      const response = await apiClient.post('/api/control/stop', null, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error stopping system:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/api/control/stop', null, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
   getStatus: async () => {
-    try {
-      const response = await apiClient.get('/api/control/status', {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error fetching status:', error);
-      throw error;
-    }
+    const response = await apiClient.get('/api/control/status', {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
   resetSystem: async () => {
-    try {
-      const response = await apiClient.post('/api/control/reset', null, {
-        params: withEdgeId(),
-      });
-      return response.data;
-    } catch (error) {
-      console.error('Error resetting system:', error);
-      throw error;
-    }
+    const response = await apiClient.post('/api/control/reset', null, {
+      params: withEdgeId(),
+    });
+    return response.data;
   },
 };
 

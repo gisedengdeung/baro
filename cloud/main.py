@@ -2,12 +2,14 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cloud.api import control, edge, logs, signaling, status, streaming, zones
+from cloud.api import auth, control, edge, logs, signaling, status, streaming, zones
 from cloud.config import load_config
+from cloud.dependencies import require_browser_auth
 from cloud.db import init_db
+from cloud.services.auth_service import AuthConfig, AuthService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.signaling_store import SignalingStore
@@ -24,6 +26,19 @@ async def lifespan(app: FastAPI):
     init_db(cfg.local_db_path)
 
     websocket_manager = WebSocketManager()
+    auth_service = AuthService(
+        db_path=cfg.local_db_path,
+        config=AuthConfig(
+            jwt_secret=cfg.auth_jwt_secret,
+            access_ttl_sec=cfg.auth_access_ttl_sec,
+            refresh_ttl_sec=cfg.auth_refresh_ttl_sec,
+            cookie_secure=cfg.auth_cookie_secure,
+            cookie_samesite=cfg.auth_cookie_samesite,
+            cookie_domain=cfg.auth_cookie_domain,
+        ),
+    )
+    auth_service.bootstrap_admin(cfg.auth_admin_email, cfg.auth_admin_password)
+
     app.state.websocket_manager = websocket_manager
     app.state.command_queue = CommandQueueService()
     app.state.signaling_store = SignalingStore(
@@ -37,6 +52,7 @@ async def lifespan(app: FastAPI):
         websocket_manager=websocket_manager,
         db_path=cfg.local_db_path,
     )
+    app.state.auth_service = auth_service
     yield
 
 
@@ -55,10 +71,31 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-app.include_router(control.router, prefix="/api/control", tags=["Control"])
-app.include_router(logs.router, prefix="/api/logs", tags=["Logs"])
-app.include_router(zones.router, prefix="/api/zones", tags=["Zones"])
-app.include_router(status.router, prefix="/api/status", tags=["Status"])
+app.include_router(auth.router, prefix="/api/auth", tags=["Auth"])
+app.include_router(
+    control.router,
+    prefix="/api/control",
+    tags=["Control"],
+    dependencies=[Depends(require_browser_auth)],
+)
+app.include_router(
+    logs.router,
+    prefix="/api/logs",
+    tags=["Logs"],
+    dependencies=[Depends(require_browser_auth)],
+)
+app.include_router(
+    zones.router,
+    prefix="/api/zones",
+    tags=["Zones"],
+    dependencies=[Depends(require_browser_auth)],
+)
+app.include_router(
+    status.router,
+    prefix="/api/status",
+    tags=["Status"],
+    dependencies=[Depends(require_browser_auth)],
+)
 app.include_router(signaling.router, prefix="/api/signaling", tags=["Signaling"])
 app.include_router(edge.router, prefix="/api/edge", tags=["Edge"])
 app.include_router(streaming.router, prefix="/api/streaming", tags=["Streaming"])

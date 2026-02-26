@@ -63,6 +63,13 @@ Dockerfile.cloud
 
 ### 1) 터미널 A: Cloud 실행
 
+초기 실행(사용자 테이블이 비어 있을 때)은 관리자 계정 환경 변수가 필요합니다.
+
+```bash
+export AUTH_ADMIN_EMAIL=admin@example.com
+export AUTH_ADMIN_PASSWORD='ChangeMe123!'
+```
+
 ```bash
 cd <repo-root>   # 예: /Users/Barcy/BarcyHub/Dev/workspace-barcy/team-project/stop
 source .venv-cloud/bin/activate
@@ -129,11 +136,19 @@ npm start
 
 ### Cloud
 
-- `CLOUD_CORS_ALLOW_ORIGINS` (기본: `*`)
+- `CLOUD_CORS_ALLOW_ORIGINS` (기본: `http://localhost:3000`)
 - `LOCAL_DB_PATH` (기본: `cloud/data/cloud.db`)
 - `SIGNALING_OFFER_TTL_SEC` (기본: `30`)
 - `SIGNALING_ANSWER_TTL_SEC` (기본: `30`)
 - `SIGNALING_ICE_TTL_SEC` (기본: `20`)
+- `AUTH_ADMIN_EMAIL` (초기 관리자 이메일, 최초 부팅 필수)
+- `AUTH_ADMIN_PASSWORD` (초기 관리자 비밀번호, 최초 부팅 필수)
+- `AUTH_JWT_SECRET` (기본: `dev-only-change-this-secret`)
+- `AUTH_ACCESS_TTL_SEC` (기본: `900`)
+- `AUTH_REFRESH_TTL_SEC` (기본: `604800`)
+- `AUTH_COOKIE_SECURE` (기본: `false`)
+- `AUTH_COOKIE_SAMESITE` (기본: `lax`)
+- `AUTH_COOKIE_DOMAIN` (선택)
 
 ### Edge
 
@@ -182,6 +197,10 @@ REACT_APP_WS_BASE_URL=ws://localhost:8000
 REACT_APP_EDGE_ID=edge-default
 ```
 
+로그인 정책:
+- 회원가입(`signup`)은 비활성화되어 `/login`으로 리다이렉트됩니다.
+- 최초 관리자 계정은 Cloud 서버 시작 시 `AUTH_ADMIN_EMAIL`, `AUTH_ADMIN_PASSWORD`로 생성됩니다.
+
 ## API 요약
 
 ### Cloud -> Edge (Edge polling)
@@ -196,6 +215,10 @@ REACT_APP_EDGE_ID=edge-default
 
 ### 제어/조회(호환 경로)
 
+- `POST /api/auth/login`
+- `POST /api/auth/refresh`
+- `POST /api/auth/logout`
+- `GET /api/auth/me`
 - `POST /api/control/start_automatic`
 - `POST /api/control/start_maintenance`
 - `POST /api/control/stop`

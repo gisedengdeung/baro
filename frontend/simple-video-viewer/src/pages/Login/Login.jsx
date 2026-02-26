@@ -1,14 +1,36 @@
-import React from "react";
-import { Link } from "react-router-dom";
-import "./Login.css";
+import React, { useState } from 'react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import './Login.css';
+import useAuthStore from '../../store/useAuthStore';
 
 function Login() {
+  const navigate = useNavigate();
+  const location = useLocation();
+
+  const login = useAuthStore((state) => state.login);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const error = useAuthStore((state) => state.error);
+
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+
+  const handleSubmit = async (event) => {
+    event.preventDefault();
+
+    try {
+      await login(email, password);
+      const nextPath = location.state?.from?.pathname || '/dashboard';
+      navigate(nextPath, { replace: true });
+    } catch (_error) {
+      // error message is handled by store state
+    }
+  };
+
   return (
     <div className="login-container">
       <div className="container">
         <div className="heading">Login</div>
-        {/* ===== 로그인 폼 ===== */}
-        <form action className="form">
+        <form className="form" onSubmit={handleSubmit}>
           <input
             required
             className="input"
@@ -16,6 +38,8 @@ function Login() {
             name="email"
             id="email"
             placeholder="E-mail"
+            value={email}
+            onChange={(event) => setEmail(event.target.value)}
           />
           <input
             required
@@ -24,34 +48,24 @@ function Login() {
             name="password"
             id="password"
             placeholder="Password"
+            value={password}
+            onChange={(event) => setPassword(event.target.value)}
           />
-          <span className="forgot-password">
-            <a href="#">Forgot Password ?</a>
-          </span>
+          {error && (
+            <div style={{ color: '#b00020', fontSize: '0.9rem', marginTop: '4px' }}>
+              {error}
+            </div>
+          )}
           <input
             className="login-button"
             type="submit"
-            defaultValue="Sign In"
+            value={isLoading ? 'Signing In...' : 'Sign In'}
+            disabled={isLoading}
           />
         </form>
         <Link to="/signup" className="signup-link">
-          Don't have an account? Sign Up
+          Create a new account
         </Link>
-        <div className="social-account-container">
-          <span className="title">Or Sign in with</span>
-          <div className="social-accounts">
-            <button className="social-button google">
-              <svg
-                className="svg"
-                xmlns="http://www.w3.org/2000/svg"
-                height="1em"
-                viewBox="0 0 488 512"
-              >
-                <path d="M488 261.8C488 403.3 391.1 504 248 504 110.8 504 0 393.2 0 256S110.8 8 248 8c66.8 0 123 24.5 166.3 64.9l-67.5 64.9C258.5 52.6 94.3 116.6 94.3 256c0 86.5 69.1 156.6 153.7 156.6 98.2 0 135-70.4 140.8-106.9H248v-85.3h236.1c2.3 12.7 3.9 24.9 3.9 41.4z" />
-              </svg>
-            </button>
-          </div>
-        </div>
       </div>
     </div>
   );
