@@ -1,7 +1,9 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
 import "./Dashboard.css";
+import useAuthStore from "../../store/useAuthStore";
 
 // 로그 타입에 따라 아이콘을 바꿔 로그 메시지와 시간을 함께 화면에 표시
 const LogItem = ({ type = "info", message, time }) => {
@@ -19,6 +21,10 @@ const LogItem = ({ type = "info", message, time }) => {
 };
 
 function Dashboard() {
+  const navigate = useNavigate();
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
+
   // 상태 선언
   const [currentTime, setCurrentTime] = useState(""); // 화면에 표시할 현재 시간 문자열
   const [webcamError, setWebcamError] = useState(null); // 웹캠 접근 실패 시 에러 메시지 저장
@@ -62,6 +68,11 @@ function Dashboard() {
     );
   };
 
+  const handleLogout = async () => {
+    await logout();
+    navigate("/login", { replace: true });
+  };
+
   return (
     <div className="dashboard">
       <header className="header-bar">
@@ -71,8 +82,8 @@ function Dashboard() {
         </div>
         <div className="right-info">
           <div className="date-time">{currentTime}</div>
-          <div className="user-label">🧑‍💻 admin</div>
-          <button className="logout-btn">Logout</button>
+          <div className="user-label">🧑‍💻 {user?.email || "admin"}</div>
+          <button className="logout-btn" onClick={handleLogout}>Logout</button>
         </div>
       </header>
 

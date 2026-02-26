@@ -2,9 +2,11 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
+from cloud.dependencies import get_auth_service, require_signaling_browser_auth
+from cloud.services.auth_service import AuthService
 from cloud.dependencies import get_signaling_store
 from cloud.services.signaling_store import SignalingStore
 
@@ -46,8 +48,39 @@ class IceAckPayload(BaseModel):
     message_ids: List[str]
 
 
+def _normalize_sender_receiver(sender: str | None, receiver: str | None) -> tuple[str | None, str | None]:
+    sender_v = sender.strip().lower() if isinstance(sender, str) else None
+    receiver_v = receiver.strip().lower() if isinstance(receiver, str) else None
+    return sender_v, receiver_v
+
+
+def _require_signaling_auth_if_needed(
+    request: Request,
+    sender: str | None,
+    receiver: str | None,
+) -> None:
+    sender_v, receiver_v = _normalize_sender_receiver(sender, receiver)
+
+    # Auth policy:
+    # - Browser-originated signaling must be authenticated.
+    # - browser receiver without sender context (GET/ACK from browser) must be authenticated.
+    # - Edge-originated offer (sender=edge, receiver=browser) remains allowed.
+    if sender_v == "browser" or (sender_v is None and receiver_v == "browser"):
+        require_signaling_browser_auth(request, sender=sender_v, receiver=receiver_v)
+        return
+
+    if sender_v != "edge" and receiver_v == "browser":
+        require_signaling_browser_auth(request, sender=sender_v, receiver=receiver_v)
+
+
 @router.post("/offer")
-def post_offer(payload: OfferPayload, store: SignalingStore = Depends(get_signaling_store)):
+def post_offer(
+    payload: OfferPayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.upsert_offer(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -58,22 +91,37 @@ def post_offer(payload: OfferPayload, store: SignalingStore = Depends(get_signal
 
 @router.get("/offer")
 def get_offer(
+    request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
 ):
+    _require_signaling_auth_if_needed(request, None, receiver)
     offer = store.get_offer(edge_id, receiver)
     return {"offer": offer}
 
 
 @router.post("/offer/ack")
-def ack_offer(payload: AckPayload, store: SignalingStore = Depends(get_signaling_store)):
+def ack_offer(
+    payload: AckPayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked = store.ack_offer(payload.edge_id, payload.receiver, payload.message_id)
     return {"status": "ok", "acked": acked}
 
 
 @router.post("/answer")
-def post_answer(payload: AnswerPayload, store: SignalingStore = Depends(get_signaling_store)):
+def post_answer(
+    payload: AnswerPayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.upsert_answer(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -84,22 +132,37 @@ def post_answer(payload: AnswerPayload, store: SignalingStore = Depends(get_sign
 
 @router.get("/answer")
 def get_answer(
+    request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
 ):
+    _require_signaling_auth_if_needed(request, None, receiver)
     answer = store.get_answer(edge_id, receiver)
     return {"answer": answer}
 
 
 @router.post("/answer/ack")
-def ack_answer(payload: AckPayload, store: SignalingStore = Depends(get_signaling_store)):
+def ack_answer(
+    payload: AckPayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked = store.ack_answer(payload.edge_id, payload.receiver, payload.message_id)
     return {"status": "ok", "acked": acked}
 
 
 @router.post("/ice")
-def post_ice(payload: IcePayload, store: SignalingStore = Depends(get_signaling_store)):
+def post_ice(
+    payload: IcePayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.push_ice(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -110,15 +173,24 @@ def post_ice(payload: IcePayload, store: SignalingStore = Depends(get_signaling_
 
 @router.get("/ice")
 def get_ice(
+    request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
 ):
+    _require_signaling_auth_if_needed(request, None, receiver)
     candidates = store.get_ice(edge_id, receiver)
     return {"candidates": candidates}
 
 
 @router.post("/ice/ack")
-def ack_ice(payload: IceAckPayload, store: SignalingStore = Depends(get_signaling_store)):
+def ack_ice(
+    payload: IceAckPayload,
+    request: Request,
+    store: SignalingStore = Depends(get_signaling_store),
+    _auth_service: AuthService = Depends(get_auth_service),
+):
+    _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked_count = store.ack_ice(payload.edge_id, payload.receiver, payload.message_ids)
     return {"status": "ok", "acked_count": acked_count}
