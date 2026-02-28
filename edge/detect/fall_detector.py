@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 
 class FallDetector:
-    def __init__(self, model_path: str = "fall_det_1.pt", conf_threshold: float = 0.4) -> None:
+    def __init__(self, model_path: str = "edge/models/fall_det_1.pt", conf_threshold: float = 0.4) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = YOLO(model_path)
         self.model.to(self.device)

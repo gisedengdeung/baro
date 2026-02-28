@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 from dataclasses import dataclass
+from pathlib import Path
 
 
 @dataclass(slots=True)
@@ -26,12 +27,35 @@ class EdgeConfig:
     draw_label_confidence: bool
 
 
+ROOT_DIR = Path(__file__).resolve().parent.parent
+EDGE_MODELS_DIR = ROOT_DIR / "edge" / "models"
+
 
 def _env_bool(name: str, default: bool) -> bool:
     raw = os.getenv(name)
     if raw is None:
         return default
     return raw.lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _resolve_model_path(raw_path: str, default_rel_path: str) -> str:
+    # Relative model paths are interpreted from repository root.
+    candidate = (raw_path or default_rel_path).strip()
+    path = Path(candidate)
+
+    if path.is_absolute():
+        return str(path)
+
+    if path.parent == Path("."):
+        preferred = EDGE_MODELS_DIR / path.name
+        legacy = ROOT_DIR / path.name
+        if preferred.exists():
+            return str(preferred)
+        if legacy.exists():
+            return str(legacy)
+        return str(preferred)
+
+    return str(ROOT_DIR / path)
 
 
 
@@ -46,8 +70,14 @@ def load_config() -> EdgeConfig:
         command_poll_interval=float(os.getenv("EDGE_COMMAND_POLL_INTERVAL", "0.3")),
         zone_poll_interval=float(os.getenv("EDGE_ZONE_POLL_INTERVAL", "5.0")),
         heartbeat_interval=float(os.getenv("EDGE_HEARTBEAT_INTERVAL", "1.0")),
-        person_model_path=os.getenv("EDGE_PERSON_MODEL_PATH", "yolov8n.pt"),
-        fall_model_path=os.getenv("EDGE_FALL_MODEL_PATH", "fall_det_1.pt"),
+        person_model_path=_resolve_model_path(
+            os.getenv("EDGE_PERSON_MODEL_PATH", ""),
+            "edge/models/yolov8n.pt",
+        ),
+        fall_model_path=_resolve_model_path(
+            os.getenv("EDGE_FALL_MODEL_PATH", ""),
+            "edge/models/fall_det_1.pt",
+        ),
         person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
         fall_conf_threshold=float(os.getenv("EDGE_FALL_CONF", "0.4")),
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
