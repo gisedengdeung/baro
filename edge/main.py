@@ -14,7 +14,9 @@ from edge.control.buzzer import BuzzerController
 from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
+from edge.detect.entrapment_detector import EntrapmentDetector
 from edge.detect.fall_detector import FallDetector
+from edge.detect.fire_detector import FireDetector
 from edge.detect.person_detector import PersonDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.pipeline import SafetyPipeline
@@ -47,6 +49,9 @@ def _build_config_from_args() -> EdgeConfig:
         fall_model_path=cfg.fall_model_path,
         person_conf_threshold=cfg.person_conf_threshold,
         fall_conf_threshold=cfg.fall_conf_threshold,
+        fire_ratio_threshold=cfg.fire_ratio_threshold,
+        entrapment_frame_threshold=cfg.entrapment_frame_threshold,
+        incident_cooldown_sec=cfg.incident_cooldown_sec,
         visual_overlay_enabled=cfg.visual_overlay_enabled,
         draw_zone_polygons=cfg.draw_zone_polygons,
         draw_label_confidence=cfg.draw_label_confidence,
@@ -92,6 +97,8 @@ async def main() -> None:
 
     person_detector = PersonDetector(model_path=cfg.person_model_path, conf_threshold=cfg.person_conf_threshold)
     fall_detector = FallDetector(model_path=cfg.fall_model_path, conf_threshold=cfg.fall_conf_threshold)
+    fire_detector = FireDetector(ratio_threshold=cfg.fire_ratio_threshold)
+    entrapment_detector = EntrapmentDetector(frame_threshold=cfg.entrapment_frame_threshold)
     zone_checker = ZoneChecker()
 
     risk_evaluator = RiskEvaluator()
@@ -111,6 +118,8 @@ async def main() -> None:
         camera=camera,
         person_detector=person_detector,
         fall_detector=fall_detector,
+        fire_detector=fire_detector,
+        entrapment_detector=entrapment_detector,
         zone_checker=zone_checker,
         risk_evaluator=risk_evaluator,
         rule_engine=rule_engine,
@@ -120,6 +129,7 @@ async def main() -> None:
         cloud_client=cloud_client,
         webrtc_peer=webrtc_peer,
         overlay_renderer=overlay_renderer,
+        incident_cooldown_sec=cfg.incident_cooldown_sec,
     )
 
     await cloud_client.start()

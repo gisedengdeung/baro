@@ -27,15 +27,21 @@ class UserPublic(BaseModel):
 class LoginResponse(BaseModel):
     status: str = "ok"
     user: UserPublic
+    access_token: str | None = None
+    refresh_token: str | None = None
 
 
 class SignupResponse(BaseModel):
     status: str = "ok"
     user: UserPublic
+    access_token: str | None = None
+    refresh_token: str | None = None
 
 
 class RefreshResponse(BaseModel):
     status: str = "ok"
+    access_token: str | None = None
+    refresh_token: str | None = None
 
 
 class LogoutResponse(BaseModel):

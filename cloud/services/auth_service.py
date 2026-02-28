@@ -370,7 +370,15 @@ class AuthService:
             conn.commit()
 
     def get_current_user_from_request(self, request: Request) -> UserPublic:
-        token = request.cookies.get(ACCESS_COOKIE_NAME)
+        token: str | None = None
+
+        auth_header = request.headers.get("authorization", "")
+        if auth_header.lower().startswith("bearer "):
+            token = auth_header.split(" ", 1)[1].strip() or None
+
+        if token is None:
+            token = request.cookies.get(ACCESS_COOKIE_NAME)
+
         if not token:
             raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Not authenticated")
         return self.get_user_from_access_token(token)

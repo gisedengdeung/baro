@@ -125,3 +125,27 @@ class CloudClient:
         response = await self._http.get(path, params=params)
         response.raise_for_status()
         return response.json() if response.text else {}
+
+    async def create_incident(self, incident: Dict[str, Any]) -> str | None:
+        try:
+            response = await self._http.post("/api/edge/incidents", json=incident)
+            response.raise_for_status()
+            payload = response.json() if response.text else {}
+            return payload.get("incident_id")
+        except Exception as exc:
+            logger.warning(f"incident 생성 실패(무시): {exc}")
+            return None
+
+    async def upload_incident_snapshot(self, incident_id: str, image_bytes: bytes) -> str | None:
+        try:
+            response = await self._http.post(
+                f"/api/edge/incidents/{incident_id}/snapshot",
+                content=image_bytes,
+                headers={"Content-Type": "image/jpeg"},
+            )
+            response.raise_for_status()
+            payload = response.json() if response.text else {}
+            return payload.get("snapshot_url")
+        except Exception as exc:
+            logger.warning(f"incident 스냅샷 업로드 실패(무시): {exc}")
+            return None

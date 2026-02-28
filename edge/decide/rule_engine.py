@@ -33,11 +33,19 @@ class RuleEngine:
         is_falling = any(f["type"] == "POSTURE_FALLING" for f in risk_factors)
         is_crouching = any(f["type"] == "POSTURE_CROUCHING" for f in risk_factors)
         has_sensor_alert = any(f["type"] == "SENSOR_ALERT" for f in risk_factors)
+        has_fire = any(f["type"] == "FIRE_DETECTED" for f in risk_factors)
+        has_entrapment = any(f["type"] == "ENTRAPMENT_DETECTED" for f in risk_factors)
 
         log_action: Dict[str, Any] | None = None
 
-        if is_falling or has_sensor_alert:
-            if has_sensor_alert:
+        if is_falling or has_sensor_alert or has_fire or has_entrapment:
+            if has_fire:
+                reason = "fire_detected"
+                log_type = "LOG_CRITICAL_FIRE"
+            elif has_entrapment:
+                reason = "entrapment_detected"
+                log_type = "LOG_CRITICAL_ENTRAPMENT"
+            elif has_sensor_alert:
                 reason = "sensor_alert"
                 log_type = "LOG_CRITICAL_SENSOR"
             else:

@@ -31,6 +31,21 @@ class RiskEvaluator:
         if zone_alerts:
             risk_factors.append({"type": "ZONE_INTRUSION", "details": zone_alerts})
 
+        fire = detection_result.get("fire_detection", {})
+        if fire.get("is_fire"):
+            risk_factors.append({"type": "FIRE_DETECTED", "score": fire.get("score", 0.0)})
+
+        entrapment = detection_result.get("entrapment_detection", {})
+        if entrapment.get("is_entrapment"):
+            risk_factors.append(
+                {
+                    "type": "ENTRAPMENT_DETECTED",
+                    "zone_id": entrapment.get("zone_id"),
+                    "person_index": entrapment.get("person_index"),
+                    "score": entrapment.get("score"),
+                }
+            )
+
         for sensor_type, sensor_info in sensor_data.get("sensors", {}).items():
             if sensor_info.get("is_alert"):
                 risk_factors.append({"type": "SENSOR_ALERT", "sensor_type": sensor_type})

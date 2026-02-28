@@ -6,6 +6,9 @@ from cloud.models.auth import UserPublic
 from cloud.services.auth_service import ACCESS_COOKIE_NAME, AuthService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
+from cloud.services.evacuation_service import EvacuationService
+from cloud.services.incident_service import IncidentService
+from cloud.services.mobile_push_service import MobilePushService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
 from cloud.services.websocket_manager import WebSocketManager
@@ -33,6 +36,18 @@ def get_command_queue(request: Request) -> CommandQueueService:
 
 def get_status_store(request: Request) -> StatusStore:
     return _get_state_attr(request, "status_store")
+
+
+def get_incident_service(request: Request) -> IncidentService:
+    return _get_state_attr(request, "incident_service")
+
+
+def get_mobile_push_service(request: Request) -> MobilePushService:
+    return _get_state_attr(request, "mobile_push_service")
+
+
+def get_evacuation_service(request: Request) -> EvacuationService:
+    return _get_state_attr(request, "evacuation_service")
 
 
 def get_signaling_store(request: Request) -> SignalingStore:

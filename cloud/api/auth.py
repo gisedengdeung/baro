@@ -26,7 +26,12 @@ def signup(
     user = auth_service.register_user(payload.email, payload.password, payload.role)
     access_token, refresh_token = auth_service.issue_tokens(user)
     auth_service.set_auth_cookies(response, access_token, refresh_token)
-    return SignupResponse(status="ok", user=user)
+    return SignupResponse(
+        status="ok",
+        user=user,
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
 
 
 @router.post("/login", response_model=LoginResponse)
@@ -38,7 +43,12 @@ def login(
     user = auth_service.authenticate(payload.email, payload.password)
     access_token, refresh_token = auth_service.issue_tokens(user)
     auth_service.set_auth_cookies(response, access_token, refresh_token)
-    return LoginResponse(status="ok", user=user)
+    return LoginResponse(
+        status="ok",
+        user=user,
+        access_token=access_token,
+        refresh_token=refresh_token,
+    )
 
 
 @router.post("/refresh", response_model=RefreshResponse)
@@ -59,7 +69,11 @@ def refresh(
         raise
 
     auth_service.set_auth_cookies(response, access_token, new_refresh_token)
-    return RefreshResponse(status="ok")
+    return RefreshResponse(
+        status="ok",
+        access_token=access_token,
+        refresh_token=new_refresh_token,
+    )
 
 
 @router.post("/logout", response_model=LogoutResponse)

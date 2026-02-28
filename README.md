@@ -164,6 +164,9 @@ npm start
 - `EDGE_PERSON_MODEL_PATH` (기본: `edge/models/yolov8n.pt`)
 - `EDGE_FALL_MODEL_PATH` (기본: `edge/models/fall_det_1.pt`)
 - 하위 호환: 값이 파일명만(`yolov8n.pt`)일 경우 `edge/models/<파일명>`을 먼저 찾고, 없으면 `<repo-root>/<파일명>`을 fallback으로 확인
+- `EDGE_FIRE_RATIO_THRESHOLD` (기본: `0.02`)
+- `EDGE_ENTRAPMENT_FRAME_THRESHOLD` (기본: `8`)
+- `EDGE_INCIDENT_COOLDOWN_SEC` (기본: `8.0`)
 - `EDGE_VISUAL_OVERLAY_ENABLED` (기본: `true`)
 - `EDGE_DRAW_ZONE_POLYGONS` (기본: `true`)
 - `EDGE_DRAW_LABEL_CONFIDENCE` (기본: `false`)
@@ -213,6 +216,8 @@ REACT_APP_EDGE_ID=edge-default
 
 - `POST /api/edge/heartbeat`
 - `POST /api/edge/log`
+- `POST /api/edge/incidents`
+- `POST /api/edge/incidents/{incident_id}/snapshot`
 
 ### 제어/조회(호환 경로)
 
@@ -228,6 +233,16 @@ REACT_APP_EDGE_ID=edge-default
 - `GET /api/logs`
 - `CRUD /api/zones`
 - `GET /api/status`
+- `GET /api/incidents`
+- `GET /api/incidents/{incident_id}`
+- `PATCH /api/incidents/{incident_id}/status`
+- `GET /api/incidents/{incident_id}/snapshot`
+- `POST /api/mobile/devices/register`
+- `DELETE /api/mobile/devices/{device_id}`
+- `GET /api/evacuation/route`
+- `CRUD /api/evacuation/exits`
+- `CRUD /api/evacuation/nodes`
+- `CRUD /api/evacuation/edges`
 - `WS /ws/logs`
 - `WS /ws/alerts`
 
@@ -259,6 +274,10 @@ docker run --rm -p 8000:8000 conveyor-guard-cloud
 ```
 
 Edge는 하드웨어 접근(카메라/시리얼) 때문에 네이티브 실행을 권장합니다.
+
+## 확장 문서
+
+- 모바일 알림/사건 스냅샷/대피 경로 API 확장 가이드: `docs/mobile-alert-system.md`
 
 ## Local DB 운영
 

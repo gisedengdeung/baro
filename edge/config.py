@@ -22,6 +22,9 @@ class EdgeConfig:
     fall_model_path: str
     person_conf_threshold: float
     fall_conf_threshold: float
+    fire_ratio_threshold: float
+    entrapment_frame_threshold: int
+    incident_cooldown_sec: float
     visual_overlay_enabled: bool
     draw_zone_polygons: bool
     draw_label_confidence: bool
@@ -80,6 +83,9 @@ def load_config() -> EdgeConfig:
         ),
         person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
         fall_conf_threshold=float(os.getenv("EDGE_FALL_CONF", "0.4")),
+        fire_ratio_threshold=float(os.getenv("EDGE_FIRE_RATIO_THRESHOLD", "0.02")),
+        entrapment_frame_threshold=int(os.getenv("EDGE_ENTRAPMENT_FRAME_THRESHOLD", "8")),
+        incident_cooldown_sec=float(os.getenv("EDGE_INCIDENT_COOLDOWN_SEC", "8.0")),
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
         draw_zone_polygons=_env_bool("EDGE_DRAW_ZONE_POLYGONS", True),
         draw_label_confidence=_env_bool("EDGE_DRAW_LABEL_CONFIDENCE", False),

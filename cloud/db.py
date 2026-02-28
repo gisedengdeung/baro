@@ -77,6 +77,85 @@ def init_db(db_path: str) -> None:
 
         conn.execute(
             """
+            CREATE TABLE IF NOT EXISTS incidents (
+                id TEXT PRIMARY KEY,
+                edge_id TEXT NOT NULL,
+                incident_type TEXT NOT NULL,
+                severity TEXT NOT NULL,
+                zone_id TEXT,
+                status TEXT NOT NULL DEFAULT 'OPEN',
+                details_json TEXT NOT NULL,
+                snapshot_path TEXT,
+                detected_at TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS mobile_devices (
+                id TEXT PRIMARY KEY,
+                user_id TEXT NOT NULL,
+                platform TEXT NOT NULL,
+                fcm_token TEXT NOT NULL UNIQUE,
+                edge_scope_json TEXT NOT NULL,
+                last_notified_at TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL,
+                FOREIGN KEY(user_id) REFERENCES users(id) ON DELETE CASCADE
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS evacuation_exits (
+                id TEXT PRIMARY KEY,
+                edge_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                description TEXT,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS evacuation_nodes (
+                id TEXT PRIMARY KEY,
+                edge_id TEXT NOT NULL,
+                name TEXT NOT NULL,
+                x REAL NOT NULL,
+                y REAL NOT NULL,
+                kind TEXT NOT NULL DEFAULT 'WAYPOINT',
+                meta_json TEXT NOT NULL,
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS evacuation_edges (
+                id TEXT PRIMARY KEY,
+                edge_id TEXT NOT NULL,
+                from_node_id TEXT NOT NULL,
+                to_node_id TEXT NOT NULL,
+                distance REAL NOT NULL,
+                is_blocked INTEGER NOT NULL DEFAULT 0,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        conn.execute(
+            """
             CREATE INDEX IF NOT EXISTS idx_event_logs_timestamp
             ON event_logs(timestamp DESC);
             """
@@ -107,6 +186,55 @@ def init_db(db_path: str) -> None:
             """
             CREATE INDEX IF NOT EXISTS idx_auth_refresh_sessions_user_id
             ON auth_refresh_sessions(user_id);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_incidents_created_at
+            ON incidents(created_at DESC);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_incidents_status
+            ON incidents(status);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_incidents_edge_id
+            ON incidents(edge_id);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_mobile_devices_user_id
+            ON mobile_devices(user_id);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_mobile_devices_fcm_token
+            ON mobile_devices(fcm_token);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_evacuation_nodes_edge_id
+            ON evacuation_nodes(edge_id);
+            """
+        )
+
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_evacuation_edges_edge_id
+            ON evacuation_edges(edge_id);
             """
         )
 

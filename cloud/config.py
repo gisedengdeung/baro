@@ -19,6 +19,7 @@ class CloudConfig:
     auth_cookie_secure: bool
     auth_cookie_samesite: str
     auth_cookie_domain: str | None
+    incident_snapshot_dir: str
 
 
 def _parse_bool(value: str, default: bool = False) -> bool:
@@ -53,4 +54,5 @@ def load_config() -> CloudConfig:
         auth_cookie_secure=_parse_bool(os.getenv("AUTH_COOKIE_SECURE", "false"), default=False),
         auth_cookie_samesite=cookie_samesite,
         auth_cookie_domain=auth_cookie_domain,
+        incident_snapshot_dir=os.getenv("INCIDENT_SNAPSHOT_DIR", "cloud/data/incidents"),
     )

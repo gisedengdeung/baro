@@ -5,13 +5,16 @@ from contextlib import asynccontextmanager
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cloud.api import auth, control, edge, logs, signaling, status, streaming, zones
+from cloud.api import auth, control, edge, evacuation, incidents, logs, mobile, signaling, status, streaming, zones
 from cloud.config import load_config
 from cloud.dependencies import require_browser_auth
 from cloud.db import init_db
 from cloud.services.auth_service import AuthConfig, AuthService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
+from cloud.services.evacuation_service import EvacuationService
+from cloud.services.incident_service import IncidentService
+from cloud.services.mobile_push_service import MobilePushService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
 from cloud.services.websocket_manager import WebSocketManager
@@ -52,13 +55,21 @@ async def lifespan(app: FastAPI):
         websocket_manager=websocket_manager,
         db_path=cfg.local_db_path,
     )
+    app.state.mobile_push_service = MobilePushService(db_path=cfg.local_db_path)
+    app.state.incident_service = IncidentService(
+        db_path=cfg.local_db_path,
+        websocket_manager=websocket_manager,
+        mobile_push_service=app.state.mobile_push_service,
+        snapshot_dir=cfg.incident_snapshot_dir,
+    )
+    app.state.evacuation_service = EvacuationService(db_path=cfg.local_db_path)
     app.state.auth_service = auth_service
     yield
 
 
 app = FastAPI(
     title="Smart Safety Cloud API",
-    version="3.1.0",
+    version="3.2.0",
     description="Edge/Cloud 분리 아키텍처 Cloud 서버 (SQLite)",
     lifespan=lifespan,
 )
@@ -98,6 +109,9 @@ app.include_router(
 )
 app.include_router(signaling.router, prefix="/api/signaling", tags=["Signaling"])
 app.include_router(edge.router, prefix="/api/edge", tags=["Edge"])
+app.include_router(incidents.router, prefix="/api", tags=["Incidents"])
+app.include_router(mobile.router, prefix="/api/mobile", tags=["Mobile"])
+app.include_router(evacuation.router, prefix="/api/evacuation", tags=["Evacuation"])
 app.include_router(streaming.router, prefix="/api/streaming", tags=["Streaming"])
 app.include_router(log_stream.router, prefix="/ws/logs", tags=["WebSocket"])
 app.include_router(alert_stream.router, prefix="/ws/alerts", tags=["WebSocket"])
