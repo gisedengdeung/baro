@@ -92,7 +92,7 @@ source .venv-edge/bin/activate
 Edge에서 자주 나는 오류 대응:
 
 ```bash
-EDGE_FALL_MODEL_PATH=yolov8n.pt ./scripts/run_edge.sh
+EDGE_FALL_MODEL_PATH=edge/models/yolov8n.pt ./scripts/run_edge.sh
 ```
 
 ```bash
@@ -100,7 +100,7 @@ EDGE_SERIAL_MOCK=true ./scripts/run_edge.sh
 ```
 
 ```bash
-EDGE_SERIAL_MOCK=true EDGE_FALL_MODEL_PATH=yolov8n.pt ./scripts/run_edge.sh
+EDGE_SERIAL_MOCK=true EDGE_FALL_MODEL_PATH=edge/models/yolov8n.pt ./scripts/run_edge.sh
 ```
 
 참고:
@@ -161,8 +161,9 @@ npm start
 - `EDGE_COMMAND_POLL_INTERVAL` (기본: `0.3`)
 - `EDGE_ZONE_POLL_INTERVAL` (기본: `5.0`)
 - `EDGE_HEARTBEAT_INTERVAL` (기본: `1.0`)
-- `EDGE_PERSON_MODEL_PATH` (기본: `yolov8n.pt`)
-- `EDGE_FALL_MODEL_PATH` (기본: `fall_det_1.pt`)
+- `EDGE_PERSON_MODEL_PATH` (기본: `edge/models/yolov8n.pt`)
+- `EDGE_FALL_MODEL_PATH` (기본: `edge/models/fall_det_1.pt`)
+- 하위 호환: 값이 파일명만(`yolov8n.pt`)일 경우 `edge/models/<파일명>`을 먼저 찾고, 없으면 `<repo-root>/<파일명>`을 fallback으로 확인
 - `EDGE_VISUAL_OVERLAY_ENABLED` (기본: `true`)
 - `EDGE_DRAW_ZONE_POLYGONS` (기본: `true`)
 - `EDGE_DRAW_LABEL_CONFIDENCE` (기본: `false`)

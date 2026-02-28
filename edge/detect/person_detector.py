@@ -9,7 +9,7 @@ from ultralytics import YOLO
 
 
 class PersonDetector:
-    def __init__(self, model_path: str = "yolov8n.pt", conf_threshold: float = 0.3) -> None:
+    def __init__(self, model_path: str = "edge/models/yolov8n.pt", conf_threshold: float = 0.3) -> None:
         self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
         self.model = YOLO(model_path)
         self.model.to(self.device)

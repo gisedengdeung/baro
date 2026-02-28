@@ -105,8 +105,8 @@ else
   echo "[INFO] Keeping existing .env.edge (not overwritten)"
 fi
 
-PERSON_MODEL_PATH="yolov8n.pt"
-FALL_MODEL_PATH="fall_det_1.pt"
+PERSON_MODEL_PATH="edge/models/yolov8n.pt"
+FALL_MODEL_PATH="edge/models/fall_det_1.pt"
 
 if [[ -f "$EDGE_ENV_FILE" ]]; then
   set -a
@@ -120,16 +120,27 @@ fi
 check_model_file() {
   local label="$1"
   local path="$2"
-  local resolved_path="$path"
+  local -a candidates=()
+  local candidate=""
 
-  if [[ "$path" != /* ]]; then
-    resolved_path="$ROOT_DIR/$path"
+  if [[ "$path" == /* ]]; then
+    candidates=("$path")
+  elif [[ "$path" == */* ]]; then
+    candidates=("$ROOT_DIR/$path")
+  else
+    candidates=("$ROOT_DIR/edge/models/$path" "$ROOT_DIR/$path")
   fi
 
-  if [[ -f "$resolved_path" ]]; then
-    echo "[INFO] $label model found: $path"
-  else
-    echo "[WARN] $label model missing: $path"
+  for candidate in "${candidates[@]}"; do
+    if [[ -f "$candidate" ]]; then
+      echo "[INFO] $label model found: $path -> $candidate"
+      return
+    fi
+  done
+
+  echo "[WARN] $label model missing: $path"
+  if [[ "${#candidates[@]}" -gt 0 ]]; then
+    echo "       checked: ${candidates[*]}"
   fi
 }
 
