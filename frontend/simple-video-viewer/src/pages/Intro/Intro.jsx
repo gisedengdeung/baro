@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import "./Intro.css";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
@@ -5,8 +6,8 @@ import { useInView } from "react-intersection-observer";
 // 스크롤 시 섹션이 애니메이션으로 등장하도록 처리하는 컴포넌트
 const AnimatedSection = ({ children, reverse = false }) => {
   const { ref, inView } = useInView({
-    triggerOnce: true, // 애니메이션을 한 번만 실행
-    threshold: 0.1, // 요소의 10%가 화면에 표시될 때 트리거
+    triggerOnce: false,
+    threshold: 0.1,
   });
 
   return (
@@ -22,15 +23,36 @@ const AnimatedSection = ({ children, reverse = false }) => {
 function Intro() {
   const navigate = useNavigate();
   const currentLocation = useLocation();
+  const [scrolled, setScrolled] = useState(false);
+
+  useEffect(() => {
+    const handleScroll = () => {
+      setScrolled(window.scrollY > 50);
+    };
+    window.addEventListener("scroll", handleScroll);
+    return () => window.removeEventListener("scroll", handleScroll);
+  }, []);
+
+  const scrollToTop = (e) => {
+    e.preventDefault();
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
+  };
 
   return (
     <div className="intro-page">
       {/* ===== 상단 헤더 ===== */}
-      <header className="intro-header">
+      <header className={`intro-header ${scrolled ? "scrolled" : ""}`}>
         <div className="intro-header-inner">
           <div className="logo">
-            <Link to="/" style={{ textDecoration: "none", color: "inherit" }}>
-              Title
+            <Link
+              to="/"
+              onClick={scrollToTop}
+              style={{ textDecoration: "none", color: "inherit" }}
+            >
+              STOP
             </Link>
           </div>
           <nav className="intro-nav">
@@ -60,17 +82,23 @@ function Intro() {
             </a>
           </nav>
           <button className="login-btn" onClick={() => navigate("/login")}>
-            LOGIN
+            로그인
           </button>
         </div>
       </header>
 
-      {/* ===== 배경 이미지 ===== */}
+      {/* ===== 히어로 섹션 ===== */}
       <div className="intro-hero">
         <div className="hero-text">
-          <h2>산업 현장의 안전을 지키는 가장 스마트한 방법</h2>
+          <h2>
+            산업 현장의 안전,
+            <br />
+            가장 스마트하게 지키는 방법
+          </h2>
           <p>
-            ???는 최첨단 기술로 중대재해를 예방하고 안전한 작업 환경을 만듭니다.
+            STOP은 최첨단 AI 기술로 중대재해를 예방하고
+            <br />
+            모두가 안심하고 일할 수 있는 작업 환경을 만듭니다.
           </p>
         </div>
       </div>
@@ -79,7 +107,11 @@ function Intro() {
       <section id="streaming" className="intro-section">
         <AnimatedSection>
           <div className="section-text">
-            <h2>기존 CCTV를 활용한 실시간 스트리밍</h2>
+            <h2>
+              기존 CCTV를 활용한
+              <br />
+              실시간 스트리밍
+            </h2>
             <p>
               별도의 카메라 설치 없이, 기존 공장에 설치된 CCTV를 그대로 활용하여
               현장을 실시간으로 확인할 수 있습니다. 언제 어디서든 웹 대시보드를
@@ -92,7 +124,7 @@ function Intro() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1}
               stroke="currentColor"
             >
               <path
@@ -109,7 +141,11 @@ function Intro() {
       <section id="safety" className="intro-section">
         <AnimatedSection reverse>
           <div className="section-text">
-            <h2>사용자 정의 가능한 위험 구역</h2>
+            <h2>
+              사용자 정의 가능한
+              <br />
+              위험 구역 설정
+            </h2>
             <p>
               CCTV 영상 위에서 마우스 클릭만으로 간단하게 위험 구역(ROI)을
               설정할 수 있습니다. 컨베이어 벨트, 로봇 팔 주변 등 사고 위험이
@@ -122,7 +158,7 @@ function Intro() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1}
               stroke="currentColor"
             >
               <path
@@ -139,7 +175,11 @@ function Intro() {
       <section id="service" className="intro-section">
         <AnimatedSection>
           <div className="section-text">
-            <h2>자동화된 디지털 LOTO 시스템</h2>
+            <h2>
+              자동화된
+              <br />
+              디지털 LOTO 시스템
+            </h2>
             <p>
               정비 작업자가 위험 구역에 들어가면 시스템이 이를 감지하여 해당
               설비의 작동을 즉시 차단합니다. 디지털 LOTO(Lockout/Tagout)를 통해
@@ -152,7 +192,7 @@ function Intro() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1}
               stroke="currentColor"
             >
               <path
@@ -169,7 +209,11 @@ function Intro() {
       <section id="AI" className="intro-section">
         <AnimatedSection reverse>
           <div className="section-text">
-            <h2>AI 기반 실시간 위험 감지</h2>
+            <h2>
+              AI 기반의
+              <br />
+              실시간 위험 감지
+            </h2>
             <p>
               YOLOv8 기반의 AI가 CCTV 영상을 실시간으로 분석하여 작업자를
               탐지하고, 넘어짐과 같은 위험한 행동을 신속하게 인식합니다.
@@ -182,7 +226,7 @@ function Intro() {
               xmlns="http://www.w3.org/2000/svg"
               fill="none"
               viewBox="0 0 24 24"
-              strokeWidth={1.5}
+              strokeWidth={1}
               stroke="currentColor"
             >
               <path
@@ -193,6 +237,17 @@ function Intro() {
             </svg>
           </div>
         </AnimatedSection>
+      </section>
+
+      {/* ===== 마지막 CTA ===== */}
+      <section className="intro-cta">
+        <div className="cta-content">
+          <h2>지금 바로 시작하세요</h2>
+          <p>더 안전한 산업 현장, STOP이 함께합니다.</p>
+          <button className="cta-button" onClick={() => navigate("/signup")}>
+            무료로 시작하기
+          </button>
+        </div>
       </section>
     </div>
   );
