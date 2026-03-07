@@ -2,8 +2,8 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
-import "./Dashboard.css";
 import useAuthStore from "../../store/useAuthStore";
+import "./Dashboard.css";
 
 // 로그 타입에 따라 아이콘을 바꿔 로그 메시지와 시간을 함께 화면에 표시
 const LogItem = ({ type = "info", message, time }) => {
@@ -21,21 +21,31 @@ const LogItem = ({ type = "info", message, time }) => {
 };
 
 function Dashboard() {
-  const navigate = useNavigate();
+  // 상태 선언
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const navigate = useNavigate();
 
-  // 상태 선언
-  const [currentTime, setCurrentTime] = useState(""); // 화면에 표시할 현재 시간 문자열
+  const [currentTime, setCurrentTime] = useState(new Date()); // 수정됨
   const [webcamError, setWebcamError] = useState(null); // 웹캠 접근 실패 시 에러 메시지 저장
+  const [hour12, setHour12] = useState(true);
+
+  const handleLogout = async () => {
+    if (window.confirm("로그아웃 하시겠습니까?")) {
+      await logout();
+      navigate("/");
+    }
+  };
 
   useEffect(() => {
     document.body.classList.add("dashboard-body-no-scroll"); // 전체화면 스크롤 방지
 
-    // 실시간 시계(1초마다 시간 업데이트)
+    // 수정된 시간 가져오기
     const timer = setInterval(() => {
       const now = new Date();
+
       setCurrentTime(
+        /* 
         now.toLocaleString("ko-KR", {
           year: "numeric",
           month: "2-digit",
@@ -43,7 +53,8 @@ function Dashboard() {
           hour: "2-digit",
           minute: "2-digit",
           second: "2-digit",
-        }),
+        }),*/
+        now,
       );
     }, 1000);
 
@@ -68,22 +79,27 @@ function Dashboard() {
     );
   };
 
-  const handleLogout = async () => {
-    await logout();
-    navigate("/login", { replace: true });
-  };
-
   return (
     <div className="dashboard">
       <header className="header-bar">
         <div className="header-left">
-          <div className="logo">Title</div>
+          <div className="logo">STOP</div>
           <div className="factory-label">Subtitle</div>
         </div>
         <div className="right-info">
-          <div className="date-time">{currentTime}</div>
-          <div className="user-label">🧑‍💻 {user?.email || "admin"}</div>
-          <button className="logout-btn" onClick={handleLogout}>Logout</button>
+          <div className="date-time">
+            {currentTime.toLocaleDateString("ko-Kr", {
+              year: "numeric",
+              month: "2-digit",
+              day: "2-digit",
+            })}
+          </div>
+          <div className="user-label">
+            🧑‍💻 {user?.role || "user"} ({user?.email})
+          </div>
+          <button className="logout-btn" onClick={handleLogout}>
+            Logout
+          </button>
         </div>
       </header>
 
@@ -100,36 +116,58 @@ function Dashboard() {
               videoConstraints={videoConstraints}
               onUserMediaError={handleUserMediaError}
               className="webcam-feed"
-            />
+            /> // --> react-webcam으로 카메라 연결(임시)
           )}
         </section>
-
         <aside className="control-panel">
-          {/* 시스템 상태 */}
-          <div className={`panel-card system-status status-${systemStatus}`}>
-            <div className="status-indicator">
-              <span className="status-light"></span>
-              <span>
-                {systemStatus === "ok" && "All Systems Operational"}
-                {systemStatus === "warning" && "System Warning"}
-                {systemStatus === "danger" && "System Critical"}
-              </span>
+          {/*시스템 제어*/}
+          <div className="system-infos">
+            <h3>시스템 정보</h3>
+            {/*시계*/}
+            <div className="time-card">
+              <div className="string-time">
+                {currentTime.toLocaleTimeString("ko-KR", {
+                  hour: "2-digit",
+                  minute: "2-digit",
+                  second: "2-digit",
+                  hour12: hour12,
+                })}
+                <button
+                  onClick={() => {
+                    setHour12((prev) => !prev);
+                  }}
+                >
+                  {hour12 ? "24H" : "12H"}
+                </button>
+              </div>
             </div>
-          </div>
 
-          {/* 긴급 정지칸 */}
-          <div className="panel-card">
-            <button className="emergency-stop-btn">긴급 정지</button>
-          </div>
+            {/* 시스템 상태 */}
+            <div className={`panel-card system-status status-${systemStatus}`}>
+              <div className="status-indicator">
+                <span className="status-light"></span>
+                <span>
+                  {systemStatus === "ok" && "All Systems Operational"}
+                  {systemStatus === "warning" && "System Warning"}
+                  {systemStatus === "danger" && "System Critical"}
+                </span>
+              </div>
+            </div>
 
-          {/* 제어칸 */}
-          <div className="panel-card">
-            <h3>컨베이어 제어</h3>
-            <div className="control-buttons">
-              <button>자동 모드 시작</button>
-              <button>수동 모드 시작</button>
-              <button>정지</button>
-              <button>위험구역 설정</button>
+            {/* 제어칸 */}
+            <div className="panel-card">
+              <h3>컨베이어 제어</h3>
+              <div className="control-buttons">
+                <button>자동 모드 시작</button>
+                <button>수동 모드 시작</button>
+                <button>정지</button>
+                <button>위험구역 설정</button>
+              </div>
+            </div>
+
+            {/* 긴급 정지칸 */}
+            <div className="panel-card">
+              <button className="emergency-stop-btn">긴급 정지</button>
             </div>
           </div>
 
