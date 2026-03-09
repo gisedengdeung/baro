@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import sqlite3
 from pathlib import Path
-from typing import Iterator
+from typing import Iterable
 
 from loguru import logger
 
@@ -12,6 +12,19 @@ def _apply_pragmas(conn: sqlite3.Connection) -> None:
     conn.execute("PRAGMA journal_mode=WAL;")
     conn.execute("PRAGMA foreign_keys=ON;")
     conn.execute("PRAGMA synchronous=NORMAL;")
+
+
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    rows = conn.execute(f"PRAGMA table_info({table});").fetchall()
+    return any(row[1] == column for row in rows)
+
+
+def _ensure_columns(conn: sqlite3.Connection, table: str, columns: Iterable[str]) -> None:
+    for definition in columns:
+        column_name = definition.split()[0]
+        if _column_exists(conn, table, column_name):
+            continue
+        conn.execute(f"ALTER TABLE {table} ADD COLUMN {definition};")
 
 
 
@@ -31,9 +44,30 @@ def init_db(db_path: str) -> None:
                 details_json TEXT NOT NULL,
                 log_risk_level TEXT NOT NULL,
                 operation_mode TEXT NOT NULL,
-                timestamp TEXT NOT NULL
+                timestamp TEXT NOT NULL,
+                event_uid TEXT,
+                clip_status TEXT NOT NULL DEFAULT 'NONE',
+                clip_path TEXT,
+                clip_started_at TEXT,
+                clip_ended_at TEXT,
+                clip_duration_sec REAL,
+                clip_created_at TEXT
             );
             """
+        )
+
+        _ensure_columns(
+            conn,
+            "event_logs",
+            [
+                "event_uid TEXT",
+                "clip_status TEXT NOT NULL DEFAULT 'NONE'",
+                "clip_path TEXT",
+                "clip_started_at TEXT",
+                "clip_ended_at TEXT",
+                "clip_duration_sec REAL",
+                "clip_created_at TEXT",
+            ],
         )
 
         conn.execute(
@@ -86,6 +120,12 @@ def init_db(db_path: str) -> None:
             """
             CREATE INDEX IF NOT EXISTS idx_event_logs_edge_id
             ON event_logs(edge_id);
+            """
+        )
+        conn.execute(
+            """
+            CREATE INDEX IF NOT EXISTS idx_event_logs_event_uid
+            ON event_logs(event_uid);
             """
         )
 

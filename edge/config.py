@@ -25,6 +25,12 @@ class EdgeConfig:
     visual_overlay_enabled: bool
     draw_zone_polygons: bool
     draw_label_confidence: bool
+    clip_pre_seconds: int
+    clip_post_seconds: int
+    clip_target_fps: int
+    clip_width: int
+    clip_height: int
+    clip_output_dir: str
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -83,4 +89,10 @@ def load_config() -> EdgeConfig:
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
         draw_zone_polygons=_env_bool("EDGE_DRAW_ZONE_POLYGONS", True),
         draw_label_confidence=_env_bool("EDGE_DRAW_LABEL_CONFIDENCE", False),
+        clip_pre_seconds=int(os.getenv("EDGE_CLIP_PRE_SECONDS", "10")),
+        clip_post_seconds=int(os.getenv("EDGE_CLIP_POST_SECONDS", "10")),
+        clip_target_fps=int(os.getenv("EDGE_CLIP_TARGET_FPS", "10")),
+        clip_width=int(os.getenv("EDGE_CLIP_WIDTH", "1280")),
+        clip_height=int(os.getenv("EDGE_CLIP_HEIGHT", "720")),
+        clip_output_dir=os.getenv("EDGE_CLIP_OUTPUT_DIR", "edge/data/clips"),
     )

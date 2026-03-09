@@ -49,3 +49,5 @@ frontend/simple-video-viewer/.npm-cache/
 cloud/data/*.db
 cloud/data/*.db-shm
 cloud/data/*.db-wal
+cloud/data/clips/
+edge/data/clips/

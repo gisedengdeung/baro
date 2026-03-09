@@ -39,6 +39,14 @@ const RISK_ICON_MAP = {
   LOG_NORMAL_OPERATION: 'ℹ️',
 };
 
+const CLIP_STATUS_LABEL = {
+  READY: '재생 가능',
+  PENDING: '생성 중',
+  FAILED: '생성 실패',
+  EXPIRED: '보관 만료',
+  NONE: '-',
+};
+
 export default function VideoLogTable({ className, logs, activeId, onSelect }) {
   return (
     <div className={className}> {/* 받은 className을 적용 */}
@@ -50,6 +58,7 @@ export default function VideoLogTable({ className, logs, activeId, onSelect }) {
               <th>일시</th>
               <th>동작 모드</th>
               <th>상세 내용</th>
+              <th>클립</th>
             </tr>
           </thead>
           <tbody>
@@ -68,7 +77,11 @@ export default function VideoLogTable({ className, logs, activeId, onSelect }) {
               const modeClassName = `mode-${(log.operation_mode || 'unknown').toLowerCase()}`;
 
               // 3) 상세 내용
-              const description = EVENT_LABEL[log.event_type] || log.details?.description || '-';
+              const description = EVENT_LABEL[log.event_type]
+                || log.details?.description
+                || log.details?.message
+                || log.details?.clip_error
+                || '-';
 
               // 4) 아이콘 및 행 전체에 적용할 클래스
               const rowClassName = RISK_MAP[log.event_type] || 'status-safe';
@@ -76,6 +89,9 @@ export default function VideoLogTable({ className, logs, activeId, onSelect }) {
 
               // 5) key
               const key = log.id ?? `${log.timestamp}-${idx}`;
+              const clipStatus = (log.clip_status || 'NONE').toUpperCase();
+              const clipLabel = CLIP_STATUS_LABEL[clipStatus] || clipStatus;
+              const clickable = log.id != null;
 
               return (
                 <tr
@@ -83,11 +99,13 @@ export default function VideoLogTable({ className, logs, activeId, onSelect }) {
                   className={[rowClassName, log.id === activeId && 'active']
                               .filter(Boolean)
                               .join(' ')}
-                  onClick={() => onSelect(log.id)}
+                  onClick={() => clickable && onSelect(log.id)}
+                  style={{ cursor: clickable ? 'pointer' : 'default' }}
                 >
                   <td className="date-cell">{dateTime}</td>
                   <td className={`mode-cell ${modeClassName}`}>{modeText}</td>
                   <td className="description-cell">{icon} {description}</td>
+                  <td className="clip-cell">{clipLabel}</td>
                 </tr>
               );
             })}

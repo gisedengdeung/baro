@@ -55,9 +55,10 @@
 }
 
 /* 컬럼 너비 설정 */
-.log-board th:nth-child(1), .log-board .date-cell    { width: 90px; } /* 너비 조정 */
-.log-board th:nth-child(2), .log-board .mode-cell    { width: 100px; } /* 너비 복원 */
-.log-board th:nth-child(3), .log-board .description-cell { width: auto; } /* 남은 공간 모두 사용 */
+.log-board th:nth-child(1), .log-board .date-cell { width: 128px; }
+.log-board th:nth-child(2), .log-board .mode-cell { width: 110px; }
+.log-board th:nth-child(3), .log-board .description-cell { width: auto; }
+.log-board th:nth-child(4), .log-board .clip-cell { width: 92px; }
 
 .log-board thead {
   background-color: #f3f4f6;
@@ -131,4 +132,9 @@
 /* 상세 내용 셀의 아이콘 스타일 */
 .description-cell {
   font-size: 1.1rem; /* 아이콘이 잘 보이도록 약간 크게 */
+}
+
+.clip-cell {
+  font-size: 13px;
+  font-weight: 600;
 }
