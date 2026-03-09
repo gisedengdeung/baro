@@ -1,24 +1,58 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
 import useAuthStore from "../../store/useAuthStore";
+import { useWebRTC } from "../../hooks/useWebRTC";
+import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import "./Dashboard.css";
 
-// 로그 타입에 따라 아이콘을 바꿔 로그 메시지와 시간을 함께 화면에 표시
-const LogItem = ({ type = "info", message, time }) => {
-  const iconMap = {
-    info: "ℹ️",
-    warning: "⚠️",
-    danger: "🚨",
-  };
-  return (
-    <div className={`log-item log-${type}`}>
-      <span className="log-icon">{iconMap[type]}</span>
-      <span className="log-message">{`[${time}] ${message}`}</span>
-    </div>
-  );
-};
+// 더미 로그 데이터
+const DUMMY_LOGS = [
+  {
+    id: 1,
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_NORMAL_OPERATION",
+  },
+  {
+    id: 2,
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_INTRUSION_SLOWDOWN",
+    details: { description: "위험 구역 침입 감지" },
+  },
+  {
+    id: 3,
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    operation_mode: "MAINTENANCE",
+    event_type: "LOG_MAINTENANCE_SAFE",
+  },
+  {
+    id: 4,
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_CRITICAL_FALLING",
+    details: { description: "작업자 쓰러짐 발생!" },
+  },
+  {
+    id: 5,
+    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    operation_mode: "STOPPED",
+    event_type: "LOG_CRITICAL_SENSOR",
+  },
+  {
+    id: 6,
+    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_CROUCHING_WARN",
+  },
+  {
+    id: 7,
+    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    operation_mode: "MANUAL",
+    event_type: "LOG_LOTO_ACTIVE",
+  },
+];
 
 function Dashboard() {
   // 상태 선언
@@ -26,9 +60,11 @@ function Dashboard() {
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const [currentTime, setCurrentTime] = useState(new Date()); // 수정됨
-  const [webcamError, setWebcamError] = useState(null); // 웹캠 접근 실패 시 에러 메시지 저장
+  const { videoRef, connected, error: streamError } = useWebRTC();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [hour12, setHour12] = useState(true);
+  const [showLogs, setShowLogs] = useState(false);
 
   const handleLogout = async () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
@@ -40,22 +76,8 @@ function Dashboard() {
   useEffect(() => {
     document.body.classList.add("dashboard-body-no-scroll"); // 전체화면 스크롤 방지
 
-    // 수정된 시간 가져오기
     const timer = setInterval(() => {
-      const now = new Date();
-
-      setCurrentTime(
-        /* 
-        now.toLocaleString("ko-KR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),*/
-        now,
-      );
+      setCurrentTime(new Date());
     }, 1000);
 
     return () => {
@@ -65,19 +87,6 @@ function Dashboard() {
   }, []);
 
   const systemStatus = "ok"; // 'ok', 'warning', 'danger'
-
-  // 웹캠 설정
-  const videoConstraints = {
-    facingMode: "user",
-  };
-
-  // 웹캠 연결 오류 메시지
-  const handleUserMediaError = (error) => {
-    console.error("Webcam access error:", error);
-    setWebcamError(
-      "웹캠에 접근할 수 없습니다. 권한을 확인하거나 다른 프로그램에서 사용 중인지 확인해주세요.",
-    );
-  };
 
   return (
     <div className="dashboard">
@@ -104,19 +113,28 @@ function Dashboard() {
       </header>
 
       <main className="main-layout">
-        {/* 웹캠? CCTV 칸 */}
+        {/* CCTV WebRTC 스트림 */}
         <section className="stream-panel">
-          {webcamError ? (
+          {streamError ? (
             <div className="webcam-error">
-              <p>⚠️ {webcamError}</p>
+              <p>⚠️ {streamError}</p>
             </div>
           ) : (
-            <Webcam
-              audio={false}
-              videoConstraints={videoConstraints}
-              onUserMediaError={handleUserMediaError}
-              className="webcam-feed"
-            /> // --> react-webcam으로 카메라 연결(임시)
+            <>
+              {!connected && (
+                <div className="webcam-error">
+                  <p>📡 Edge 연결 중...</p>
+                </div>
+              )}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="webcam-feed"
+                style={{ display: connected ? "block" : "none" }}
+              />
+            </>
           )}
         </section>
         <aside className="control-panel">
@@ -132,11 +150,7 @@ function Dashboard() {
                   second: "2-digit",
                   hour12: hour12,
                 })}
-                <button
-                  onClick={() => {
-                    setHour12((prev) => !prev);
-                  }}
-                >
+                <button onClick={() => setHour12((prev) => !prev)}>
                   {hour12 ? "24H" : "12H"}
                 </button>
               </div>
@@ -171,31 +185,34 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* 로그박스, 현재 더미데이터로 설정해놓음 */}
-          <div className="panel-card log-board">
-            <h3>이벤트 로그</h3>
-            <div className="log-content">
-              <LogItem
-                type="danger"
-                time="14:45:12"
-                message="위험 구역 #1에서 작업자 감지"
-              />
-              <LogItem
-                type="warning"
-                time="14:46:01"
-                message="컨베이어 벨트 속도 저하"
-              />
-              <LogItem type="info" time="14:48:30" message="시스템 재가동" />
-              <LogItem
-                type="danger"
-                time="14:49:12"
-                message="비상 정지 버튼 눌림"
-              />
-              <LogItem type="info" time="14:50:30" message="관리자 로그인" />
-            </div>
+          {/* 로그박스 - 로그 확인하기 버튼만 표시 */}
+          <div className="log-board">
+            <button className="log-check-btn" onClick={() => setShowLogs(true)}>
+              로그 확인하기
+            </button>
           </div>
         </aside>
       </main>
+
+      {/* 로그 확인 모달 */}
+      {showLogs && (
+        <div className="modal-overlay" onClick={() => setShowLogs(false)}>
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <h2>🎞️ 시스템 이벤트 로그</h2>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowLogs(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body" style={{ height: "500px" }}>
+              <VideoLogTable logs={DUMMY_LOGS} />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
