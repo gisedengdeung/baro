@@ -71,7 +71,11 @@ async def post_clip(
     normalized_status = (status or "").strip().upper()
 
     if normalized_status == "FAILED":
-        updated = await clip_service.mark_clip_failed(event_uid=event_uid, error_message=error_message)
+        updated = await clip_service.mark_clip_failed(
+            edge_id=edge_id,
+            event_uid=event_uid,
+            error_message=error_message,
+        )
         if not updated:
             raise HTTPException(status_code=404, detail=f"event_uid not found: {event_uid}")
         return {"status": "ok", "event_uid": event_uid, "clip_status": "FAILED"}
@@ -94,7 +98,11 @@ async def post_clip(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
     except Exception as exc:
-        await clip_service.mark_clip_failed(event_uid=event_uid, error_message=str(exc))
+        await clip_service.mark_clip_failed(
+            edge_id=edge_id,
+            event_uid=event_uid,
+            error_message=str(exc),
+        )
         raise HTTPException(status_code=500, detail="Clip upload processing failed.") from exc
 
     return {

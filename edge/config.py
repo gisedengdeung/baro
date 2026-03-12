@@ -31,6 +31,7 @@ class EdgeConfig:
     clip_width: int
     clip_height: int
     clip_output_dir: str
+    clip_min_trigger_level: str
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -95,4 +96,5 @@ def load_config() -> EdgeConfig:
         clip_width=int(os.getenv("EDGE_CLIP_WIDTH", "1280")),
         clip_height=int(os.getenv("EDGE_CLIP_HEIGHT", "720")),
         clip_output_dir=os.getenv("EDGE_CLIP_OUTPUT_DIR", "edge/data/clips"),
+        clip_min_trigger_level=os.getenv("EDGE_CLIP_MIN_TRIGGER_LEVEL", "WARNING"),
     )

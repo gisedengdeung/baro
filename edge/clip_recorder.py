@@ -11,6 +11,10 @@ from uuid import uuid4
 import cv2
 import numpy as np
 from loguru import logger
+try:
+    import av  # type: ignore
+except Exception:  # pragma: no cover
+    av = None
 
 from edge.cloud_client import CloudClient
 
@@ -43,6 +47,7 @@ class EdgeClipRecorder:
         target_fps: int = 10,
         width: int = 1280,
         height: int = 720,
+        min_trigger_level: str = "WARNING",
     ) -> None:
         self.cloud_client = cloud_client
         self.edge_id = edge_id
@@ -55,6 +60,15 @@ class EdgeClipRecorder:
         self.target_fps = target_fps
         self.width = width
         self.height = height
+        self.min_trigger_level = (min_trigger_level or "WARNING").strip().upper()
+        min_rank = self._severity_rank(self.min_trigger_level)
+        if min_rank == 0:
+            logger.warning(
+                f"Invalid clip min trigger level '{self.min_trigger_level}', fallback to WARNING"
+            )
+            self.min_trigger_level = "WARNING"
+            min_rank = self._severity_rank(self.min_trigger_level)
+        self.min_trigger_rank = min_rank
 
         self.buffer_duration = timedelta(seconds=max(1, pre_seconds + 2))
         self.frame_interval_sec = 1.0 / max(1, target_fps)
@@ -78,7 +92,7 @@ class EdgeClipRecorder:
         return ranking.get(normalized, 0)
 
     def should_trigger(self, log_risk_level: str) -> bool:
-        return self._severity_rank(log_risk_level) >= self._severity_rank("NOTICE")
+        return self._severity_rank(log_risk_level) >= self.min_trigger_rank
 
     def _resize_frame(self, frame: np.ndarray) -> np.ndarray:
         return cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
@@ -146,6 +160,20 @@ class EdgeClipRecorder:
             self._tasks.add(task)
             task.add_done_callback(self._tasks.discard)
 
+    def _finalize_pending_on_shutdown(self) -> None:
+        pending_items = list(self._pending.values())
+        for pending in pending_items:
+            pending.finalized = True
+            removed = self._pending.pop(pending.event_uid, None)
+            if removed is None:
+                continue
+            task = asyncio.create_task(
+                self._encode_and_upload_clip(pending),
+                name=f"clip_finalize_{pending.event_uid}",
+            )
+            self._tasks.add(task)
+            task.add_done_callback(self._tasks.discard)
+
     async def _encode_and_upload_clip(self, clip: PendingClip) -> None:
         if not clip.frames:
             await self.cloud_client.report_clip_failed(
@@ -190,6 +218,47 @@ class EdgeClipRecorder:
                 logger.warning(f"로컬 클립 파일 삭제 실패({local_path}): {cleanup_exc}")
 
     def _write_mp4(self, path: Path, frames: List[FramePacket]) -> None:
+        try:
+            self._write_mp4_h264(path, frames)
+            return
+        except Exception as exc:
+            logger.warning(f"H.264 clip encode failed, fallback to mp4v: {exc}")
+            path.unlink(missing_ok=True)
+
+        self._write_mp4_mp4v(path, frames)
+
+    def _write_mp4_h264(self, path: Path, frames: List[FramePacket]) -> None:
+        if av is None:
+            raise RuntimeError("PyAV is not available.")
+
+        container = av.open(str(path), mode="w", format="mp4")
+        stream = None
+        for codec_name in ("libx264", "h264"):
+            try:
+                stream = container.add_stream(codec_name, rate=max(1, int(self.target_fps)))
+                break
+            except Exception:
+                stream = None
+
+        if stream is None:
+            container.close()
+            raise RuntimeError("No H.264 encoder found in FFmpeg/PyAV build.")
+
+        stream.width = self.width
+        stream.height = self.height
+        stream.pix_fmt = "yuv420p"
+
+        try:
+            for packet in frames:
+                frame = av.VideoFrame.from_ndarray(packet.frame, format="bgr24")
+                for encoded in stream.encode(frame):
+                    container.mux(encoded)
+            for encoded in stream.encode(None):
+                container.mux(encoded)
+        finally:
+            container.close()
+
+    def _write_mp4_mp4v(self, path: Path, frames: List[FramePacket]) -> None:
         fourcc = cv2.VideoWriter_fourcc(*"mp4v")
         writer = cv2.VideoWriter(str(path), fourcc, float(self.target_fps), (self.width, self.height))
         if not writer.isOpened():
@@ -202,6 +271,7 @@ class EdgeClipRecorder:
             writer.release()
 
     async def shutdown(self) -> None:
+        self._finalize_pending_on_shutdown()
         if not self._tasks:
             return
         await asyncio.gather(*self._tasks, return_exceptions=True)

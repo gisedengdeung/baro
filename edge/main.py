@@ -57,6 +57,7 @@ def _build_config_from_args() -> EdgeConfig:
         clip_width=cfg.clip_width,
         clip_height=cfg.clip_height,
         clip_output_dir=cfg.clip_output_dir,
+        clip_min_trigger_level=cfg.clip_min_trigger_level,
     )
 
 
@@ -84,6 +85,7 @@ async def main() -> None:
         target_fps=cfg.clip_target_fps,
         width=cfg.clip_width,
         height=cfg.clip_height,
+        min_trigger_level=cfg.clip_min_trigger_level,
     )
 
     loop = asyncio.get_running_loop()

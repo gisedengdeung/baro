@@ -58,6 +58,7 @@ class WebRTCPeer:
         self._answer_task: Optional[asyncio.Task[Any]] = None
         self._ice_task: Optional[asyncio.Task[Any]] = None
         self._restart_task: Optional[asyncio.Task[Any]] = None
+        self._disconnected_restart_task: Optional[asyncio.Task[Any]] = None
         self._is_stopping = False
 
     async def start(self) -> None:
@@ -97,7 +98,28 @@ class WebRTCPeer:
         @self._pc.on("connectionstatechange")
         async def on_connectionstatechange() -> None:
             logger.info(f"WebRTC 상태: {self._pc.connectionState}")
-            if self._pc.connectionState == "failed" and not self._is_stopping and self._restart_task is None:
+            if self._pc.connectionState == "connected":
+                if self._disconnected_restart_task is not None:
+                    self._disconnected_restart_task.cancel()
+                    self._disconnected_restart_task = None
+                return
+
+            if self._pc.connectionState == "disconnected":
+                if (
+                    not self._is_stopping
+                    and self._restart_task is None
+                    and self._disconnected_restart_task is None
+                ):
+                    self._disconnected_restart_task = asyncio.create_task(
+                        self._restart_after_disconnected_grace(),
+                        name="webrtc_restart_after_disconnected",
+                    )
+                return
+
+            if self._pc.connectionState in {"failed", "closed"} and not self._is_stopping and self._restart_task is None:
+                if self._disconnected_restart_task is not None:
+                    self._disconnected_restart_task.cancel()
+                    self._disconnected_restart_task = None
                 self._restart_task = asyncio.create_task(self._restart_peer(), name="webrtc_restart_peer")
 
         offer = await self._pc.createOffer()
@@ -123,15 +145,32 @@ class WebRTCPeer:
             self._answer_task.cancel()
         if self._ice_task:
             self._ice_task.cancel()
+        if self._disconnected_restart_task:
+            self._disconnected_restart_task.cancel()
         if self._answer_task or self._ice_task:
             await asyncio.gather(*(t for t in [self._answer_task, self._ice_task] if t), return_exceptions=True)
+        if self._disconnected_restart_task:
+            await asyncio.gather(self._disconnected_restart_task, return_exceptions=True)
         if self._pc:
             await self._pc.close()
         self._answer_task = None
         self._ice_task = None
+        self._disconnected_restart_task = None
         self._pc = None
         self._track = None
         self._is_stopping = False
+
+    async def _restart_after_disconnected_grace(self) -> None:
+        try:
+            await asyncio.sleep(3.0)
+            if self._is_stopping or self._pc is None or self._restart_task is not None:
+                return
+            if self._pc.connectionState == "disconnected":
+                self._restart_task = asyncio.create_task(self._restart_peer(), name="webrtc_restart_peer")
+        except asyncio.CancelledError:
+            return
+        finally:
+            self._disconnected_restart_task = None
 
     async def _restart_peer(self) -> None:
         try:

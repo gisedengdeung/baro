@@ -124,8 +124,9 @@ def init_db(db_path: str) -> None:
         )
         conn.execute(
             """
-            CREATE INDEX IF NOT EXISTS idx_event_logs_event_uid
-            ON event_logs(event_uid);
+            CREATE UNIQUE INDEX IF NOT EXISTS uq_event_logs_event_uid_not_null
+            ON event_logs(event_uid)
+            WHERE event_uid IS NOT NULL;
             """
         )
 

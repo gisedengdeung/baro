@@ -164,6 +164,7 @@ class DBService:
     def set_clip_ready_by_event_uid(
         self,
         event_uid: str,
+        edge_id: str,
         clip_path: str,
         clip_started_at: str,
         clip_ended_at: str,
@@ -181,6 +182,7 @@ class DBService:
                     clip_duration_sec = ?,
                     clip_created_at = ?
                 WHERE event_uid = ?
+                  AND edge_id = ?
                 """,
                 (
                     clip_path,
@@ -189,6 +191,7 @@ class DBService:
                     duration_sec,
                     now_iso,
                     event_uid,
+                    edge_id,
                 ),
             )
             conn.commit()
@@ -197,6 +200,7 @@ class DBService:
     def set_clip_failed_by_event_uid(
         self,
         event_uid: str,
+        edge_id: str,
         error_message: str | None = None,
     ) -> Optional[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
@@ -205,10 +209,11 @@ class DBService:
                 SELECT id, details_json
                 FROM event_logs
                 WHERE event_uid = ?
+                  AND edge_id = ?
                 ORDER BY id DESC
                 LIMIT 1
                 """,
-                (event_uid,),
+                (event_uid, edge_id),
             ).fetchone()
             if not row:
                 return None

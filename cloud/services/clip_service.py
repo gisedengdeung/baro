@@ -39,6 +39,10 @@ class ClipService:
         existing = self.db_service.get_event_by_event_uid(event_uid)
         if not existing:
             raise ValueError(f"Unknown event_uid: {event_uid}")
+        if existing.get("edge_id") != edge_id:
+            raise ValueError(
+                f"event_uid belongs to edge_id={existing.get('edge_id')}, not {edge_id}"
+            )
 
         day_tag = datetime.utcnow().strftime("%Y%m%d")
         target_dir = self.storage_dir / edge_id / day_tag
@@ -49,6 +53,7 @@ class ClipService:
 
         updated = self.db_service.set_clip_ready_by_event_uid(
             event_uid=event_uid,
+            edge_id=edge_id,
             clip_path=str(target_path.resolve()),
             clip_started_at=clip_started_at,
             clip_ended_at=clip_ended_at,
@@ -61,9 +66,15 @@ class ClipService:
         await self.db_service.broadcast_log_update(updated)
         return updated
 
-    async def mark_clip_failed(self, event_uid: str, error_message: str | None = None) -> Dict[str, Any] | None:
+    async def mark_clip_failed(
+        self,
+        edge_id: str,
+        event_uid: str,
+        error_message: str | None = None,
+    ) -> Dict[str, Any] | None:
         updated = self.db_service.set_clip_failed_by_event_uid(
             event_uid=event_uid,
+            edge_id=edge_id,
             error_message=error_message,
         )
         if updated:

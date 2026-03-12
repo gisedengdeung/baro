@@ -1,5 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { useShallow } from 'zustand/react/shallow';
 
 import LiveStreamContent from '../../components/dashboard/LiveStreamContent';
 import ConveyorMode from '../../components/dashboard/ConveyorMode';
@@ -50,23 +51,25 @@ export default function Dashboard() {
     setVideoStatus,
     handleControl,
     resetSystem,
-  } = useDashboardStore((state) => ({
-    logs: state.logs,
-    activeId: state.activeId,
-    operationMode: state.operationMode,
-    loading: state.loading,
-    wsStatus: state.wsStatus,
-    videoStatus: state.videoStatus,
-    currentTime: state.currentTime,
-    popupError: state.popupError,
-    initialize: state.initialize,
-    disconnect: state.disconnect,
-    setActiveId: state.setActiveId,
-    setPopupError: state.setPopupError,
-    setVideoStatus: state.setVideoStatus,
-    handleControl: state.handleControl,
-    resetSystem: state.resetSystem,
-  }));
+  } = useDashboardStore(
+    useShallow((state) => ({
+      logs: state.logs,
+      activeId: state.activeId,
+      operationMode: state.operationMode,
+      loading: state.loading,
+      wsStatus: state.wsStatus,
+      videoStatus: state.videoStatus,
+      currentTime: state.currentTime,
+      popupError: state.popupError,
+      initialize: state.initialize,
+      disconnect: state.disconnect,
+      setActiveId: state.setActiveId,
+      setPopupError: state.setPopupError,
+      setVideoStatus: state.setVideoStatus,
+      handleControl: state.handleControl,
+      resetSystem: state.resetSystem,
+    }))
+  );
 
   const [clipLoading, setClipLoading] = useState(false);
   const [clipModal, setClipModal] = useState({
