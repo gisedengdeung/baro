@@ -1,5 +1,5 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
 import { useWebRTC } from "../../hooks/useWebRTC";
@@ -65,6 +65,50 @@ function Dashboard() {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [hour12, setHour12] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
+  const [modalTab, setModalTab] = useState("logs"); // 'logs' | 'stats'
+  const [tabDirection, setTabDirection] = useState(null); // 'left' | 'right'
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const switchTab = (tab) => {
+    if (tab === modalTab || isAnimating) return;
+    const dir = tab === "stats" ? "left" : "right";
+    setTabDirection(dir);
+    setIsAnimating(true);
+    setModalTab(tab);
+    setTimeout(() => setIsAnimating(false), 350);
+  };
+
+  // 월별 위험도 더미 데이터
+  const MONTHLY_STATS = [
+    { month: "1월", danger: 3 },
+    { month: "2월", danger: 7 },
+    { month: "3월", danger: 2 },
+    { month: "4월", danger: 4 },
+    { month: "5월", danger: 1 },
+    { month: "6월", danger: 5 },
+    { month: "7월", danger: 3 },
+    { month: "8월", danger: 2 },
+    { month: "9월", danger: 4 },
+    { month: "10월", danger: 9 },
+    { month: "11월", danger: 2 },
+    { month: "12월", danger: 2 },
+  ];
+  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger));
+  const barChartRef = useRef(null);
+  const [chartHeight, setChartHeight] = useState(193);
+
+  useEffect(() => {
+    if (!barChartRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // 전체 높이 - 상단 패딩(20px) - 수치 레이블(22px) - 월 레이블(25px)
+        const usable = entry.contentRect.height - 20 - 22 - 25;
+        setChartHeight(Math.max(usable, 40));
+      }
+    });
+    ro.observe(barChartRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const handleLogout = async () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
@@ -185,30 +229,120 @@ function Dashboard() {
             </div>
           </div>
 
-          {/* 로그박스 - 로그 확인하기 버튼만 표시 */}
-          <div className="log-board">
-            <button className="log-check-btn" onClick={() => setShowLogs(true)}>
-              로그 확인하기
-            </button>
+          {/* 로그박스 - 이벤트 로그 패널 */}
+          <div className="log-board panel-card">
+            <div className="log-board-header">
+              <h3>이벤트 로그</h3>
+              <button
+                className="log-check-btn"
+                onClick={() => setShowLogs(true)}
+              >
+                로그 및 통계
+              </button>
+            </div>
+            <div className="log-preview">
+              {DUMMY_LOGS.slice(0, 5).map((log) => (
+                <div
+                  key={log.id}
+                  className={`log-item ${
+                    log.event_type.includes("CRITICAL")
+                      ? "log-danger"
+                      : log.event_type.includes("WARN") ||
+                          log.event_type.includes("SLOWDOWN")
+                        ? "log-warning"
+                        : "log-info"
+                  }`}
+                >
+                  <span className="log-icon">
+                    {log.event_type.includes("CRITICAL")
+                      ? "🔴"
+                      : log.event_type.includes("WARN") ||
+                          log.event_type.includes("SLOWDOWN")
+                        ? "🟡"
+                        : "🟢"}
+                  </span>
+                  <span className="log-text">
+                    {log.details?.description || log.event_type}
+                  </span>
+                  <span className="log-time">
+                    {new Date(log.timestamp).toLocaleTimeString("ko-KR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
+            </div>
           </div>
         </aside>
       </main>
 
       {/* 로그 확인 모달 */}
       {showLogs && (
-        <div className="modal-overlay" onClick={() => setShowLogs(false)}>
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowLogs(false);
+            setModalTab("logs");
+            setTabDirection(null);
+          }}
+        >
           <div className="modal-content" onClick={(e) => e.stopPropagation()}>
             <div className="modal-header">
-              <h2>🎞️ 시스템 이벤트 로그</h2>
+              <div className="modal-tabs">
+                <button
+                  className={`modal-tab-btn ${modalTab === "logs" ? "active" : ""}`}
+                  onClick={() => switchTab("logs")}
+                >
+                  이벤트 로그
+                </button>
+                <button
+                  className={`modal-tab-btn ${modalTab === "stats" ? "active" : ""}`}
+                  onClick={() => switchTab("stats")}
+                >
+                  통계
+                </button>
+              </div>
               <button
                 className="modal-close-btn"
-                onClick={() => setShowLogs(false)}
+                onClick={() => {
+                  setShowLogs(false);
+                  setModalTab("logs");
+                  setTabDirection(null);
+                }}
               >
                 &times;
               </button>
             </div>
-            <div className="modal-body" style={{ height: "500px" }}>
-              <VideoLogTable logs={DUMMY_LOGS} />
+            <div className="modal-body">
+              <div
+                className={`tab-slider ${tabDirection ? `slide-${tabDirection}` : ""} ${isAnimating ? "animating" : ""}`}
+              >
+                {/* 로그 패널 */}
+                <div className="tab-panel logs-panel">
+                  <VideoLogTable logs={DUMMY_LOGS} />
+                </div>
+                {/* 통계 패널 */}
+                <div className="tab-panel stats-panel">
+                  <div className="stats-container">
+                    <h3 className="stats-title">월별 위험도</h3>
+                    <div className="bar-chart" ref={barChartRef}>
+                      {MONTHLY_STATS.map((item) => (
+                        <div className="bar-col" key={item.month}>
+                          <div className="bar-value">{item.danger}</div>
+                          <div
+                            className="bar-fill"
+                            style={{
+                              height: `${Math.round((item.danger / maxDanger) * chartHeight)}px`,
+                            }}
+                          />
+                          <div className="bar-label">{item.month}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
