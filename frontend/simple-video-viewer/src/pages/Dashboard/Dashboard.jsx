@@ -70,6 +70,7 @@ function Dashboard() {
   const [isAnimating, setIsAnimating] = useState(false);
 
   const switchTab = (tab) => {
+    // 탭 화면 전환시 애니메이션 방향 결정 로직
     if (tab === modalTab || isAnimating) return;
     const dir = tab === "stats" ? "left" : "right";
     setTabDirection(dir);
@@ -93,7 +94,7 @@ function Dashboard() {
     { month: "11월", danger: 2 },
     { month: "12월", danger: 2 },
   ];
-  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger));
+  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger)); // 막대 높이 비율 계산용 코드
   const barChartRef = useRef(null);
   const [chartHeight, setChartHeight] = useState(193);
 
@@ -118,18 +119,21 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    document.body.classList.add("dashboard-body-no-scroll"); // 전체화면 스크롤 방지
+    // 대시보드 진입 시 body 전체 스크롤을 막아 고정 레이아웃 유지
+    document.body.classList.add("dashboard-body-no-scroll");
 
     const timer = setInterval(() => {
       setCurrentTime(new Date());
     }, 1000);
 
     return () => {
+      // 언마운트 시 스크롤 제한 클래스 제거 (다른 페이지에 영향 방지)
       document.body.classList.remove("dashboard-body-no-scroll");
       clearInterval(timer);
     };
   }, []);
 
+  // TODO: 실제 API 연동 필요
   const systemStatus = "ok"; // 'ok', 'warning', 'danger'
 
   return (
@@ -185,7 +189,7 @@ function Dashboard() {
           {/*시스템 제어*/}
           <div className="system-infos">
             <h3>시스템 정보</h3>
-            {/*시계*/}
+            {/*시계 카드*/}
             <div className="time-card">
               <div className="string-time">
                 {currentTime.toLocaleTimeString("ko-KR", {
@@ -200,7 +204,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* 시스템 상태 */}
+            {/* 시스템 상태 카드*/}
             <div className={`panel-card system-status status-${systemStatus}`}>
               <div className="status-indicator">
                 <span className="status-light"></span>
@@ -212,7 +216,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* 제어칸 */}
+            {/* 컨베이어 제어 카드 */}
             <div className="panel-card">
               <h3>컨베이어 제어</h3>
               <div className="control-buttons">
@@ -223,7 +227,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* 긴급 정지칸 */}
+            {/* 긴급 정지 카드 */}
             <div className="panel-card">
               <button className="emergency-stop-btn">긴급 정지</button>
             </div>
@@ -315,6 +319,11 @@ function Dashboard() {
               </button>
             </div>
             <div className="modal-body">
+              {/*
+                tab-slider: 탭 콘텐츠 슬라이더 컨테이너
+                slide-left / slide-right: 전환 방향에 따라 CSS 슬라이드 애니메이션 트리거
+                animating: 애니메이션 진행 중일 때 추가 클릭 방지 및 transition 활성화
+              */}
               <div
                 className={`tab-slider ${tabDirection ? `slide-${tabDirection}` : ""} ${isAnimating ? "animating" : ""}`}
               >
@@ -334,6 +343,12 @@ function Dashboard() {
                             className="bar-fill"
                             style={{
                               height: `${Math.round((item.danger / maxDanger) * chartHeight)}px`,
+                              backgroundColor:
+                                item.danger <= 3
+                                  ? "var(--status-ok)"
+                                  : item.danger >= 7
+                                    ? "var(--status-danger)"
+                                    : "var(--accent-color)",
                             }}
                           />
                           <div className="bar-label">{item.month}</div>
