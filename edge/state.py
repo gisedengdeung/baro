@@ -10,8 +10,11 @@ from shared.enums import OperationMode
 
 @dataclass
 class SystemState:
-    system_is_active: bool = False
-    operation_mode: OperationMode = OperationMode.STOPPED
+    #system_is_active: bool = False
+    #operation_mode: OperationMode = OperationMode.STOPPED
+    system_is_active: bool = True
+    operation_mode: OperationMode = OperationMode.AUTOMATIC
+    
     is_locked: bool = False
     zones: List[Dict[str, Any]] = field(default_factory=list)
 

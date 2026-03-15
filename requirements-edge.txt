@@ -5,6 +5,9 @@ pyserial==3.5
 torch==2.1.0
 ultralytics==8.0.196
 httpx==0.27.2
-aiortc==1.7.0
-av==11.0.0
+# aiortc==1.7.0
+# av==11.0.0
+# Windows에서 aiortc 1.7.0과 av 11.0.0이 호환되지 않아 버전 up
+aiortc==1.9.0
+av==12.0.0 
 pydantic==2.5.3

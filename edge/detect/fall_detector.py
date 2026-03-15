@@ -14,6 +14,8 @@ class FallDetector:
         self.model = YOLO(model_path)
         self.model.to(self.device)
         self.conf_threshold = conf_threshold
+        self.min_consecutive_frames = 5
+        self.tracked_persons: List[Dict[str, Any]] = []
         logger.info(f"FallDetector 초기화 완료: model={model_path}")
 
     @staticmethod
@@ -54,32 +56,72 @@ class FallDetector:
                 if class_name == "Fall-Detected":
                     fall_boxes.append(box.xyxy[0].cpu().numpy().astype(int))
 
-        for person in persons:
-            person_bbox = np.array(person["bbox"])
-            analysis = {
-                "is_falling": False,
-                "is_crouching": False,
-                "risk_level": "low",
-                "description": "Normal",
-            }
+        if len(fall_boxes) > 0:
+            logger.debug(f"[FallDetector] Fall-Detected boxes found: {len(fall_boxes)}")
 
+        current_tracked: List[Dict[str, Any]] = []
+
+        for i, person in enumerate(persons):
+            person_bbox = np.array(person["bbox"])
             x1, y1, x2, y2 = person_bbox
             width = x2 - x1
             height = y2 - y1
+
             if height <= 0:
-                person["pose_analysis"] = analysis
+                person["pose_analysis"] = {
+                    "is_falling": False,
+                    "is_crouching": False,
+                    "risk_level": "low",
+                    "description": "Invalid Box",
+                }
                 continue
 
             is_model_falling = any(self._calculate_iou(person_bbox, fb) > 0.5 for fb in fall_boxes)
             is_ratio_falling = width > height * 1.4
-            if is_model_falling and is_ratio_falling:
+            is_falling_now = is_model_falling and is_ratio_falling
+
+            if is_model_falling or is_ratio_falling:
+                logger.debug(
+                    f"Person[{i}] Check: Model={is_model_falling}, Ratio={is_ratio_falling} "
+                    f"(w={width}, h={height}, ratio={width/height:.2f})"
+                )
+
+            # 프레임 간 객체 추적 (IoU 기반) & 카운트 누적
+            best_iou = 0.0
+            matched_prev = None
+            for prev in self.tracked_persons:
+                iou = self._calculate_iou(person_bbox, prev["bbox"])
+                if iou > best_iou:
+                    best_iou = iou
+                    matched_prev = prev
+
+            fall_count = 0
+            if best_iou > 0.3 and matched_prev:
+                fall_count = matched_prev["fall_count"] + 1 if is_falling_now else 0
+            else:
+                fall_count = 1 if is_falling_now else 0
+
+            if fall_count > 0:
+                logger.debug(f"Person[{i}] Fall Count: {fall_count}/{self.min_consecutive_frames}")
+
+            current_tracked.append({"bbox": person_bbox, "fall_count": fall_count})
+
+            if fall_count >= self.min_consecutive_frames:
                 analysis = {
                     "is_falling": True,
                     "is_crouching": False,
                     "risk_level": "critical",
-                    "description": "Falling Detected (Verified by BBox Ratio)",
+                    "description": f"Falling Detected ({fall_count} frames)",
+                }
+            else:
+                analysis = {
+                    "is_falling": False,
+                    "is_crouching": False,
+                    "risk_level": "low",
+                    "description": "Normal",
                 }
 
             person["pose_analysis"] = analysis
 
+        self.tracked_persons = current_tracked
         return persons
