@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import asyncio
+import os
 import time
 from typing import Any, Dict, List
 
@@ -115,6 +116,48 @@ class CloudClient:
             await self._http.post("/api/edge/log", json=payload)
         except Exception as exc:
             logger.warning(f"로그 전송 실패(무시): {exc}")
+
+    async def upload_clip(
+        self,
+        edge_id: str,
+        event_uid: str,
+        clip_started_at: str,
+        clip_ended_at: str,
+        duration_sec: float,
+        file_path: str,
+    ) -> None:
+        with open(file_path, "rb") as fp:
+            files = {
+                "file": (
+                    os.path.basename(file_path),
+                    fp,
+                    "video/mp4",
+                )
+            }
+            data = {
+                "edge_id": edge_id,
+                "event_uid": event_uid,
+                "clip_started_at": clip_started_at,
+                "clip_ended_at": clip_ended_at,
+                "duration_sec": str(duration_sec),
+            }
+            response = await self._http.post("/api/edge/clips", data=data, files=files)
+            response.raise_for_status()
+
+    async def report_clip_failed(
+        self,
+        edge_id: str,
+        event_uid: str,
+        error_message: str,
+    ) -> None:
+        data = {
+            "edge_id": edge_id,
+            "event_uid": event_uid,
+            "status": "FAILED",
+            "error_message": error_message,
+        }
+        response = await self._http.post("/api/edge/clips", data=data)
+        response.raise_for_status()
 
     async def signaling_post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         response = await self._http.post(path, json=payload)

@@ -100,6 +100,12 @@ export const logAPI = {
     const response = await apiClient.get('/api/logs', { params: { limit } });
     return response.data;
   },
+  getClipBlob: async (logId) => {
+    const response = await apiClient.get(`/api/logs/${logId}/clip`, {
+      responseType: 'blob',
+    });
+    return response.data;
+  },
 };
 
 export const zoneAPI = {

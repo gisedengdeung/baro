@@ -19,6 +19,9 @@ class CloudConfig:
     auth_cookie_secure: bool
     auth_cookie_samesite: str
     auth_cookie_domain: str | None
+    clip_storage_dir: str
+    clip_retention_days: int
+    clip_cleanup_interval_sec: int
 
 
 def _parse_bool(value: str, default: bool = False) -> bool:
@@ -53,4 +56,7 @@ def load_config() -> CloudConfig:
         auth_cookie_secure=_parse_bool(os.getenv("AUTH_COOKIE_SECURE", "false"), default=False),
         auth_cookie_samesite=cookie_samesite,
         auth_cookie_domain=auth_cookie_domain,
+        clip_storage_dir=os.getenv("CLIP_STORAGE_DIR", "cloud/data/clips"),
+        clip_retention_days=int(os.getenv("CLIP_RETENTION_DAYS", "7")),
+        clip_cleanup_interval_sec=int(os.getenv("CLIP_CLEANUP_INTERVAL_SEC", "3600")),
     )

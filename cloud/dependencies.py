@@ -4,6 +4,7 @@ from fastapi import HTTPException, Request, WebSocket, WebSocketException, statu
 
 from cloud.models.auth import UserPublic
 from cloud.services.auth_service import ACCESS_COOKIE_NAME, AuthService
+from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.signaling_store import SignalingStore
@@ -45,6 +46,10 @@ def get_websocket_manager(websocket: WebSocket) -> WebSocketManager:
 
 def get_auth_service(request: Request) -> AuthService:
     return _get_state_attr(request, "auth_service")
+
+
+def get_clip_service(request: Request) -> ClipService:
+    return _get_state_attr(request, "clip_service")
 
 
 def get_auth_service_ws(websocket: WebSocket) -> AuthService:

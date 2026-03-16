@@ -2,11 +2,12 @@ from __future__ import annotations
 
 import argparse
 import asyncio
-from typing import Optional
+from datetime import datetime
 
 from loguru import logger
 
 from edge.capture.camera import Camera
+from edge.clip_recorder import EdgeClipRecorder
 from edge.capture.serial_comm import SerialComm
 from edge.cloud_client import CloudClient
 from edge.config import EdgeConfig, load_config
@@ -50,6 +51,13 @@ def _build_config_from_args() -> EdgeConfig:
         visual_overlay_enabled=cfg.visual_overlay_enabled,
         draw_zone_polygons=cfg.draw_zone_polygons,
         draw_label_confidence=cfg.draw_label_confidence,
+        clip_pre_seconds=cfg.clip_pre_seconds,
+        clip_post_seconds=cfg.clip_post_seconds,
+        clip_target_fps=cfg.clip_target_fps,
+        clip_width=cfg.clip_width,
+        clip_height=cfg.clip_height,
+        clip_output_dir=cfg.clip_output_dir,
+        clip_min_trigger_level=cfg.clip_min_trigger_level,
     )
 
 
@@ -68,23 +76,39 @@ async def main() -> None:
         zone_poll_interval=cfg.zone_poll_interval,
         heartbeat_interval=cfg.heartbeat_interval,
     )
+    clip_recorder = EdgeClipRecorder(
+        cloud_client=cloud_client,
+        edge_id=cfg.edge_id,
+        output_dir=cfg.clip_output_dir,
+        pre_seconds=cfg.clip_pre_seconds,
+        post_seconds=cfg.clip_post_seconds,
+        target_fps=cfg.clip_target_fps,
+        width=cfg.clip_width,
+        height=cfg.clip_height,
+        min_trigger_level=cfg.clip_min_trigger_level,
+    )
 
     loop = asyncio.get_running_loop()
 
     def on_hardware_emergency(reason: str) -> None:
         state.lock_system(reason)
-        loop.call_soon_threadsafe(
-            lambda: asyncio.create_task(
-                cloud_client.report_log(
-                    {
-                        "event_type": "LOG_CRITICAL_SENSOR",
-                        "details": {"description": f"하드웨어 비상 신호 감지: {reason}"},
-                        "log_risk_level": "CRITICAL",
-                        "operation_mode": state.get_mode().value,
-                    }
-                )
+        event_time = datetime.utcnow()
+
+        async def _report_hardware_emergency() -> None:
+            clip_uid = clip_recorder.trigger(event_time=event_time)
+            await cloud_client.report_log(
+                {
+                    "event_type": "LOG_CRITICAL_SENSOR",
+                    "details": {"description": f"하드웨어 비상 신호 감지: {reason}"},
+                    "log_risk_level": "CRITICAL",
+                    "operation_mode": state.get_mode().value,
+                    "timestamp": event_time.isoformat(),
+                    "event_uid": clip_uid,
+                    "clip_status": "PENDING",
+                }
             )
-        )
+
+        loop.call_soon_threadsafe(lambda: asyncio.create_task(_report_hardware_emergency()))
 
     serial.set_lock_system_callback(on_hardware_emergency)
     serial.set_is_locked_checker(state.is_locked_status)
@@ -120,6 +144,7 @@ async def main() -> None:
         cloud_client=cloud_client,
         webrtc_peer=webrtc_peer,
         overlay_renderer=overlay_renderer,
+        clip_recorder=clip_recorder,
     )
 
     await cloud_client.start()
@@ -129,6 +154,7 @@ async def main() -> None:
         await pipeline.run()
     finally:
         pipeline.stop()
+        await clip_recorder.shutdown()
         await webrtc_peer.stop()
         await cloud_client.stop()
         serial.close()
