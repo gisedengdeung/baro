@@ -1,24 +1,58 @@
 // src/pages/Dashboard/Dashboard.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import Webcam from "react-webcam";
 import useAuthStore from "../../store/useAuthStore";
+import { useWebRTC } from "../../hooks/useWebRTC";
+import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import "./Dashboard.css";
 
-// 로그 타입에 따라 아이콘을 바꿔 로그 메시지와 시간을 함께 화면에 표시
-const LogItem = ({ type = "info", message, time }) => {
-  const iconMap = {
-    info: "ℹ️",
-    warning: "⚠️",
-    danger: "🚨",
-  };
-  return (
-    <div className={`log-item log-${type}`}>
-      <span className="log-icon">{iconMap[type]}</span>
-      <span className="log-message">{`[${time}] ${message}`}</span>
-    </div>
-  );
-};
+// 더미 로그 데이터
+const DUMMY_LOGS = [
+  {
+    id: 1,
+    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_NORMAL_OPERATION",
+  },
+  {
+    id: 2,
+    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_INTRUSION_SLOWDOWN",
+    details: { description: "위험 구역 침입 감지" },
+  },
+  {
+    id: 3,
+    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
+    operation_mode: "MAINTENANCE",
+    event_type: "LOG_MAINTENANCE_SAFE",
+  },
+  {
+    id: 4,
+    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_CRITICAL_FALLING",
+    details: { description: "작업자 쓰러짐 발생!" },
+  },
+  {
+    id: 5,
+    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
+    operation_mode: "STOPPED",
+    event_type: "LOG_CRITICAL_SENSOR",
+  },
+  {
+    id: 6,
+    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
+    operation_mode: "AUTOMATIC",
+    event_type: "LOG_CROUCHING_WARN",
+  },
+  {
+    id: 7,
+    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
+    operation_mode: "MANUAL",
+    event_type: "LOG_LOTO_ACTIVE",
+  },
+];
 
 function Dashboard() {
   // 상태 선언
@@ -26,9 +60,56 @@ function Dashboard() {
   const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const [currentTime, setCurrentTime] = useState(new Date()); // 수정됨
-  const [webcamError, setWebcamError] = useState(null); // 웹캠 접근 실패 시 에러 메시지 저장
+  const { videoRef, connected, error: streamError } = useWebRTC();
+
+  const [currentTime, setCurrentTime] = useState(new Date());
   const [hour12, setHour12] = useState(true);
+  const [showLogs, setShowLogs] = useState(false);
+  const [modalTab, setModalTab] = useState("logs"); // 'logs' | 'stats'
+  const [tabDirection, setTabDirection] = useState(null); // 'left' | 'right'
+  const [isAnimating, setIsAnimating] = useState(false);
+
+  const switchTab = (tab) => {
+    // 탭 화면 전환시 애니메이션 방향 결정 로직
+    if (tab === modalTab || isAnimating) return;
+    const dir = tab === "stats" ? "left" : "right";
+    setTabDirection(dir);
+    setIsAnimating(true);
+    setModalTab(tab);
+    setTimeout(() => setIsAnimating(false), 350);
+  };
+
+  // 월별 위험도 더미 데이터
+  const MONTHLY_STATS = [
+    { month: "1월", danger: 3 },
+    { month: "2월", danger: 7 },
+    { month: "3월", danger: 2 },
+    { month: "4월", danger: 4 },
+    { month: "5월", danger: 1 },
+    { month: "6월", danger: 5 },
+    { month: "7월", danger: 3 },
+    { month: "8월", danger: 2 },
+    { month: "9월", danger: 4 },
+    { month: "10월", danger: 9 },
+    { month: "11월", danger: 2 },
+    { month: "12월", danger: 2 },
+  ];
+  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger)); // 막대 높이 비율 계산용 코드
+  const barChartRef = useRef(null);
+  const [chartHeight, setChartHeight] = useState(193);
+
+  useEffect(() => {
+    if (!barChartRef.current) return;
+    const ro = new ResizeObserver((entries) => {
+      for (const entry of entries) {
+        // 전체 높이 - 상단 패딩(20px) - 수치 레이블(22px) - 월 레이블(25px)
+        const usable = entry.contentRect.height - 20 - 22 - 25;
+        setChartHeight(Math.max(usable, 40));
+      }
+    });
+    ro.observe(barChartRef.current);
+    return () => ro.disconnect();
+  }, []);
 
   const handleLogout = async () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
@@ -38,46 +119,22 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    document.body.classList.add("dashboard-body-no-scroll"); // 전체화면 스크롤 방지
+    // 대시보드 진입 시 body 전체 스크롤을 막아 고정 레이아웃 유지
+    document.body.classList.add("dashboard-body-no-scroll");
 
-    // 수정된 시간 가져오기
     const timer = setInterval(() => {
-      const now = new Date();
-
-      setCurrentTime(
-        /* 
-        now.toLocaleString("ko-KR", {
-          year: "numeric",
-          month: "2-digit",
-          day: "2-digit",
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }),*/
-        now,
-      );
+      setCurrentTime(new Date());
     }, 1000);
 
     return () => {
+      // 언마운트 시 스크롤 제한 클래스 제거 (다른 페이지에 영향 방지)
       document.body.classList.remove("dashboard-body-no-scroll");
       clearInterval(timer);
     };
   }, []);
 
+  // TODO: 실제 API 연동 필요
   const systemStatus = "ok"; // 'ok', 'warning', 'danger'
-
-  // 웹캠 설정
-  const videoConstraints = {
-    facingMode: "user",
-  };
-
-  // 웹캠 연결 오류 메시지
-  const handleUserMediaError = (error) => {
-    console.error("Webcam access error:", error);
-    setWebcamError(
-      "웹캠에 접근할 수 없습니다. 권한을 확인하거나 다른 프로그램에서 사용 중인지 확인해주세요.",
-    );
-  };
 
   return (
     <div className="dashboard">
@@ -104,26 +161,35 @@ function Dashboard() {
       </header>
 
       <main className="main-layout">
-        {/* 웹캠? CCTV 칸 */}
+        {/* CCTV WebRTC 스트림 */}
         <section className="stream-panel">
-          {webcamError ? (
+          {streamError ? (
             <div className="webcam-error">
-              <p>⚠️ {webcamError}</p>
+              <p>⚠️ {streamError}</p>
             </div>
           ) : (
-            <Webcam
-              audio={false}
-              videoConstraints={videoConstraints}
-              onUserMediaError={handleUserMediaError}
-              className="webcam-feed"
-            /> // --> react-webcam으로 카메라 연결(임시)
+            <>
+              {!connected && (
+                <div className="webcam-error">
+                  <p>📡 Edge 연결 중...</p>
+                </div>
+              )}
+              <video
+                ref={videoRef}
+                autoPlay
+                playsInline
+                muted
+                className="webcam-feed"
+                style={{ display: connected ? "block" : "none" }}
+              />
+            </>
           )}
         </section>
         <aside className="control-panel">
           {/*시스템 제어*/}
           <div className="system-infos">
             <h3>시스템 정보</h3>
-            {/*시계*/}
+            {/*시계 카드*/}
             <div className="time-card">
               <div className="string-time">
                 {currentTime.toLocaleTimeString("ko-KR", {
@@ -132,17 +198,13 @@ function Dashboard() {
                   second: "2-digit",
                   hour12: hour12,
                 })}
-                <button
-                  onClick={() => {
-                    setHour12((prev) => !prev);
-                  }}
-                >
+                <button onClick={() => setHour12((prev) => !prev)}>
                   {hour12 ? "24H" : "12H"}
                 </button>
               </div>
             </div>
 
-            {/* 시스템 상태 */}
+            {/* 시스템 상태 카드*/}
             <div className={`panel-card system-status status-${systemStatus}`}>
               <div className="status-indicator">
                 <span className="status-light"></span>
@@ -154,7 +216,7 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* 제어칸 */}
+            {/* 컨베이어 제어 카드 */}
             <div className="panel-card">
               <h3>컨베이어 제어</h3>
               <div className="control-buttons">
@@ -165,37 +227,141 @@ function Dashboard() {
               </div>
             </div>
 
-            {/* 긴급 정지칸 */}
+            {/* 긴급 정지 카드 */}
             <div className="panel-card">
               <button className="emergency-stop-btn">긴급 정지</button>
             </div>
           </div>
 
-          {/* 로그박스, 현재 더미데이터로 설정해놓음 */}
-          <div className="panel-card log-board">
-            <h3>이벤트 로그</h3>
-            <div className="log-content">
-              <LogItem
-                type="danger"
-                time="14:45:12"
-                message="위험 구역 #1에서 작업자 감지"
-              />
-              <LogItem
-                type="warning"
-                time="14:46:01"
-                message="컨베이어 벨트 속도 저하"
-              />
-              <LogItem type="info" time="14:48:30" message="시스템 재가동" />
-              <LogItem
-                type="danger"
-                time="14:49:12"
-                message="비상 정지 버튼 눌림"
-              />
-              <LogItem type="info" time="14:50:30" message="관리자 로그인" />
+          {/* 로그박스 - 이벤트 로그 패널 */}
+          <div className="log-board panel-card">
+            <div className="log-board-header">
+              <h3>이벤트 로그</h3>
+              <button
+                className="log-check-btn"
+                onClick={() => setShowLogs(true)}
+              >
+                로그 및 통계
+              </button>
+            </div>
+            <div className="log-preview">
+              {DUMMY_LOGS.slice(0, 5).map((log) => (
+                <div
+                  key={log.id}
+                  className={`log-item ${
+                    log.event_type.includes("CRITICAL")
+                      ? "log-danger"
+                      : log.event_type.includes("WARN") ||
+                          log.event_type.includes("SLOWDOWN")
+                        ? "log-warning"
+                        : "log-info"
+                  }`}
+                >
+                  <span className="log-icon">
+                    {log.event_type.includes("CRITICAL")
+                      ? "🔴"
+                      : log.event_type.includes("WARN") ||
+                          log.event_type.includes("SLOWDOWN")
+                        ? "🟡"
+                        : "🟢"}
+                  </span>
+                  <span className="log-text">
+                    {log.details?.description || log.event_type}
+                  </span>
+                  <span className="log-time">
+                    {new Date(log.timestamp).toLocaleTimeString("ko-KR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    })}
+                  </span>
+                </div>
+              ))}
             </div>
           </div>
         </aside>
       </main>
+
+      {/* 로그 확인 모달 */}
+      {showLogs && (
+        <div
+          className="modal-overlay"
+          onClick={() => {
+            setShowLogs(false);
+            setModalTab("logs");
+            setTabDirection(null);
+          }}
+        >
+          <div className="modal-content" onClick={(e) => e.stopPropagation()}>
+            <div className="modal-header">
+              <div className="modal-tabs">
+                <button
+                  className={`modal-tab-btn ${modalTab === "logs" ? "active" : ""}`}
+                  onClick={() => switchTab("logs")}
+                >
+                  이벤트 로그
+                </button>
+                <button
+                  className={`modal-tab-btn ${modalTab === "stats" ? "active" : ""}`}
+                  onClick={() => switchTab("stats")}
+                >
+                  통계
+                </button>
+              </div>
+              <button
+                className="modal-close-btn"
+                onClick={() => {
+                  setShowLogs(false);
+                  setModalTab("logs");
+                  setTabDirection(null);
+                }}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="modal-body">
+              {/*
+                tab-slider: 탭 콘텐츠 슬라이더 컨테이너
+                slide-left / slide-right: 전환 방향에 따라 CSS 슬라이드 애니메이션 트리거
+                animating: 애니메이션 진행 중일 때 추가 클릭 방지 및 transition 활성화
+              */}
+              <div
+                className={`tab-slider ${tabDirection ? `slide-${tabDirection}` : ""} ${isAnimating ? "animating" : ""}`}
+              >
+                {/* 로그 패널 */}
+                <div className="tab-panel logs-panel">
+                  <VideoLogTable logs={DUMMY_LOGS} />
+                </div>
+                {/* 통계 패널 */}
+                <div className="tab-panel stats-panel">
+                  <div className="stats-container">
+                    <h3 className="stats-title">월별 위험도</h3>
+                    <div className="bar-chart" ref={barChartRef}>
+                      {MONTHLY_STATS.map((item) => (
+                        <div className="bar-col" key={item.month}>
+                          <div className="bar-value">{item.danger}</div>
+                          <div
+                            className="bar-fill"
+                            style={{
+                              height: `${Math.round((item.danger / maxDanger) * chartHeight)}px`,
+                              backgroundColor:
+                                item.danger <= 3
+                                  ? "var(--status-ok)"
+                                  : item.danger >= 7
+                                    ? "var(--status-danger)"
+                                    : "var(--accent-color)",
+                            }}
+                          />
+                          <div className="bar-label">{item.month}</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
