@@ -4,6 +4,7 @@ import asyncio
 import time
 from typing import Any, Dict, List
 
+import cv2
 from loguru import logger
 
 from edge.cloud_client import CloudClient
@@ -12,6 +13,7 @@ from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
 from edge.detect.fall_detector import FallDetector
+from edge.detect.fire_detector import FireDetector
 from edge.detect.person_detector import PersonDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.state import SystemStateManager
@@ -48,6 +50,8 @@ class SafetyPipeline:
         self.cloud_client = cloud_client
         self.webrtc_peer = webrtc_peer
         self.overlay_renderer = overlay_renderer
+
+        self.fire_detector = FireDetector()
 
         self._running = False
         self._was_locked = False
@@ -172,6 +176,14 @@ class SafetyPipeline:
                     await asyncio.sleep(0.1)
                     continue
 
+                # 매 프레임 화재 추론
+                fire_result = await loop.run_in_executor(None, self.fire_detector.predict, frame)
+                if fire_result["danger"]:
+                    logger.warning(
+                        # f"FIRE DETECTED: class={fire_result['class']}, conf={fire_result['confidence']:.2f}"
+                        f"FIRE DETECTED: class={fire_result['class']}"
+                    )
+
                 is_locked_now = self.state.is_locked_status()
                 if is_locked_now and not self._was_locked:
                     self.conveyor.power_off("System LOCKED")
@@ -187,6 +199,7 @@ class SafetyPipeline:
                         "risk_level": RiskLevel.SAFE.value,
                     }
                     await self.cloud_client.report_heartbeat(heartbeat)
+
                     display_frame = frame
                     if self.overlay_renderer is not None:
                         try:
@@ -201,7 +214,9 @@ class SafetyPipeline:
                             logger.warning(f"비활성 상태 오버레이 렌더 실패(원본 전송): {exc}")
                             display_frame = frame
 
+                    display_frame = self.fire_detector.draw_overlay(display_frame, fire_result)
                     self.webrtc_peer.send_frame(display_frame)
+
                     self._was_locked = is_locked_now
                     await asyncio.sleep(0.1)
                     continue
@@ -256,10 +271,15 @@ class SafetyPipeline:
                         logger.warning(f"오버레이 렌더 실패(원본 전송): {exc}")
                         display_frame = frame
 
+                # 화재 분류 결과 텍스트 오버레이
+                display_frame = self.fire_detector.draw_overlay(display_frame, fire_result)
+
                 self.webrtc_peer.send_frame(display_frame)
                 self._was_locked = is_locked_now
+
                 _elapsed = time.monotonic() - _frame_start
                 await asyncio.sleep(max(0.0, frame_interval - _elapsed))
+
             except Exception as exc:
                 logger.error(f"파이프라인 루프 예외: {exc}")
                 await self.cloud_client.report_log(
