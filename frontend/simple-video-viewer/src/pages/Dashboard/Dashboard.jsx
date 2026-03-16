@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
+import useDashboardStore from "../../store/useDashboardStore";
 import { useWebRTC } from "../../hooks/useWebRTC";
 import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import "./Dashboard.css";
@@ -58,6 +59,23 @@ function Dashboard() {
   // 상태 선언
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
+  const logs = useDashboardStore((state) => state.logs);
+  const operationMode = useDashboardStore((state) => state.operationMode);
+  const conveyorSpeed = useDashboardStore((state) => state.conveyorSpeed);
+  const riskLevel = useDashboardStore((state) => state.riskLevel);
+  const isLocked = useDashboardStore((state) => state.isLocked);
+  const loading = useDashboardStore((state) => state.loading);
+  const popupError = useDashboardStore((state) => state.popupError);
+  const testSpeed = useDashboardStore((state) => state.testSpeed);
+  const testSpeedInput = useDashboardStore((state) => state.testSpeedInput);
+  const initializeDashboard = useDashboardStore((state) => state.initialize);
+  const disconnectDashboard = useDashboardStore((state) => state.disconnect);
+  const handleControl = useDashboardStore((state) => state.handleControl);
+  const resetSystem = useDashboardStore((state) => state.resetSystem);
+  const setTestSpeedInput = useDashboardStore((state) => state.setTestSpeedInput);
+  const startTestRun = useDashboardStore((state) => state.startTestRun);
+  const applyTestSpeed = useDashboardStore((state) => state.applyTestSpeed);
+  const stopTestRun = useDashboardStore((state) => state.stopTestRun);
   const navigate = useNavigate();
 
   const { videoRef, connected, error: streamError } = useWebRTC();
@@ -119,6 +137,13 @@ function Dashboard() {
   };
 
   useEffect(() => {
+    initializeDashboard();
+    return () => {
+      disconnectDashboard();
+    };
+  }, [initializeDashboard, disconnectDashboard]);
+
+  useEffect(() => {
     // 대시보드 진입 시 body 전체 스크롤을 막아 고정 레이아웃 유지
     document.body.classList.add("dashboard-body-no-scroll");
 
@@ -133,8 +158,14 @@ function Dashboard() {
     };
   }, []);
 
-  // TODO: 실제 API 연동 필요
-  const systemStatus = "ok"; // 'ok', 'warning', 'danger'
+  const systemStatus = isLocked || riskLevel === "CRITICAL"
+    ? "danger"
+    : (riskLevel === "WARNING" || riskLevel === "NOTICE" || riskLevel === "LOTO_RISK_DETECTED")
+      ? "warning"
+      : "ok";
+  const isStopped = operationMode === "STOPPED";
+  const isTestMode = operationMode === "TEST";
+  const previewLogs = logs.length > 0 ? logs.slice(0, 5) : DUMMY_LOGS.slice(0, 5);
 
   return (
     <div className="dashboard">
@@ -214,23 +245,77 @@ function Dashboard() {
                   {systemStatus === "danger" && "System Critical"}
                 </span>
               </div>
+              <div className="status-meta">
+                <span>모드: {operationMode || "LOADING"}</span>
+                <span>잠금: {isLocked ? "LOCKED" : "UNLOCKED"}</span>
+                <span>속도: {conveyorSpeed}%</span>
+              </div>
             </div>
 
             {/* 컨베이어 제어 카드 */}
             <div className="panel-card">
               <h3>컨베이어 제어</h3>
               <div className="control-buttons">
-                <button>자동 모드 시작</button>
-                <button>수동 모드 시작</button>
-                <button>정지</button>
-                <button>위험구역 설정</button>
+                <button disabled={loading} onClick={() => handleControl("start_automatic")}>
+                  자동 모드 시작
+                </button>
+                <button disabled={loading} onClick={() => handleControl("start_maintenance")}>
+                  정비 모드 시작
+                </button>
+                <button disabled={loading} onClick={() => handleControl("stop")}>
+                  정지
+                </button>
+                <button disabled={true}>위험구역 설정</button>
+              </div>
+
+              <div className="test-run-panel">
+                <h4>테스트 운행</h4>
+                <div className="test-run-actions">
+                  <button
+                    disabled={loading || !isStopped || isLocked}
+                    onClick={startTestRun}
+                  >
+                    테스트 운행 시작
+                  </button>
+                  <button
+                    disabled={loading || !isTestMode}
+                    onClick={stopTestRun}
+                  >
+                    테스트 종료
+                  </button>
+                </div>
+                <div className="test-speed-row">
+                  <label htmlFor="test-speed-range">테스트 속도: {testSpeedInput}%</label>
+                  <input
+                    id="test-speed-range"
+                    type="range"
+                    min="0"
+                    max="100"
+                    step="5"
+                    value={testSpeedInput}
+                    disabled={!isTestMode || loading}
+                    onChange={(e) => setTestSpeedInput(Number(e.target.value))}
+                  />
+                  <button
+                    disabled={loading || !isTestMode}
+                    onClick={applyTestSpeed}
+                  >
+                    속도 적용
+                  </button>
+                </div>
+                <div className="test-speed-live">
+                  현재 테스트 속도: {isTestMode ? `${testSpeed}%` : "-"}
+                </div>
               </div>
             </div>
 
             {/* 긴급 정지 카드 */}
             <div className="panel-card">
-              <button className="emergency-stop-btn">긴급 정지</button>
+              <button className="emergency-stop-btn" onClick={resetSystem} disabled={loading}>
+                시스템 리셋
+              </button>
             </div>
+            {popupError && <div className="dashboard-error-banner">{popupError}</div>}
           </div>
 
           {/* 로그박스 - 이벤트 로그 패널 */}
@@ -245,9 +330,9 @@ function Dashboard() {
               </button>
             </div>
             <div className="log-preview">
-              {DUMMY_LOGS.slice(0, 5).map((log) => (
+              {previewLogs.map((log, idx) => (
                 <div
-                  key={log.id}
+                  key={log.id || `${log.timestamp}-${idx}`}
                   className={`log-item ${
                     log.event_type.includes("CRITICAL")
                       ? "log-danger"
@@ -329,7 +414,7 @@ function Dashboard() {
               >
                 {/* 로그 패널 */}
                 <div className="tab-panel logs-panel">
-                  <VideoLogTable logs={DUMMY_LOGS} />
+                  <VideoLogTable logs={logs.length > 0 ? logs : DUMMY_LOGS} />
                 </div>
                 {/* 통계 패널 */}
                 <div className="tab-panel stats-panel">
