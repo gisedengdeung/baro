@@ -1,168 +1,146 @@
+/* From Uiverse.io by micaelgomestavares */
 .login-container {
   display: flex;
   justify-content: center;
   align-items: center;
-  height: 100vh;
-  background-color: #2a3d45;
+  min-height: 100vh;
+  width: 100%;
+  background-color: #343a40;
 }
 
-.container {
-  max-width: 400px;
-  background: #f8f9fd;
-  background: linear-gradient(
-    0deg,
-    rgb(255, 255, 255) 0%,
-    rgb(244, 247, 251) 100%
-  );
-  border-radius: 40px;
-  padding: 25px 35px;
-  border: 5px solid rgb(255, 255, 255);
-  box-shadow: rgba(133, 189, 215, 0.8784313725) 0px 30px 30px -20px;
-  margin: 20px;
-}
-
-.heading {
+.login-head {
+  font-size: 28px;
+  font-weight: 800;
+  color: #ffffff;
   text-align: center;
-  font-weight: 900;
-  font-size: 30px;
-  color: rgb(16, 137, 211);
+  margin-bottom: 24px;
+  letter-spacing: -0.5px;
 }
 
-.form {
-  margin-top: 20px;
-}
-
-.form .input {
-  width: 100%;
-  background: white;
-  border: none;
-  padding: 15px 20px;
+.login-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #2b3035;
+  padding: 30px;
+  width: 450px;
+  max-width: 90%;
   border-radius: 20px;
-  margin-top: 15px;
-  box-shadow: #cff0ff 0px 10px 10px -5px;
-  border-inline: 2px solid transparent;
-  box-sizing: border-box;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.3);
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
+  border: 1px solid rgba(255, 255, 255, 0.05);
 }
 
-.form .input::-moz-placeholder {
-  color: rgb(170, 170, 170);
+::placeholder {
+  color: #888;
+  font-family:
+    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Oxygen, Ubuntu,
+    Cantarell, "Open Sans", "Helvetica Neue", sans-serif;
 }
 
-.form .input::placeholder {
-  color: rgb(170, 170, 170);
+.login-form button {
+  align-self: flex-end;
 }
 
-.form .input:focus {
-  outline: none;
-  border-inline: 2px solid #12b1d1;
+.flex-column > label {
+  color: #e0e1dd;
+  font-weight: 600;
 }
 
-.form .forgot-password {
-  display: block;
-  margin-top: 10px;
-  margin-left: 10px;
+.login-inputForm {
+  background-color: #343a40;
+  border: 2px solid #3e444a;
+  border-radius: 10px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  padding-left: 10px;
+  transition: 0.2s ease-in-out;
 }
 
-.form .forgot-password a {
-  font-size: 11px;
-  color: #0099ff;
-  text-decoration: none;
-}
-
-.form .login-button {
-  display: block;
-  width: 100%;
-  font-weight: bold;
-  background: linear-gradient(
-    45deg,
-    rgb(16, 137, 211) 0%,
-    rgb(18, 177, 209) 100%
-  );
+.input {
+  background-color: transparent;
   color: white;
-  padding-block: 15px;
-  margin: 20px auto;
-  border-radius: 20px;
-  box-shadow: rgba(133, 189, 215, 0.8784313725) 0px 20px 10px -15px;
+  margin-left: 10px;
+  border-radius: 10px;
   border: none;
-  transition: all 0.2s ease-in-out;
+  width: 85%;
+  height: 100%;
 }
 
-.form .login-button:hover {
-  transform: scale(1.03);
-  box-shadow: rgba(133, 189, 215, 0.8784313725) 0px 23px 10px -20px;
+.input:focus {
+  outline: none;
 }
 
-.form .login-button:active {
-  transform: scale(0.95);
-  box-shadow: rgba(133, 189, 215, 0.8784313725) 0px 15px 10px -10px;
+.login-inputForm:focus-within {
+  border: 2px solid #ff9f1c;
 }
 
-.signup-link {
-  display: block;
-  text-align: center;
-  margin-top: 15px;
-  text-decoration: none;
-  color: #0099ff;
+.flex-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  justify-content: space-between;
+}
+
+.flex-row > div > label {
   font-size: 14px;
+  color: #e0e1dd;
+  font-weight: 400;
 }
 
-.signup-link:hover {
-  text-decoration: underline;
+.span {
+  font-size: 14px;
+  margin-left: 5px;
+  color: #ff9f1c;
+  font-weight: 500;
+  cursor: pointer;
 }
 
-.social-account-container {
-  margin-top: 25px;
-}
-
-.social-account-container .title {
-  display: block;
-  text-align: center;
-  font-size: 10px;
-  color: rgb(170, 170, 170);
-}
-
-.social-account-container .social-accounts {
+.button-submit {
+  margin: 20px 0 10px 0;
+  background-color: #ff9f1c;
+  border: none;
+  color: white;
+  font-size: 15px;
+  font-weight: 500;
+  border-radius: 10px;
+  height: 50px;
   width: 100%;
+  cursor: pointer;
+}
+
+.button-submit:hover {
+  background-color: #e68a00;
+}
+
+.p {
+  text-align: center;
+  color: #e0e1dd;
+  font-size: 14px;
+  margin: 5px 0;
+}
+
+.btn {
+  margin-top: 10px;
+  width: 100%;
+  height: 50px;
+  border-radius: 10px;
   display: flex;
   justify-content: center;
-  gap: 15px;
-  margin-top: 5px;
+  align-items: center;
+  font-weight: 500;
+  gap: 10px;
+  border: 1px solid #3e444a;
+  background-color: #343a40;
+  color: white;
+  cursor: pointer;
+  transition: 0.2s ease-in-out;
 }
 
-.social-account-container .social-accounts .social-button {
-  background: linear-gradient(45deg, rgb(0, 0, 0) 0%, rgb(112, 112, 112) 100%);
-  border: 5px solid white;
-  padding: 5px;
-  border-radius: 50%;
-  width: 40px;
-  aspect-ratio: 1;
-  display: grid;
-  place-content: center;
-  box-shadow: rgba(133, 189, 215, 0.8784313725) 0px 12px 10px -8px;
-  transition: all 0.2s ease-in-out;
-}
-
-.social-account-container .social-accounts .social-button .svg {
-  fill: white;
-  margin: auto;
-}
-
-.social-account-container .social-accounts .social-button:hover {
-  transform: scale(1.2);
-}
-
-.social-account-container .social-accounts .social-button:active {
-  transform: scale(0.9);
-}
-
-.agreement {
-  display: block;
-  text-align: center;
-  margin-top: 15px;
-}
-
-.agreement a {
-  text-decoration: none;
-  color: #0099ff;
-  font-size: 9px;
+.btn:hover {
+  border: 1px solid #ff9f1c;
 }
