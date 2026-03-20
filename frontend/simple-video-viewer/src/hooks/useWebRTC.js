@@ -1,167 +1,318 @@
 // src/hooks/useWebRTC.js
-import { useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { signalingAPI } from '../services/api';
 
-const CLOUD_URL = "http://localhost:8000";
-const EDGE_ID = "edge-default";
+const MAX_BACKOFF_MS = 10000;
 
-export function useWebRTC() {
+export function useWebRTC(onImageLoad) {
   const videoRef = useRef(null);
   const pcRef = useRef(null);
-  const pollingRef = useRef(null);
-  const [error, setError] = useState(null);
-  const [connected, setConnected] = useState(false);
+  const offerTimerRef = useRef(null);
+  const iceTimerRef = useRef(null);
+  const reconnectTimerRef = useRef(null);
+  const retryDelayRef = useRef(1000);
+  const everConnectedRef = useRef(false);
+  const cancelledRef = useRef(false);
+  const offerPollingEnabledRef = useRef(true);
+  const seenCandidatesRef = useRef(new Set());
+  const processedOfferIdRef = useRef(null);
+  const pendingOfferIdRef = useRef(null);
+  const processedIceIdsRef = useRef(new Set());
 
-  useEffect(() => {
-    let stopped = false;
+  const [status, setStatus] = useState('idle');
 
-    async function start() {
-      try {
-        // 1. Cloud에서 edge offer 폴링 (edge가 올릴 때까지 대기)
-        let offer = null;
-        for (let i = 0; i < 20; i++) {
-          const res = await fetch(
-            `${CLOUD_URL}/api/signaling/offer?edge_id=${EDGE_ID}&receiver=browser`,
-            { credentials: "include" },
-          );
-          const data = await res.json();
-          if (data.offer?.sdp) {
-            offer = data.offer;
-            break;
-          }
-          await new Promise((r) => setTimeout(r, 1500));
-        }
-        if (!offer) throw new Error("Edge offer를 받지 못했습니다.");
-        if (stopped) return;
-
-        // offer ack
-        await fetch(`${CLOUD_URL}/api/signaling/offer/ack`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            edge_id: EDGE_ID,
-            receiver: "browser",
-            message_id: offer.message_id,
-          }),
-        });
-
-        // 2. RTCPeerConnection 생성 및 offer 설정
-        const pc = new RTCPeerConnection({
-          iceServers: [{ urls: "stun:stun.l.google.com:19302" }],
-        });
-        pcRef.current = pc;
-
-        pc.ontrack = (event) => {
-          if (videoRef.current && event.streams[0]) {
-            videoRef.current.srcObject = event.streams[0];
-            setConnected(true);
-          }
-        };
-
-        pc.onconnectionstatechange = () => {
-          if (
-            pc.connectionState === "failed" ||
-            pc.connectionState === "disconnected"
-          ) {
-            setConnected(false);
-            setError("WebRTC 연결이 끊겼습니다. 새로고침 해주세요.");
-          }
-        };
-
-        // 3. ICE candidate → cloud로 전송
-        pc.onicecandidate = async (event) => {
-          if (!event.candidate) return;
-          await fetch(`${CLOUD_URL}/api/signaling/ice`, {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            credentials: "include",
-            body: JSON.stringify({
-              edge_id: EDGE_ID,
-              sender: "browser",
-              receiver: "edge",
-              candidate: {
-                candidate: event.candidate.candidate,
-                sdpMid: event.candidate.sdpMid,
-                sdpMLineIndex: event.candidate.sdpMLineIndex,
-              },
-            }),
-          });
-        };
-
-        await pc.setRemoteDescription(
-          new RTCSessionDescription({ type: offer.type, sdp: offer.sdp }),
-        );
-
-        // 4. Answer 생성 및 전송
-        const answer = await pc.createAnswer();
-        await pc.setLocalDescription(answer);
-
-        const answerRes = await fetch(`${CLOUD_URL}/api/signaling/answer`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({
-            edge_id: EDGE_ID,
-            sender: "browser",
-            receiver: "edge",
-            type: answer.type,
-            sdp: answer.sdp,
-          }),
-        });
-        const answerData = await answerRes.json();
-
-        // 5. Edge ICE candidates 폴링
-        const seenIds = new Set();
-        pollingRef.current = setInterval(async () => {
-          try {
-            const iceRes = await fetch(
-              `${CLOUD_URL}/api/signaling/ice?edge_id=${EDGE_ID}&receiver=browser`,
-              { credentials: "include" },
-            );
-            const iceData = await iceRes.json();
-            const candidates = iceData.candidates || [];
-            const newIds = [];
-
-            for (const raw of candidates) {
-              if (raw.message_id && seenIds.has(raw.message_id)) continue;
-              if (raw.message_id) {
-                seenIds.add(raw.message_id);
-                newIds.push(raw.message_id);
-              }
-              const c = raw.candidate;
-              if (!c?.candidate) continue;
-              await pc.addIceCandidate(new RTCIceCandidate(c));
-            }
-
-            if (newIds.length > 0) {
-              await fetch(`${CLOUD_URL}/api/signaling/ice/ack`, {
-                method: "POST",
-                headers: { "Content-Type": "application/json" },
-                credentials: "include",
-                body: JSON.stringify({
-                  edge_id: EDGE_ID,
-                  receiver: "browser",
-                  message_ids: newIds,
-                }),
-              });
-            }
-          } catch (e) {
-            // polling 오류는 무시
-          }
-        }, 1000);
-      } catch (err) {
-        if (!stopped) setError(err.message);
-      }
+  const clearTimers = useCallback(() => {
+    if (offerTimerRef.current) {
+      clearTimeout(offerTimerRef.current);
+      offerTimerRef.current = null;
     }
-
-    start();
-
-    return () => {
-      stopped = true;
-      clearInterval(pollingRef.current);
-      pcRef.current?.close();
-    };
+    if (iceTimerRef.current) {
+      clearInterval(iceTimerRef.current);
+      iceTimerRef.current = null;
+    }
+    if (reconnectTimerRef.current) {
+      clearTimeout(reconnectTimerRef.current);
+      reconnectTimerRef.current = null;
+    }
   }, []);
 
-  return { videoRef, connected, error };
+  const closePeer = useCallback(() => {
+    const pc = pcRef.current;
+    if (pc) {
+      pc.ontrack = null;
+      pc.onicecandidate = null;
+      pc.onconnectionstatechange = null;
+      try {
+        pc.close();
+      } catch (e) {
+        // no-op
+      }
+      pcRef.current = null;
+    }
+  }, []);
+
+  const cleanup = useCallback(() => {
+    clearTimers();
+    closePeer();
+    const video = videoRef.current;
+    if (video && video.srcObject) {
+      video.srcObject.getTracks?.().forEach((track) => track.stop());
+      video.srcObject = null;
+    }
+  }, [clearTimers, closePeer]);
+
+  const handleLoadedMetadata = useCallback(() => {
+    const video = videoRef.current;
+    if (!video || !onImageLoad) {
+      return;
+    }
+
+    onImageLoad({
+      naturalWidth: video.videoWidth,
+      naturalHeight: video.videoHeight,
+      clientWidth: video.clientWidth,
+      clientHeight: video.clientHeight,
+    });
+  }, [onImageLoad]);
+
+  useEffect(() => {
+    cancelledRef.current = false;
+    offerPollingEnabledRef.current = true;
+
+    const scheduleReconnect = (reason) => {
+      if (cancelledRef.current) {
+        return;
+      }
+
+      offerPollingEnabledRef.current = true;
+      cleanup();
+      const delay = retryDelayRef.current;
+      setStatus(delay >= MAX_BACKOFF_MS ? 'failed' : 'reconnecting');
+
+      reconnectTimerRef.current = setTimeout(() => {
+        if (!cancelledRef.current) {
+          startOfferPolling();
+        }
+      }, delay);
+
+      retryDelayRef.current = Math.min(delay * 2, MAX_BACKOFF_MS);
+      console.warn('[useWebRTC] reconnect scheduled:', reason, 'delay=', delay);
+    };
+
+    const startIcePolling = () => {
+      if (iceTimerRef.current) {
+        clearInterval(iceTimerRef.current);
+      }
+
+      iceTimerRef.current = setInterval(async () => {
+        const pc = pcRef.current;
+        if (!pc || pc.connectionState === 'closed') {
+          return;
+        }
+
+        try {
+          const payload = await signalingAPI.getIce();
+          const candidates = payload?.candidates || [];
+          const ackIds = new Set();
+
+          for (const item of candidates) {
+            const candidate = item?.candidate;
+            const messageId = item?.message_id;
+            if (!candidate?.candidate) {
+              continue;
+            }
+
+            if (messageId && processedIceIdsRef.current.has(messageId)) {
+              ackIds.add(messageId);
+              continue;
+            }
+
+            if (!messageId && seenCandidatesRef.current.has(candidate.candidate)) {
+              continue;
+            }
+
+            try {
+              await pc.addIceCandidate(candidate);
+              if (messageId) {
+                processedIceIdsRef.current.add(messageId);
+                ackIds.add(messageId);
+              } else {
+                seenCandidatesRef.current.add(candidate.candidate);
+              }
+            } catch (e) {
+              console.warn('[useWebRTC] remote ICE add failed:', e);
+            }
+          }
+
+          if (ackIds.size > 0) {
+            try {
+              await signalingAPI.ackIce(Array.from(ackIds));
+            } catch (e) {
+              console.warn('[useWebRTC] ICE ack failed:', e);
+            }
+          }
+        } catch (e) {
+          console.warn('[useWebRTC] ICE polling failed:', e);
+        }
+      }, 1000);
+    };
+
+    const ackCurrentOfferIfNeeded = async () => {
+      const offerId = pendingOfferIdRef.current;
+      if (!offerId) {
+        return;
+      }
+      if (processedOfferIdRef.current === offerId) {
+        return;
+      }
+      try {
+        await signalingAPI.ackOffer(offerId);
+        processedOfferIdRef.current = offerId;
+      } catch (e) {
+        console.warn('[useWebRTC] offer ack failed:', e);
+      }
+    };
+
+    const attachOffer = async (offer) => {
+      setStatus('connecting');
+
+      const pc = new RTCPeerConnection({
+        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+      });
+      pcRef.current = pc;
+      seenCandidatesRef.current = new Set();
+
+      const remoteStream = new MediaStream();
+      if (videoRef.current) {
+        videoRef.current.srcObject = remoteStream;
+      }
+
+      pc.ontrack = (event) => {
+        const stream = event.streams?.[0];
+        if (stream) {
+          stream.getTracks().forEach((track) => remoteStream.addTrack(track));
+          offerPollingEnabledRef.current = false;
+          if (offerTimerRef.current) {
+            clearTimeout(offerTimerRef.current);
+            offerTimerRef.current = null;
+          }
+          setStatus('connected');
+          ackCurrentOfferIfNeeded();
+        }
+      };
+
+      pc.onicecandidate = async (event) => {
+        if (!event.candidate) {
+          return;
+        }
+
+        try {
+          await signalingAPI.postIce({
+            candidate: event.candidate.candidate,
+            sdpMid: event.candidate.sdpMid,
+            sdpMLineIndex: event.candidate.sdpMLineIndex,
+          });
+        } catch (e) {
+          console.warn('[useWebRTC] local ICE send failed:', e);
+        }
+      };
+
+      pc.onconnectionstatechange = () => {
+        const connectionState = pc.connectionState;
+
+        if (connectionState === 'connected') {
+          everConnectedRef.current = true;
+          retryDelayRef.current = 1000;
+          offerPollingEnabledRef.current = false;
+          if (offerTimerRef.current) {
+            clearTimeout(offerTimerRef.current);
+            offerTimerRef.current = null;
+          }
+          setStatus('connected');
+          ackCurrentOfferIfNeeded();
+          return;
+        }
+
+        if (['disconnected', 'failed', 'closed'].includes(connectionState)) {
+          scheduleReconnect(connectionState);
+        }
+      };
+
+      await pc.setRemoteDescription(
+        new RTCSessionDescription({
+          type: offer.type,
+          sdp: offer.sdp,
+        })
+      );
+
+      const answer = await pc.createAnswer();
+      await pc.setLocalDescription(answer);
+
+      await signalingAPI.postAnswer({
+        type: answer.type,
+        sdp: answer.sdp,
+      });
+
+      pendingOfferIdRef.current = offer?.message_id || null;
+
+      offerPollingEnabledRef.current = false;
+      if (offerTimerRef.current) {
+        clearTimeout(offerTimerRef.current);
+        offerTimerRef.current = null;
+      }
+      startIcePolling();
+    };
+
+    const pollOffer = async () => {
+      if (cancelledRef.current) {
+        return;
+      }
+      if (!offerPollingEnabledRef.current) {
+        return;
+      }
+
+      setStatus('waiting_offer');
+
+      try {
+        const payload = await signalingAPI.getOffer();
+        const offer = payload?.offer;
+
+        if (!offer) {
+          offerTimerRef.current = setTimeout(pollOffer, 1000);
+          return;
+        }
+
+        if (offer?.message_id && offer.message_id === processedOfferIdRef.current) {
+          offerTimerRef.current = setTimeout(pollOffer, 1000);
+          return;
+        }
+
+        await attachOffer(offer);
+      } catch (e) {
+        console.warn('[useWebRTC] offer polling failed:', e);
+        scheduleReconnect('offer_poll_failed');
+      }
+    };
+
+    const startOfferPolling = () => {
+      offerPollingEnabledRef.current = true;
+      cleanup();
+      setStatus(everConnectedRef.current ? 'reconnecting' : 'idle');
+      pollOffer();
+    };
+
+    startOfferPolling();
+
+    return () => {
+      cancelledRef.current = true;
+      cleanup();
+    };
+  }, [cleanup]);
+
+  return {
+    videoRef,
+    status,
+    connected: status === 'connected',
+    handleLoadedMetadata,
+  };
 }

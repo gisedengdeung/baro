@@ -17,7 +17,8 @@ export default function App() {
 
   useEffect(() => {
     bootstrapAuth();
-  }, [bootstrapAuth]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   if (!initialized && isLoading) {
     return <div style={{ padding: '24px' }}>Loading...</div>;

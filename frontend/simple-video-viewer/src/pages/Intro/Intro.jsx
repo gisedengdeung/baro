@@ -245,7 +245,7 @@ function Intro() {
           <h2>지금 바로 시작하세요</h2>
           <p>더 안전한 산업 현장, STOP이 함께합니다.</p>
           <button className="cta-button" onClick={() => navigate("/signup")}>
-            무료로 시작하기
+            지금 시작하기
           </button>
         </div>
       </section>
