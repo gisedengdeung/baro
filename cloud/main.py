@@ -55,19 +55,11 @@ async def lifespan(app: FastAPI):
         db_path=cfg.local_db_path,
     )
     app.state.clip_service = ClipService(
-        db_service=app.state.db_service,
-        storage_dir=cfg.clip_storage_dir,
-        retention_days=cfg.clip_retention_days,
-        cleanup_interval_sec=cfg.clip_cleanup_interval_sec,
+        db_service=app.state.db_service
     )
     app.state.auth_service = auth_service
-    cleanup_task = asyncio.create_task(
-        app.state.clip_service.cleanup_loop(),
-        name="clip_cleanup_loop",
-    )
+  
     yield
-    cleanup_task.cancel()
-    await asyncio.gather(cleanup_task, return_exceptions=True)
 
 
 app = FastAPI(
