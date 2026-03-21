@@ -1,11 +1,12 @@
 import React, { useRef, useState, useEffect } from 'react';
-import LiveStreamContent from './LiveStreamContent';
 import './DangerZoneSelector.css';
 
-export default function DangerZoneSelector({ eventId, onComplete, onImageLoad }) {
+export default function DangerZoneSelector({ onComplete, imageSize }) {
   const canvasRef = useRef(null);
   const [points, setPoints] = useState([]);
-  const [hasImageInfo, setHasImageInfo] = useState(false);
+
+  // imageSize가 유효한지 확인
+  const hasImageInfo = Boolean(imageSize?.naturalWidth && imageSize?.naturalHeight);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -74,17 +75,12 @@ export default function DangerZoneSelector({ eventId, onComplete, onImageLoad })
     setPoints([]);
   };
 
-  const handleImageLoad = (size) => {
-    setHasImageInfo(Boolean(size?.naturalWidth && size?.naturalHeight));
-    if (onImageLoad) {
-      onImageLoad(size);
-    }
-  };
-
   return (
     <div className="dz-wrapper">
-      <LiveStreamContent eventId={eventId} onImageLoad={handleImageLoad} />
-
+      {/* 
+        주의: LiveStreamContent는 Dashboard에서 이미 렌더링되고 있으므로 
+        여기서는 캔버스와 컨트롤만 렌더링합니다. 
+      */}
       <canvas
         ref={canvasRef}
         className="dz-canvas"
@@ -105,3 +101,4 @@ export default function DangerZoneSelector({ eventId, onComplete, onImageLoad })
     </div>
   );
 }
+

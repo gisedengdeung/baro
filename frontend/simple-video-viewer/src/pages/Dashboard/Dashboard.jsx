@@ -2,75 +2,81 @@
 import React, { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuthStore from "../../store/useAuthStore";
-import { useWebRTC } from "../../hooks/useWebRTC";
+import useDashboardStore from "../../store/useDashboardStore";
+
+import LiveStreamContent from "../../components/dashboard/LiveStreamContent";
+import DangerZoneSelector from "../../components/dashboard/DangerZoneSelector";
+import ZoneConfigPanel from "../../components/dashboard/ZoneConfigPanel";
+import ZoneOverlay from "../../components/dashboard/ZoneOverlay";
 import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import "./Dashboard.css";
 
-// 더미 로그 데이터
-const DUMMY_LOGS = [
-  {
-    id: 1,
-    timestamp: new Date(Date.now() - 1000 * 60 * 5).toISOString(),
-    operation_mode: "AUTOMATIC",
-    event_type: "LOG_NORMAL_OPERATION",
-  },
-  {
-    id: 2,
-    timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString(),
-    operation_mode: "AUTOMATIC",
-    event_type: "LOG_INTRUSION_SLOWDOWN",
-    details: { description: "위험 구역 침입 감지" },
-  },
-  {
-    id: 3,
-    timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString(),
-    operation_mode: "MAINTENANCE",
-    event_type: "LOG_MAINTENANCE_SAFE",
-  },
-  {
-    id: 4,
-    timestamp: new Date(Date.now() - 1000 * 60 * 45).toISOString(),
-    operation_mode: "AUTOMATIC",
-    event_type: "LOG_CRITICAL_FALLING",
-    details: { description: "작업자 쓰러짐 발생!" },
-  },
-  {
-    id: 5,
-    timestamp: new Date(Date.now() - 1000 * 60 * 60).toISOString(),
-    operation_mode: "STOPPED",
-    event_type: "LOG_CRITICAL_SENSOR",
-  },
-  {
-    id: 6,
-    timestamp: new Date(Date.now() - 1000 * 60 * 120).toISOString(),
-    operation_mode: "AUTOMATIC",
-    event_type: "LOG_CROUCHING_WARN",
-  },
-  {
-    id: 7,
-    timestamp: new Date(Date.now() - 1000 * 60 * 180).toISOString(),
-    operation_mode: "MANUAL",
-    event_type: "LOG_LOTO_ACTIVE",
-  },
-];
-
 function Dashboard() {
-  // 상태 선언
-  const user = useAuthStore((state) => state.user);
-  const logout = useAuthStore((state) => state.logout);
   const navigate = useNavigate();
 
-  const { videoRef, connected, error: streamError } = useWebRTC();
+  // Auth Store
+  const user = useAuthStore((state) => state.user);
+  const logout = useAuthStore((state) => state.logout);
 
-  const [currentTime, setCurrentTime] = useState(new Date());
+  // Dashboard Store - System State
+  const {
+    logs,
+    activeId,
+    operationMode,
+    conveyorSpeed,
+    riskLevel,
+    isLocked,
+    loading,
+    popupError,
+    testSpeed,
+    testSpeedInput,
+    currentTime,
+    videoStatus,
+    globalAlert,
+  } = useDashboardStore();
+
+  // Dashboard Store - Actions
+  const {
+    initialize: initializeDashboard,
+    disconnect: disconnectDashboard,
+    handleControl,
+    resetSystem,
+    setTestSpeedInput,
+    startTestRun,
+    applyTestSpeed,
+    stopTestRun,
+    setVideoStatus,
+    setActiveId,
+  } = useDashboardStore();
+
+  // Dashboard Store - Danger Zone State & Actions
+  const {
+    isDangerMode,
+    zones,
+    selectedZoneId,
+    configAction,
+    newZoneName,
+    imageSize,
+    enterDangerMode,
+    exitDangerMode,
+    setSelectedZoneId,
+    setConfigAction,
+    setNewZoneName,
+    handleCreateZone,
+    handleUpdateZone,
+    handleDeleteZone,
+    setImageSize,
+  } = useDashboardStore();
+
+  // Local UI State
   const [hour12, setHour12] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
-  const [modalTab, setModalTab] = useState("logs"); // 'logs' | 'stats'
-  const [tabDirection, setTabDirection] = useState(null); // 'left' | 'right'
+  const [showTestRun, setShowTestRun] = useState(false);
+  const [modalTab, setModalTab] = useState("logs");
+  const [tabDirection, setTabDirection] = useState(null);
   const [isAnimating, setIsAnimating] = useState(false);
 
   const switchTab = (tab) => {
-    // 탭 화면 전환시 애니메이션 방향 결정 로직
     if (tab === modalTab || isAnimating) return;
     const dir = tab === "stats" ? "left" : "right";
     setTabDirection(dir);
@@ -79,7 +85,7 @@ function Dashboard() {
     setTimeout(() => setIsAnimating(false), 350);
   };
 
-  // 월별 위험도 더미 데이터
+  // 월별 위험도 데이터 (임시)
   const MONTHLY_STATS = [
     { month: "1월", danger: 3 },
     { month: "2월", danger: 7 },
@@ -94,7 +100,7 @@ function Dashboard() {
     { month: "11월", danger: 2 },
     { month: "12월", danger: 2 },
   ];
-  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger)); // 막대 높이 비율 계산용 코드
+  const maxDanger = Math.max(...MONTHLY_STATS.map((d) => d.danger));
   const barChartRef = useRef(null);
   const [chartHeight, setChartHeight] = useState(193);
 
@@ -102,7 +108,6 @@ function Dashboard() {
     if (!barChartRef.current) return;
     const ro = new ResizeObserver((entries) => {
       for (const entry of entries) {
-        // 전체 높이 - 상단 패딩(20px) - 수치 레이블(22px) - 월 레이블(25px)
         const usable = entry.contentRect.height - 20 - 22 - 25;
         setChartHeight(Math.max(usable, 40));
       }
@@ -119,38 +124,62 @@ function Dashboard() {
   };
 
   useEffect(() => {
-    // 대시보드 진입 시 body 전체 스크롤을 막아 고정 레이아웃 유지
+    initializeDashboard();
     document.body.classList.add("dashboard-body-no-scroll");
-
-    const timer = setInterval(() => {
-      setCurrentTime(new Date());
-    }, 1000);
-
     return () => {
-      // 언마운트 시 스크롤 제한 클래스 제거 (다른 페이지에 영향 방지)
+      disconnectDashboard();
       document.body.classList.remove("dashboard-body-no-scroll");
-      clearInterval(timer);
     };
-  }, []);
+  }, [initializeDashboard, disconnectDashboard]);
 
-  // TODO: 실제 API 연동 필요
-  const systemStatus = "ok"; // 'ok', 'warning', 'danger'
+  const systemStatus =
+    isLocked || riskLevel === "CRITICAL"
+      ? "danger"
+      : riskLevel === "WARNING" ||
+          riskLevel === "NOTICE" ||
+          riskLevel === "LOTO_RISK_DETECTED"
+        ? "warning"
+        : "ok";
+
+  const isStopped = operationMode === "STOPPED";
+  const isTestMode = operationMode === "TEST";
+  const previewLogs = logs.slice(0, 5);
 
   return (
     <div className="dashboard">
+      {/* 긴급 알림 배너 */}
+      {globalAlert && (
+        <div className="global-alert-banner">
+          <span className="alert-icon">⚠️</span>
+          <div className="alert-content">
+            <strong>긴급 상황 발생:</strong>{" "}
+            {globalAlert.details?.description || globalAlert.event_type}
+            <span className="alert-time">
+              (
+              {new Date(globalAlert.timestamp).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+              )
+            </span>
+          </div>
+          <button
+            className="alert-close-btn"
+            onClick={() => useDashboardStore.setState({ globalAlert: null })}
+          >
+            확인
+          </button>
+        </div>
+      )}
+
       <header className="header-bar">
         <div className="header-left">
           <div className="logo">STOP</div>
           <div className="factory-label">Subtitle</div>
         </div>
         <div className="right-info">
-          <div className="date-time">
-            {currentTime.toLocaleDateString("ko-Kr", {
-              year: "numeric",
-              month: "2-digit",
-              day: "2-digit",
-            })}
-          </div>
+          <div className="date-time">{currentTime.split(" / ")[0]}</div>
           <div className="user-label">
             🧑‍💻 {user?.role || "user"} ({user?.email})
           </div>
@@ -161,79 +190,168 @@ function Dashboard() {
       </header>
 
       <main className="main-layout">
-        {/* CCTV WebRTC 스트림 */}
         <section className="stream-panel">
-          {streamError ? (
-            <div className="webcam-error">
-              <p>⚠️ {streamError}</p>
-            </div>
-          ) : (
-            <>
-              {!connected && (
-                <div className="webcam-error">
-                  <p>📡 Edge 연결 중...</p>
-                </div>
-              )}
-              <video
-                ref={videoRef}
-                autoPlay
-                playsInline
-                muted
-                className="webcam-feed"
-                style={{ display: connected ? "block" : "none" }}
-              />
-            </>
-          )}
+          {/* 카메라 스트림은 항상 유지 — 위험구역 설정 모드에서도 끊기지 않음 */}
+          <div
+            className="live-stream-wrapper"
+            style={{ position: "relative", width: "100%", height: "100%" }}
+          >
+            <LiveStreamContent
+              onImageLoad={setImageSize}
+              onStatusChange={setVideoStatus}
+            />
+            {/* 구역 오버레이는 항상 표시 (선택된 구역 강조 포함) */}
+            <ZoneOverlay
+              zones={zones}
+              selectedZoneId={selectedZoneId}
+              imageSize={imageSize}
+            />
+
+            {/* 구역 그리기 모드: 스트림 위에 선택기 표시 (create/update 시에만) */}
+            {isDangerMode && (configAction === "create" || configAction === "update") && (
+              <div style={{ position: "absolute", inset: 0 }}>
+                <DangerZoneSelector
+                  onComplete={
+                    configAction === "create"
+                      ? handleCreateZone
+                      : handleUpdateZone
+                  }
+                  imageSize={imageSize}
+                />
+              </div>
+            )}
+          </div>
         </section>
+
         <aside className="control-panel">
-          {/*시스템 제어*/}
           <div className="system-infos">
             <h3>시스템 정보</h3>
-            {/*시계 카드*/}
             <div className="time-card">
               <div className="string-time">
-                {currentTime.toLocaleTimeString("ko-KR", {
-                  hour: "2-digit",
-                  minute: "2-digit",
-                  second: "2-digit",
-                  hour12: hour12,
-                })}
+                {(() => {
+                  const now = new Date();
+                  if (hour12) {
+                    const period = now.getHours() >= 12 ? "PM" : "AM";
+                    const h = now.getHours() % 12 || 12;
+                    const m = String(now.getMinutes()).padStart(2, "0");
+                    return `${period} ${h}:${m}`;
+                  } else {
+                    const h = String(now.getHours()).padStart(2, "0");
+                    const m = String(now.getMinutes()).padStart(2, "0");
+                    return `${h}:${m}`;
+                  }
+                })()}
                 <button onClick={() => setHour12((prev) => !prev)}>
                   {hour12 ? "24H" : "12H"}
                 </button>
               </div>
             </div>
 
-            {/* 시스템 상태 카드*/}
             <div className={`panel-card system-status status-${systemStatus}`}>
               <div className="status-indicator">
                 <span className="status-light"></span>
                 <span>
-                  {systemStatus === "ok" && "All Systems Operational"}
-                  {systemStatus === "warning" && "System Warning"}
-                  {systemStatus === "danger" && "System Critical"}
+                  {systemStatus === "ok" && "정상 운전 중"}
+                  {systemStatus === "warning" && "주의 요망"}
+                  {systemStatus === "danger" && "긴급 위험 감지"}
                 </span>
               </div>
-            </div>
 
-            {/* 컨베이어 제어 카드 */}
-            <div className="panel-card">
-              <h3>컨베이어 제어</h3>
-              <div className="control-buttons">
-                <button>자동 모드 시작</button>
-                <button>수동 모드 시작</button>
-                <button>정지</button>
-                <button>위험구역 설정</button>
+              <div className="status-meta">
+                <div className="status-meta-item">
+                  <span className="status-meta-label">운전 모드</span>
+                  <span className="status-meta-value">
+                    {operationMode || "OFFLINE"}
+                  </span>
+                </div>
+                <div className="status-meta-item">
+                  <span className="status-meta-label">잠금 상태</span>
+                  <span className="status-meta-value">
+                    {isLocked ? "🔒 LOCKED" : "🔓 SAFE"}
+                  </span>
+                </div>
               </div>
-            </div>
-
-            {/* 긴급 정지 카드 */}
-            <div className="panel-card">
-              <button className="emergency-stop-btn">긴급 정지</button>
+              <div
+                className={`camera-status-badge ${videoStatus === "connected" ? "connected" : "disconnected"}`}
+              >
+                📡 카메라{" "}
+                {videoStatus === "connected"
+                  ? "연결됨"
+                  : `연결 끊김 (${videoStatus})`}
+              </div>
             </div>
           </div>
 
-          {/* 로그박스 - 이벤트 로그 패널 */}
+          <div className="system-power-card">
+            <div className="system-power-buttons">
+              <button
+                className="system-power-btn system-on-btn"
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("start_automatic")}
+              >
+                <span className="power-icon">⏻</span> 전체 시스템 ON
+              </button>
+              <button
+                className="system-power-btn system-off-btn"
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("stop")}
+              >
+                <span className="power-icon">⏼</span> 전체 시스템 OFF
+              </button>
+            </div>
+          </div>
+
+          <div className="conveyor-control-section">
+            <div className="conveyor-control-header">
+              <h3>컨베이어 제어</h3>
+              <button
+                className="test-run-toggle-btn"
+                disabled={isDangerMode}
+                onClick={() => setShowTestRun((prev) => !prev)}
+              >
+                테스트 운행
+              </button>
+            </div>
+            <div className="control-buttons">
+              <button
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("start_automatic")}
+              >
+                운행 모드
+              </button>
+              <button
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("start_maintenance")}
+              >
+                정비 모드
+              </button>
+              <button
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("stop")}
+              >
+                정지
+              </button>
+              <button
+                className={isDangerMode ? "active" : ""}
+                disabled={loading}
+                onClick={isDangerMode ? exitDangerMode : enterDangerMode}
+              >
+                위험구역 설정
+              </button>
+            </div>
+
+            <button
+              className="emergency-stop-btn"
+              onClick={resetSystem}
+              disabled={loading}
+            >
+              시스템 리셋
+            </button>
+            {popupError && (
+              <div className="dashboard-error-banner">{popupError}</div>
+            )}
+          </div>
+
           <div className="log-board panel-card">
             <div className="log-board-header">
               <h3>이벤트 로그</h3>
@@ -245,37 +363,34 @@ function Dashboard() {
               </button>
             </div>
             <div className="log-preview">
-              {DUMMY_LOGS.slice(0, 5).map((log) => (
-                <div
-                  key={log.id}
-                  className={`log-item ${
-                    log.event_type.includes("CRITICAL")
-                      ? "log-danger"
-                      : log.event_type.includes("WARN") ||
-                          log.event_type.includes("SLOWDOWN")
-                        ? "log-warning"
-                        : "log-info"
-                  }`}
-                >
-                  <span className="log-icon">
-                    {log.event_type.includes("CRITICAL")
-                      ? "🔴"
-                      : log.event_type.includes("WARN") ||
-                          log.event_type.includes("SLOWDOWN")
-                        ? "🟡"
-                        : "🟢"}
-                  </span>
-                  <span className="log-text">
-                    {log.details?.description || log.event_type}
-                  </span>
-                  <span className="log-time">
-                    {new Date(log.timestamp).toLocaleTimeString("ko-KR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    })}
-                  </span>
-                </div>
-              ))}
+              {previewLogs.length === 0 ? (
+                <div className="log-empty">기록된 로그가 없습니다.</div>
+              ) : (
+                previewLogs.map((log, idx) => (
+                  <div
+                    key={log.id || idx}
+                    className={`log-item ${log.log_risk_level?.toLowerCase() || "info"}`}
+                  >
+                    <span className="log-icon">
+                      {log.log_risk_level === "CRITICAL"
+                        ? "🔴"
+                        : log.log_risk_level === "HIGH" ||
+                            log.log_risk_level === "WARNING"
+                          ? "🟡"
+                          : "🟢"}
+                    </span>
+                    <span className="log-text">
+                      {log.details?.description || log.event_type}
+                    </span>
+                    <span className="log-time">
+                      {new Date(log.timestamp).toLocaleTimeString("ko-KR", {
+                        hour: "2-digit",
+                        minute: "2-digit",
+                      })}
+                    </span>
+                  </div>
+                ))
+              )}
             </div>
           </div>
         </aside>
@@ -319,19 +434,12 @@ function Dashboard() {
               </button>
             </div>
             <div className="modal-body">
-              {/*
-                tab-slider: 탭 콘텐츠 슬라이더 컨테이너
-                slide-left / slide-right: 전환 방향에 따라 CSS 슬라이드 애니메이션 트리거
-                animating: 애니메이션 진행 중일 때 추가 클릭 방지 및 transition 활성화
-              */}
               <div
                 className={`tab-slider ${tabDirection ? `slide-${tabDirection}` : ""} ${isAnimating ? "animating" : ""}`}
               >
-                {/* 로그 패널 */}
                 <div className="tab-panel logs-panel">
-                  <VideoLogTable logs={DUMMY_LOGS} />
+                  <VideoLogTable logs={logs} />
                 </div>
-                {/* 통계 패널 */}
                 <div className="tab-panel stats-panel">
                   <div className="stats-container">
                     <h3 className="stats-title">월별 위험도</h3>
@@ -358,6 +466,99 @@ function Dashboard() {
                   </div>
                 </div>
               </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 테스트 운행 팝업 모달 */}
+      {showTestRun && (
+        <div className="test-run-overlay" onClick={() => setShowTestRun(false)}>
+          <div className="test-run-popup" onClick={(e) => e.stopPropagation()}>
+            <div className="test-run-popup-header">
+              <h3>테스트 운행</h3>
+              <button
+                className="modal-close-btn"
+                onClick={() => setShowTestRun(false)}
+              >
+                &times;
+              </button>
+            </div>
+            <div className="test-run-popup-body">
+              <div className="test-speed-display">
+                <div className="speed-box">
+                  <span className="label">설정 목표</span>
+                  <span className="value">{testSpeedInput}%</span>
+                </div>
+                <div className="speed-box">
+                  <span className="label">현재 속도</span>
+                  <span className="value current">
+                    {isTestMode ? `${testSpeed}%` : "-"}
+                  </span>
+                </div>
+              </div>
+
+              <div className="test-run-actions">
+                <button
+                  disabled={loading || !isStopped || isLocked}
+                  onClick={startTestRun}
+                >
+                  테스트 운행 시작
+                </button>
+                <button disabled={loading || !isTestMode} onClick={stopTestRun}>
+                  테스트 종료
+                </button>
+              </div>
+              <div className="test-speed-row">
+                <label htmlFor="test-speed-range">테스트 속도 설정</label>
+                <input
+                  id="test-speed-range"
+                  type="range"
+                  min="0"
+                  max="100"
+                  step="5"
+                  value={testSpeedInput}
+                  disabled={!isTestMode || loading}
+                  onChange={(e) => setTestSpeedInput(Number(e.target.value))}
+                />
+                <button
+                  disabled={loading || !isTestMode}
+                  onClick={applyTestSpeed}
+                >
+                  속도 즉시 적용
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* 위험구역 설정 팝업 모달 */}
+      {isDangerMode && (
+        <div className="danger-zone-overlay" onClick={exitDangerMode}>
+          <div
+            className="danger-zone-popup"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="danger-zone-popup-header">
+              <h3>⚠ 위험구역 설정</h3>
+              <button className="modal-close-btn" onClick={exitDangerMode}>
+                &times;
+              </button>
+            </div>
+            <div className="danger-zone-popup-body">
+              <ZoneConfigPanel
+                zones={zones}
+                selected={selectedZoneId}
+                onSelect={setSelectedZoneId}
+                currentAction={configAction}
+                onActionSelect={setConfigAction}
+                onDelete={handleDeleteZone}
+                onCancel={exitDangerMode}
+                newZoneName={newZoneName}
+                onNameChange={setNewZoneName}
+                loading={loading}
+              />
             </div>
           </div>
         </div>

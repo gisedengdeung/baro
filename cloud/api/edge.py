@@ -36,6 +36,8 @@ async def post_heartbeat(
                 "conveyor_speed": heartbeat.conveyor_speed,
                 "risk_level": heartbeat.risk_level,
                 "is_locked": heartbeat.is_locked,
+                "test_is_active": heartbeat.test_is_active,
+                "test_speed": heartbeat.test_speed,
             },
         },
     )

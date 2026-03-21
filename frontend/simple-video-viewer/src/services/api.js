@@ -158,6 +158,24 @@ export const controlAPI = {
     });
     return response.data;
   },
+  startTestRun: async (speedPercent = 30) => {
+    const response = await apiClient.post('/api/control/test/start', null, {
+      params: withEdgeId({ speed_percent: speedPercent }),
+    });
+    return response.data;
+  },
+  setTestSpeed: async (speedPercent) => {
+    const response = await apiClient.post('/api/control/test/speed', null, {
+      params: withEdgeId({ speed_percent: speedPercent }),
+    });
+    return response.data;
+  },
+  stopTestRun: async () => {
+    const response = await apiClient.post('/api/control/test/stop', null, {
+      params: withEdgeId(),
+    });
+    return response.data;
+  },
 };
 
 export const signalingAPI = {
