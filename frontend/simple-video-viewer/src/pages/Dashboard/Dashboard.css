@@ -40,6 +40,79 @@ CSS 변수 (디자인 토큰)
   overflow: hidden;
 }
 
+/* 테스트 모드 활성화 스타일 */
+.dashboard.is-test-mode {
+  border: 4px solid var(--accent-color);
+  box-sizing: border-box;
+}
+
+.test-mode-badge {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: var(--accent-color);
+  color: #000;
+  padding: 8px 16px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.3);
+  animation: testBlink 1.5s infinite;
+}
+
+@keyframes testBlink {
+  0% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.6;
+  }
+  100% {
+    opacity: 1;
+  }
+}
+
+/* 테스트 속도 표시 UI */
+.test-speed-display {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 15px;
+  background: #2a2a2a;
+  padding: 12px;
+  border-radius: 8px;
+  color: white;
+}
+
+.speed-box {
+  text-align: center;
+  flex: 1;
+}
+
+.speed-box:first-child {
+  border-right: 1px solid #444;
+}
+
+.speed-box .label {
+  display: block;
+  font-size: 0.75rem;
+  color: #aaa;
+  margin-bottom: 4px;
+}
+
+.speed-box .value {
+  font-size: 1.4rem;
+  font-weight: bold;
+  color: var(--accent-color);
+}
+
+.speed-box .value.current {
+  color: var(--status-ok);
+}
+
 /* 전체 화면을 채우는 세로 방향 flex 컨테이너 */
 .dashboard {
   display: flex;
@@ -108,67 +181,77 @@ CSS 변수 (디자인 토큰)
   background: var(--accent-color-hover);
 }
 
-/* 메인 레이아웃 (Main Layout)
-- 스트림 패널(좌)과 컨트롤 패널(우)을 가로로 배치*/
+/* 반응형 레이아웃 최적화 */
 
+/* 대형 화면 (기본) */
 .main-layout {
   display: flex;
   flex: 1;
   padding: 12px;
   gap: 16px;
-  overflow: hidden; /* 전체 레이아웃이 뷰포트를 벗어나지 않도록 */
-  min-height: 0; /* flex child가 부모를 넘지 않도록 */
+  overflow: hidden;
 }
-
-/* 스트림 패널 (Stream Panel)
-- WebRTC CCTV 영상 출력 영역*/
 
 .stream-panel {
-  flex: 3; /* 컨트롤 패널보다 3배 넓게 */
-  background: var(--secondary-bg);
-  border-radius: 8px;
-  overflow: hidden;
-  min-height: 0; /* flex 환경에서 축소 허용 */
-  display: flex;
-  align-items: center;
-  justify-content: center;
+  flex: 3 1 0%;
+  min-width: 0;
 }
-
-/* 영상 피드: 비율 유지하며 패널에 맞춤 */
-.webcam-feed {
-  width: 100%;
-  height: 100%;
-  object-fit: contain;
-}
-
-/* 스트림 연결 오류 / 연결 중 상태 표시 */
-.webcam-error {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  width: 100%;
-  height: 100%;
-  background-color: #000;
-  color: var(--status-danger);
-  padding: 20px;
-}
-
-/* 컨트롤 패널 (Control Panel)
-- 우측 사이드바: 시스템 정보 + 이벤트 로그 영역*/
 
 .control-panel {
-  flex: 1;
-  min-width: 450px;
+  flex: 1 1 0%;
+  min-width: 0;
+  max-width: none;
   display: flex;
   flex-direction: column;
-  gap: 8px;
-  overflow-y: hidden;
+  gap: 10px;
+  overflow-y: auto;
   overflow-x: hidden;
-  min-height: 0;
+}
 
-  /* 커스텀 스크롤바 */
-  scrollbar-width: thin;
-  scrollbar-color: #f59e0b var(--primary-bg);
+/* 중형 화면 (태블릿 가로, 작은 모니터) */
+@media (max-width: 1400px) {
+  .string-time {
+    font-size: 36px;
+  }
+}
+
+/* 소형 화면 (태블릿 세로) */
+@media (max-width: 1100px) {
+  .main-layout {
+    flex-direction: column; /* 세로로 배치 */
+    overflow-y: auto;
+  }
+
+  .stream-panel {
+    flex: none;
+    height: 50vh; /* 영상 높이 고정 */
+    width: 100%;
+  }
+
+  .control-panel {
+    flex: none;
+    width: 100%;
+    min-width: 0;
+    max-width: none;
+  }
+
+  .modal-content {
+    width: 95%;
+    height: 90vh;
+  }
+}
+
+/* 헤더 반응형 */
+@media (max-width: 768px) {
+  .header-bar {
+    padding: 0 12px;
+  }
+  .factory-label {
+    display: none; /* 작은 화면에서 부제목 숨김 */
+  }
+  .right-info .date-time {
+    display: none; /* 날짜 숨김 */
+  }
 }
 .control-panel::-webkit-scrollbar {
   width: 6px;
@@ -192,7 +275,7 @@ CSS 변수 (디자인 토큰)
   padding: 20px;
   border: 1px solid var(--border-color);
   border-radius: 8px;
-  flex-shrink: 0; /* 고정 크기 유지 (flex 축소 방지) */
+  flex-shrink: 1;
 }
 
 .system-infos h3 {
@@ -283,16 +366,69 @@ CSS 변수 (디자인 토큰)
 - ok / warning / danger 세 가지 상태에 따라 색상 및 pulse 애니메이션 변경 */
 
 .system-status {
-  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 .status-indicator {
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 12px;
-  font-size: 24px;
+  gap: 10px;
+  font-size: 20px;
   font-weight: bold;
+}
+
+.status-meta {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.status-meta-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  background: var(--primary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  padding: 7px 10px;
+  gap: 3px;
+}
+
+.status-meta-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-meta-value {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.camera-status-badge {
+  text-align: center;
+  font-size: 10px;
+  font-weight: 500;
+  padding: 4px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.03em;
+}
+
+.camera-status-badge.connected {
+  background: rgba(34, 197, 94, 0.12);
+  color: var(--status-ok);
+  border: 1px solid rgba(34, 197, 94, 0.25);
+}
+
+.camera-status-badge.disconnected {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--status-danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
 }
 
 /* 상태 표시등 (원형 점멸 아이콘) */
@@ -387,6 +523,323 @@ CSS 변수 (디자인 토큰)
   color: var(--secondary-bg);
   border-color: var(--accent-color);
   transform: translateY(-2px);
+}
+
+.control-buttons button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.test-run-panel {
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--border-color);
+}
+
+.test-run-panel h4 {
+  margin: 0 0 8px;
+  font-size: 15px;
+  color: var(--text-secondary);
+}
+
+.test-run-actions {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.test-run-actions button,
+.test-speed-row button {
+  padding: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.test-run-actions button:hover,
+.test-speed-row button:hover {
+  background-color: var(--accent-color);
+  color: var(--secondary-bg);
+  border-color: var(--accent-color);
+}
+
+.test-run-actions button:disabled,
+.test-speed-row button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.test-speed-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px 10px;
+  align-items: center;
+}
+
+.test-speed-row label {
+  grid-column: 1 / 3;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.test-speed-row input[type="range"] {
+  width: 100%;
+}
+
+.test-speed-live {
+  margin-top: 8px;
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.dashboard-error-banner {
+  border-radius: 6px;
+  background: rgba(239, 68, 68, 0.2);
+  border: 1px solid var(--status-danger);
+  color: #fecaca;
+  padding: 10px 12px;
+  font-size: 13px;
+}
+
+/* 전체 시스템 ON/OFF 버튼 */
+
+.system-power-card {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 16px;
+}
+
+.system-power-buttons {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.system-power-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  padding: 11px 8px;
+  font-size: 13px;
+  font-weight: 700;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  transition:
+    background-color 0.2s,
+    transform 0.15s,
+    box-shadow 0.2s;
+  letter-spacing: 0.3px;
+}
+.system-power-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+  transform: none;
+}
+.power-icon {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.system-on-btn {
+  background-color: var(--status-ok);
+  color: #fff;
+  box-shadow: 0 0 0px var(--status-ok);
+}
+.system-on-btn:not(:disabled):hover {
+  background-color: #0ea572;
+  box-shadow: 0 0 10px rgba(16, 185, 129, 0.45);
+  transform: scale(1.02);
+}
+.system-on-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+.system-off-btn {
+  background-color: var(--primary-bg);
+  color: var(--status-danger);
+  border: 1px solid var(--status-danger);
+}
+.system-off-btn:not(:disabled):hover {
+  background-color: rgba(239, 68, 68, 0.12);
+  box-shadow: 0 0 10px rgba(239, 68, 68, 0.3);
+  transform: scale(1.02);
+}
+.system-off-btn:not(:disabled):active {
+  transform: scale(0.98);
+}
+
+/* 컨베이어 제어 섹션 (Conveyor Control Section)
+- 시스템 정보 박스와 이벤트 로그 박스 사이에 독립 배치 */
+
+.conveyor-control-section {
+  background-color: var(--secondary-bg);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 20px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  flex-shrink: 1;
+}
+
+/* 컨베이어 제어 헤더: 제목 + 테스트 운행 토글 버튼 */
+.conveyor-control-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+.conveyor-control-section h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--accent-color);
+}
+
+/* 테스트 운행 토글 버튼 - 이벤트 로그의 '로그 및 통계' 버튼과 동일한 스타일 */
+.test-run-toggle-btn {
+  padding: 6px 14px;
+  background-color: var(--accent-color);
+  color: var(--secondary-bg);
+  font-size: 13px;
+  font-weight: bold;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.test-run-toggle-btn:hover {
+  background-color: var(--accent-color-hover);
+  transform: scale(1.03);
+}
+
+/* 테스트 운행 팝업 모달 */
+
+/* 우측 컨트롤 패널 위에만 덮는 반투명 오버레이 */
+.test-run-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  z-index: 500;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 28px;
+}
+
+/* 팝업 본체 — 컨트롤 패널 너비에 맞춰 우측에 띄움 */
+.test-run-popup {
+  background-color: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  width: 420px;
+  pointer-events: auto;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: testRunPopupIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes testRunPopupIn {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* 팝업 헤더 */
+.test-run-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.test-run-popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--accent-color);
+}
+
+/* 팝업 바디 */
+.test-run-popup-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+/* 위험구역 설정 팝업 모달 (테스트 운행 모달과 동일한 패턴) */
+.danger-zone-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: transparent;
+  z-index: 500;
+  pointer-events: none;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  padding-right: 28px;
+}
+
+.danger-zone-popup {
+  background-color: var(--secondary-bg);
+  border: 1px solid var(--status-warning);
+  border-radius: 12px;
+  width: 420px;
+  pointer-events: auto;
+  box-shadow:
+    0 20px 25px -5px rgba(0, 0, 0, 0.4),
+    0 10px 10px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  animation: testRunPopupIn 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.danger-zone-popup-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.danger-zone-popup-header h3 {
+  margin: 0;
+  font-size: 18px;
+  color: var(--status-warning);
+}
+
+.danger-zone-popup-body {
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
 }
 
 /* 이벤트 로그 보드 (Log Board)
@@ -531,7 +984,7 @@ CSS 변수 (디자인 토큰)
   background-color: var(--secondary-bg);
   width: 80%;
   max-width: 900px;
-  max-height: 80vh;
+  height: 70vh;
   border-radius: 12px;
   border: 1px solid var(--border-color);
   display: flex;
@@ -740,6 +1193,7 @@ translateX로 슬라이드하여 탭 전환 효과 구현
 /* 각 탭 패널: 슬라이더 너비의 절반 = 모달 1칸 크기 */
 .tab-panel {
   width: 50%;
+  height: 100%;
   flex-shrink: 0;
   overflow-y: auto;
   padding: 24px;
@@ -759,8 +1213,7 @@ translateX로 슬라이드하여 탭 전환 효과 구현
   border-radius: 3px;
 }
 
-/* 통계 패널은 차트 높이 계산을 위해 고정 높이 + 세로 스크롤 비활성 */
+/* 통계 패널은 차트 높이 계산을 위해 세로 스크롤 비활성 */
 .tab-panel.stats-panel {
-  height: 100%;
   overflow-y: hidden;
 }

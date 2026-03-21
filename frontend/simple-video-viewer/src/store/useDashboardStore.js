@@ -41,6 +41,9 @@ const useDashboardStore = create((set, get) => ({
   conveyorSpeed: 0,
   riskLevel: 'SAFE',
   isLocked: false,
+  testIsActive: false,
+  testSpeed: 0,
+  testSpeedInput: 30,
   loading: false,
   error: null,
   popupError: null,
@@ -63,6 +66,7 @@ const useDashboardStore = create((set, get) => ({
   initialize: async () => {
     get().connect();
     get().startTimer();
+    await get().fetchSystemStatus();
     await get().fetchLogs(true);
     await get().fetchZones();
   },
@@ -72,6 +76,7 @@ const useDashboardStore = create((set, get) => ({
       socketInstance.close(4000, 'User-initiated disconnect');
       socketInstance = null;
     }
+    get().stopTimer();
     set({ wsStatus: 'closed' });
   },
 
@@ -96,13 +101,26 @@ const useDashboardStore = create((set, get) => ({
             get().addLog(message.data);
             break;
           case 'STATUS_UPDATE': {
-            const { operation_mode, conveyor_status, conveyor_speed, risk_level, is_locked } = message.data;
+            const {
+              operation_mode,
+              conveyor_status,
+              conveyor_speed,
+              risk_level,
+              is_locked,
+              test_is_active,
+              test_speed,
+            } = message.data;
+            const normalizedMode = operation_mode || null;
+            const normalizedTestSpeed = Number.isFinite(Number(test_speed)) ? Number(test_speed) : 0;
             set({
-              operationMode: operation_mode,
+              operationMode: normalizedMode,
               conveyorStatus: conveyor_status,
               conveyorSpeed: conveyor_speed,
               riskLevel: risk_level,
               isLocked: is_locked,
+              testIsActive: Boolean(test_is_active || normalizedMode === 'TEST'),
+              testSpeed: normalizedTestSpeed,
+              testSpeedInput: normalizedMode === 'TEST' ? normalizedTestSpeed : get().testSpeedInput,
             });
             break;
           }
@@ -145,7 +163,38 @@ const useDashboardStore = create((set, get) => ({
     }, 1000);
   },
 
+  stopTimer: () => {
+    if (!timerInstance) {
+      return;
+    }
+    clearInterval(timerInstance);
+    timerInstance = null;
+  },
+
   setVideoStatus: (status) => set({ videoStatus: status }),
+
+  fetchSystemStatus: async () => {
+    try {
+      const data = await controlAPI.getStatus();
+      const edge = data?.edge_status;
+      if (!edge) {
+        return;
+      }
+      const normalizedMode = edge.operation_mode || null;
+      const normalizedTestSpeed = Number.isFinite(Number(edge.test_speed)) ? Number(edge.test_speed) : 0;
+      set({
+        operationMode: normalizedMode,
+        conveyorSpeed: edge.conveyor_speed || 0,
+        riskLevel: edge.risk_level || 'SAFE',
+        isLocked: Boolean(edge.is_locked),
+        testIsActive: Boolean(edge.test_is_active || normalizedMode === 'TEST'),
+        testSpeed: normalizedTestSpeed,
+        testSpeedInput: normalizedMode === 'TEST' ? normalizedTestSpeed : get().testSpeedInput,
+      });
+    } catch (e) {
+      console.error('상태 조회 실패', e);
+    }
+  },
 
   fetchLogs: async (showLoading = false) => {
     if (showLoading) set({ loading: true });
@@ -202,6 +251,69 @@ const useDashboardStore = create((set, get) => ({
   },
 
   setActiveId: (id) => set({ activeId: id }),
+
+  setTestSpeedInput: (value) => {
+    const parsed = Number(value);
+    if (!Number.isFinite(parsed)) {
+      return;
+    }
+    const normalized = Math.max(0, Math.min(100, Math.round(parsed / 5) * 5));
+    set({ testSpeedInput: normalized });
+  },
+
+  startTestRun: async () => {
+    const { operationMode, isLocked, testSpeedInput } = get();
+    if (isLocked) {
+      get().setPopupError('시스템이 잠금(LOCKED) 상태입니다. 리셋 후 다시 시도하세요.');
+      return;
+    }
+    if (operationMode !== 'STOPPED') {
+      get().setPopupError('테스트 운행은 정지(STOPPED) 상태에서만 시작할 수 있습니다.');
+      return;
+    }
+
+    set({ loading: true });
+    try {
+      const speed = Math.max(0, Math.min(100, Number(testSpeedInput) || 30));
+      await controlAPI.startTestRun(speed);
+    } catch (e) {
+      const errorDetail = e.response?.data?.detail || e.message;
+      get().setPopupError(`테스트 운행 시작 실패: ${errorDetail}`);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  applyTestSpeed: async () => {
+    const { operationMode, testSpeedInput } = get();
+    if (operationMode !== 'TEST') {
+      get().setPopupError('테스트 모드(TEST)에서만 속도 변경이 가능합니다.');
+      return;
+    }
+
+    set({ loading: true });
+    try {
+      const speed = Math.max(0, Math.min(100, Number(testSpeedInput) || 0));
+      await controlAPI.setTestSpeed(speed);
+    } catch (e) {
+      const errorDetail = e.response?.data?.detail || e.message;
+      get().setPopupError(`테스트 속도 변경 실패: ${errorDetail}`);
+    } finally {
+      set({ loading: false });
+    }
+  },
+
+  stopTestRun: async () => {
+    set({ loading: true });
+    try {
+      await controlAPI.stopTestRun();
+    } catch (e) {
+      const errorDetail = e.response?.data?.detail || e.message;
+      get().setPopupError(`테스트 운행 종료 실패: ${errorDetail}`);
+    } finally {
+      set({ loading: false });
+    }
+  },
 
   setPopupError: (message) => {
     set({ popupError: message });

@@ -6,6 +6,7 @@ from enum import Enum
 class OperationMode(str, Enum):
     AUTOMATIC = "AUTOMATIC"
     MAINTENANCE = "MAINTENANCE"
+    TEST = "TEST"
     STOPPED = "STOPPED"
 
 
