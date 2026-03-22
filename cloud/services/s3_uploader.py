@@ -5,10 +5,13 @@ from fastapi import UploadFile
 from botocore.exceptions import ClientError
 from loguru import logger
 
+from dotenv import load_dotenv
+load_dotenv()
+
 # AWS 설정 정보 
 AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY")
 AWS_SECRET_KEY = os.getenv("AWS_SECRET_KEY")
-BUCKET_NAME = "capstone-conveyor-videos-2026"  
+BUCKET_NAME = "capstone-conveyor-videos-2026"
 REGION = "ap-northeast-2"
 
 # S3 클라이언트 생성
@@ -35,6 +38,6 @@ def upload_video_to_s3_from_memory(upload_file: UploadFile, s3_file_name: str) -
         logger.info(f"S3 업로드 완료! URL: {url}")
         return url
         
-    except ClientError as e:
+    except Exception as e:
         logger.error(f"S3 업로드 중 에러 발생: {e}")
         return ""
