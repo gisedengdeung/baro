@@ -38,6 +38,8 @@ def _build_config_from_args() -> EdgeConfig:
         edge_id=args.edge_id,
         cloud_base_url=args.cloud_url,
         camera_source=args.camera,
+        camera_width=cfg.camera_width,
+        camera_height=cfg.camera_height,
         serial_port=args.serial,
         serial_baud_rate=cfg.serial_baud_rate,
         serial_mock_mode=cfg.serial_mock_mode,
@@ -65,7 +67,11 @@ async def main() -> None:
     cfg = _build_config_from_args()
     logger.info(f"Edge 시작: edge_id={cfg.edge_id}, cloud={cfg.cloud_base_url}")
 
-    camera = Camera(source=cfg.camera_source)
+    camera = Camera(
+        source=cfg.camera_source,
+        width=cfg.camera_width,
+        height=cfg.camera_height,
+    )
     serial = SerialComm(port=cfg.serial_port, baud_rate=cfg.serial_baud_rate, mock_mode=cfg.serial_mock_mode)
 
     state = SystemStateManager()

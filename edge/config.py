@@ -10,6 +10,8 @@ class EdgeConfig:
     edge_id: str
     cloud_base_url: str
     camera_source: int
+    camera_width: int
+    camera_height: int
     serial_port: str
     serial_baud_rate: int
     serial_mock_mode: bool
@@ -71,6 +73,8 @@ def load_config() -> EdgeConfig:
         edge_id=os.getenv("EDGE_ID", "edge-default"),
         cloud_base_url=os.getenv("CLOUD_BASE_URL", "http://localhost:8000"),
         camera_source=int(os.getenv("EDGE_CAMERA_SOURCE", "0")),
+        camera_width=int(os.getenv("EDGE_CAMERA_WIDTH", "1920")),
+        camera_height=int(os.getenv("EDGE_CAMERA_HEIGHT", "1080")),
         serial_port=os.getenv("EDGE_SERIAL_PORT", "/dev/ttyUSB0"),
         serial_baud_rate=int(os.getenv("EDGE_SERIAL_BAUD", "9600")),
         serial_mock_mode=_env_bool("EDGE_SERIAL_MOCK", False),
