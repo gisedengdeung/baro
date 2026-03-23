@@ -381,9 +381,57 @@ CSS 변수 (디자인 토큰)
 }
 
 .status-meta {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 8px;
+  display: flex;
+  justify-content: center;
+  width: 100%;
+}
+
+/* 잠금 상태 인라인 표시 */
+.status-lock-inline {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px 0;
+  width: 100%;
+}
+
+.status-lock-icon {
+  font-size: 14px;
+}
+
+.status-lock-label {
+  font-size: 11px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.status-lock-value {
+  font-size: 12px;
+  font-weight: 700;
+  padding: 2px 10px;
+  border-radius: 20px;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.status-lock-value.safe {
+  color: var(--status-ok);
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+
+.status-lock-value.locked {
+  color: var(--status-danger);
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.status-divider {
+  color: var(--border-color);
+  font-size: 14px;
+  opacity: 0.6;
 }
 
 .status-meta-item {
@@ -437,6 +485,16 @@ CSS 변수 (디자인 토큰)
   height: 16px;
   border-radius: 50%;
   animation: pulse 2s infinite;
+}
+
+/* 꺼짐/대기 상태 */
+.status-offline {
+  color: #6b7280;
+}
+.status-offline .status-light {
+  background-color: #6b7280;
+  box-shadow: 0 0 8px #6b7280;
+  animation: none; /* 꺼진 상태는 점멸 없음 */
 }
 
 /* 정상 상태 */
@@ -1216,4 +1274,118 @@ translateX로 슬라이드하여 탭 전환 효과 구현
 /* 통계 패널은 차트 높이 계산을 위해 세로 스크롤 비활성 */
 .tab-panel.stats-panel {
   overflow-y: hidden;
+}
+
+/* 긴급 알림 오버레이 (Global Alert Overlay)
+- control-panel 전체를 덮는 SYSTEM LOCKED 오버레이 */
+
+.global-alert-overlay {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background-color: var(--status-danger);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  animation: alertFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+@keyframes alertFadeIn {
+  from {
+    opacity: 0;
+    transform: scale(0.97);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.global-alert-overlay-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 14px;
+  padding: 32px 24px;
+  text-align: center;
+}
+
+/* SYSTEM LOCKED 제목 */
+.global-alert-title {
+  font-size: 26px;
+  font-weight: 900;
+  color: #fff;
+  letter-spacing: 0.05em;
+  text-shadow: 0 2px 8px rgba(0, 0, 0, 0.3);
+  animation: alertTitlePulse 1.4s ease-in-out infinite;
+}
+
+@keyframes alertTitlePulse {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0.75;
+  }
+}
+
+/* 이벤트 설명 */
+.global-alert-desc {
+  font-size: 14px;
+  font-weight: 600;
+  color: rgba(255, 255, 255, 0.95);
+  line-height: 1.5;
+}
+
+/* 보조 안내 문구 */
+.global-alert-desc-sub {
+  font-size: 13px;
+  color: rgba(255, 255, 255, 0.75);
+}
+
+/* 발생 시각 */
+.global-alert-time {
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.6);
+  letter-spacing: 0.03em;
+}
+
+/* 확인 버튼 */
+.alert-reset-btn {
+  margin-top: 8px;
+  padding: 12px 36px;
+  background-color: var(--accent-color);
+  color: #1a1a1a;
+  font-size: 15px;
+  font-weight: 800;
+  border: none;
+  border-radius: 8px;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.25);
+  transition:
+    background-color 0.2s ease,
+    transform 0.15s ease;
+}
+
+.alert-reset-btn:hover {
+  background-color: var(--accent-color-hover);
+  transform: scale(1.05);
+}
+
+.alert-reset-btn:active {
+  transform: scale(0.97);
+}
+
+/* 작은 화면 대응 */
+@media (max-width: 768px) {
+  .global-alert-title {
+    font-size: 20px;
+  }
+
+  .global-alert-desc {
+    font-size: 13px;
+  }
 }

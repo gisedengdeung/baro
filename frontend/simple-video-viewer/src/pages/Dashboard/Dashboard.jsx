@@ -71,6 +71,7 @@ function Dashboard() {
   // Local UI State
   const [hour12, setHour12] = useState(true);
   const [showLogs, setShowLogs] = useState(false);
+  const [isEmergencyStopped, setIsEmergencyStopped] = useState(false);
   const [showTestRun, setShowTestRun] = useState(false);
   const [modalTab, setModalTab] = useState("logs");
   const [tabDirection, setTabDirection] = useState(null);
@@ -116,6 +117,10 @@ function Dashboard() {
     return () => ro.disconnect();
   }, []);
 
+  useEffect(() => {
+    if (operationMode !== "STOPPED") setIsEmergencyStopped(false);
+  }, [operationMode]);
+
   const handleLogout = async () => {
     if (window.confirm("로그아웃 하시겠습니까?")) {
       await logout();
@@ -139,7 +144,11 @@ function Dashboard() {
           riskLevel === "NOTICE" ||
           riskLevel === "LOTO_RISK_DETECTED"
         ? "warning"
-        : "ok";
+        : !operationMode || operationMode === "STOPPED"
+          ? "offline"
+          : operationMode === "MAINTENANCE" || operationMode === "TEST"
+            ? "warning"
+            : "ok";
 
   const isStopped = operationMode === "STOPPED";
   const isTestMode = operationMode === "TEST";
@@ -147,32 +156,6 @@ function Dashboard() {
 
   return (
     <div className="dashboard">
-      {/* 긴급 알림 배너 */}
-      {globalAlert && (
-        <div className="global-alert-banner">
-          <span className="alert-icon">⚠️</span>
-          <div className="alert-content">
-            <strong>긴급 상황 발생:</strong>{" "}
-            {globalAlert.details?.description || globalAlert.event_type}
-            <span className="alert-time">
-              (
-              {new Date(globalAlert.timestamp).toLocaleTimeString("ko-KR", {
-                hour: "2-digit",
-                minute: "2-digit",
-                second: "2-digit",
-              })}
-              )
-            </span>
-          </div>
-          <button
-            className="alert-close-btn"
-            onClick={() => useDashboardStore.setState({ globalAlert: null })}
-          >
-            확인
-          </button>
-        </div>
-      )}
-
       <header className="header-bar">
         <div className="header-left">
           <div className="logo">STOP</div>
@@ -208,22 +191,54 @@ function Dashboard() {
             />
 
             {/* 구역 그리기 모드: 스트림 위에 선택기 표시 (create/update 시에만) */}
-            {isDangerMode && (configAction === "create" || configAction === "update") && (
-              <div style={{ position: "absolute", inset: 0 }}>
-                <DangerZoneSelector
-                  onComplete={
-                    configAction === "create"
-                      ? handleCreateZone
-                      : handleUpdateZone
-                  }
-                  imageSize={imageSize}
-                />
-              </div>
-            )}
+            {isDangerMode &&
+              (configAction === "create" || configAction === "update") && (
+                <div style={{ position: "absolute", inset: 0 }}>
+                  <DangerZoneSelector
+                    onComplete={
+                      configAction === "create"
+                        ? handleCreateZone
+                        : handleUpdateZone
+                    }
+                    imageSize={imageSize}
+                  />
+                </div>
+              )}
           </div>
         </section>
 
-        <aside className="control-panel">
+        <aside className="control-panel" style={{ position: "relative" }}>
+          {/* 긴급 알림 오버레이 - globalAlert가 null이 될 때까지 유지 */}
+          {globalAlert && (
+            <div className="global-alert-overlay">
+              <div className="global-alert-overlay-content">
+                <div className="global-alert-title">⚠ SYSTEM LOCKED</div>
+                <div className="global-alert-desc">
+                  {globalAlert.details?.description || globalAlert.event_type}
+                </div>
+                <div className="global-alert-desc-sub">
+                  관리자의 확인 후 시스템을 리셋하세요.
+                </div>
+                <div className="global-alert-time">
+                  {new Date(globalAlert.timestamp).toLocaleTimeString("ko-KR", {
+                    hour: "2-digit",
+                    minute: "2-digit",
+                    second: "2-digit",
+                  })}
+                </div>
+                <button
+                  className="alert-reset-btn"
+                  disabled={loading}
+                  onClick={() => {
+                    resetSystem();
+                    useDashboardStore.setState({ globalAlert: null });
+                  }}
+                >
+                  ⚡ 시스템 리셋
+                </button>
+              </div>
+            </div>
+          )}
           <div className="system-infos">
             <h3>시스템 정보</h3>
             <div className="time-card">
@@ -251,33 +266,49 @@ function Dashboard() {
               <div className="status-indicator">
                 <span className="status-light"></span>
                 <span>
-                  {systemStatus === "ok" && "정상 운전 중"}
-                  {systemStatus === "warning" && "주의 요망"}
                   {systemStatus === "danger" && "긴급 위험 감지"}
+                  {systemStatus !== "danger" &&
+                    (() => {
+                      if (!operationMode) return "시스템 꺼짐";
+                      if (operationMode === "STOPPED" && isEmergencyStopped)
+                        return "긴급 정지 (STOPPED)";
+                      switch (operationMode) {
+                        case "STOPPED":
+                          return `시스템 대기 중 (${operationMode})`;
+                        case "AUTOMATIC":
+                        case "RUNNING":
+                          return `정상 운전 중 (${operationMode})`;
+                        case "MAINTENANCE":
+                          return `정비 모드 (${operationMode})`;
+                        case "TEST":
+                          return `테스트 운행 중 (${operationMode})`;
+                        default:
+                          return operationMode;
+                      }
+                    })()}
                 </span>
               </div>
 
               <div className="status-meta">
-                <div className="status-meta-item">
-                  <span className="status-meta-label">운전 모드</span>
-                  <span className="status-meta-value">
-                    {operationMode || "OFFLINE"}
+                <div className="status-lock-inline">
+                  <span className="status-lock-icon">
+                    {isLocked ? "🔒" : "🔓"}
+                  </span>
+                  <span
+                    className={`status-lock-value ${isLocked ? "locked" : "safe"}`}
+                  >
+                    {isLocked ? "LOCKED" : "SAFE"}
+                  </span>
+                  <span className="status-divider">│</span>
+                  <span className="status-lock-icon">📡</span>
+                  <span
+                    className={`status-lock-value ${videoStatus === "connected" ? "safe" : "locked"}`}
+                  >
+                    {videoStatus === "connected"
+                      ? "카메라 연결됨"
+                      : "카메라 연결 끊김"}
                   </span>
                 </div>
-                <div className="status-meta-item">
-                  <span className="status-meta-label">잠금 상태</span>
-                  <span className="status-meta-value">
-                    {isLocked ? "🔒 LOCKED" : "🔓 SAFE"}
-                  </span>
-                </div>
-              </div>
-              <div
-                className={`camera-status-badge ${videoStatus === "connected" ? "connected" : "disconnected"}`}
-              >
-                📡 카메라{" "}
-                {videoStatus === "connected"
-                  ? "연결됨"
-                  : `연결 끊김 (${videoStatus})`}
               </div>
             </div>
           </div>
@@ -317,19 +348,20 @@ function Dashboard() {
                 disabled={loading || isDangerMode}
                 onClick={() => handleControl("start_automatic")}
               >
-                운행 모드
+                컨베이어 운행
+              </button>
+
+              <button
+                disabled={loading || isDangerMode}
+                onClick={() => handleControl("stop")}
+              >
+                컨베이어 정지
               </button>
               <button
                 disabled={loading || isDangerMode}
                 onClick={() => handleControl("start_maintenance")}
               >
                 정비 모드
-              </button>
-              <button
-                disabled={loading || isDangerMode}
-                onClick={() => handleControl("stop")}
-              >
-                정지
               </button>
               <button
                 className={isDangerMode ? "active" : ""}
@@ -342,10 +374,13 @@ function Dashboard() {
 
             <button
               className="emergency-stop-btn"
-              onClick={resetSystem}
-              disabled={loading}
+              disabled={loading || isDangerMode}
+              onClick={() => {
+                handleControl("stop");
+                setIsEmergencyStopped(true);
+              }}
             >
-              시스템 리셋
+              🛑 긴급 정지
             </button>
             {popupError && (
               <div className="dashboard-error-banner">{popupError}</div>
@@ -380,7 +415,31 @@ function Dashboard() {
                           : "🟢"}
                     </span>
                     <span className="log-text">
-                      {log.details?.description || log.event_type}
+                      {(() => {
+                        const raw =
+                          log.details?.description || log.event_type || "";
+                        if (
+                          raw.startsWith("A person falling has been detected")
+                        )
+                          return "🔥  넘어짐 감지  🔥";
+                        if (
+                          raw.startsWith("Person detected in danger zone(s):")
+                        )
+                          return "⚠️  위험구역 침입 감지  ⚠️";
+                        if (raw.startsWith("System is operating normally"))
+                          return "ℹ️  정상 운행  ℹ️";
+                        if (raw.startsWith("System has been reset"))
+                          return "ℹ️  시스템 리셋  ℹ️";
+                        if (raw.startsWith("Emergency stop"))
+                          return "🚫  긴급 정지 실행  🚫";
+                        if (raw.startsWith("Conveyor started"))
+                          return "ℹ️  컨베이어 운행  ℹ️";
+                        if (raw.startsWith("Conveyor stopped"))
+                          return "ℹ️  컨베이어 정지  ℹ️";
+                        if (raw.startsWith("Maintenance mode"))
+                          return "✅  정비 모드 전환  ✅";
+                        return raw;
+                      })()}
                     </span>
                     <span className="log-time">
                       {new Date(log.timestamp).toLocaleTimeString("ko-KR", {

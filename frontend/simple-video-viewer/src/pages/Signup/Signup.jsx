@@ -76,7 +76,7 @@ function Signup() {
             required
             className="input"
             type="email"
-            placeholder="E-mail"
+            placeholder="이메일"
             value={email}
             onChange={(e) => setEmail(e.target.value)}
           />
@@ -96,7 +96,7 @@ function Signup() {
             required
             className="input"
             type="password"
-            placeholder="Password"
+            placeholder="비밀번호"
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
@@ -116,7 +116,7 @@ function Signup() {
             required
             className="input"
             type="password"
-            placeholder="Confirm Password"
+            placeholder="비밀번호 확인"
             value={confirmPassword}
             onChange={(e) => setConfirmPassword(e.target.value)}
           />
@@ -127,9 +127,9 @@ function Signup() {
         </button>
 
         <p className="p" style={{ textAlign: "center", marginTop: "15px" }}>
-          Already have an account?{" "}
+          이미 계정이 있으신가요?{" "}
           <Link to="/login" className="span">
-            Login
+            로그인
           </Link>
         </p>
       </form>
