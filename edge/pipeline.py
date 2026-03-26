@@ -4,6 +4,7 @@ import asyncio
 import time
 from datetime import datetime
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 from loguru import logger
 
@@ -20,6 +21,8 @@ from edge.state import SystemStateManager
 from edge.visualize.overlay_renderer import OverlayRenderer
 from edge.webrtc.peer import WebRTCPeer
 from shared.enums import OperationMode, RiskLevel
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class SafetyPipeline:
@@ -149,7 +152,7 @@ class SafetyPipeline:
             log_risk_level = "NOTICE"
             description = "A person in a crouching pose has been detected."
 
-        event_time = datetime.utcnow()
+        event_time = datetime.now(KST)
         event_uid: str | None = None
         clip_status = "NONE"
         if self.clip_recorder and self.clip_recorder.should_trigger(log_risk_level):
@@ -353,7 +356,7 @@ class SafetyPipeline:
                         "details": {"message": str(exc)},
                         "log_risk_level": "ERROR",
                         "operation_mode": self.state.get_mode().value,
-                        "timestamp": datetime.utcnow().isoformat(),
+                        "timestamp": datetime.now(KST).isoformat(),
                         "clip_status": "NONE",
                     }
                 )

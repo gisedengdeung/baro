@@ -3,6 +3,7 @@ from __future__ import annotations
 import argparse
 import asyncio
 from datetime import datetime
+from zoneinfo import ZoneInfo
 
 from loguru import logger
 
@@ -22,6 +23,8 @@ from edge.pipeline import SafetyPipeline
 from edge.state import SystemStateManager
 from edge.visualize.overlay_renderer import OverlayRenderer
 from edge.webrtc.peer import WebRTCPeer
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 
@@ -98,7 +101,7 @@ async def main() -> None:
 
     def on_hardware_emergency(reason: str) -> None:
         state.lock_system(reason)
-        event_time = datetime.utcnow()
+        event_time = datetime.now(KST)
 
         async def _report_hardware_emergency() -> None:
             clip_uid = clip_recorder.trigger(event_time=event_time)

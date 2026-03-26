@@ -4,12 +4,15 @@ import asyncio
 from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 from fastapi import UploadFile
 from loguru import logger
 
 from cloud.services.db_service import DBService
 from cloud.services.s3_uploader import upload_video_to_s3_from_memory
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class ClipService:
@@ -35,7 +38,7 @@ class ClipService:
             raise ValueError(f"event_uid belongs to edge_id={existing.get('edge_id')}, not {edge_id}")
 
         # S3에 저장될 파일 경로 문자열 생성 (ex. clips/edge-default/20260319/클립고유ID.mp4)
-        day_tag = datetime.utcnow().strftime("%Y%m%d")
+        day_tag = datetime.now(KST).strftime("%Y%m%d")
         s3_file_name = f"clips/{edge_id}/{day_tag}/{event_uid}.mp4"
 
         s3_url = await asyncio.to_thread(

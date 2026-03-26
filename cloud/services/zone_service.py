@@ -3,8 +3,11 @@ from __future__ import annotations
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from cloud.db import get_connection
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class ZoneService:
@@ -73,7 +76,7 @@ class ZoneService:
                     zone_id,
                     name,
                     json.dumps(points, ensure_ascii=False),
-                    datetime.utcnow().isoformat(),
+                    datetime.now(KST).isoformat(),
                 ),
             )
             conn.commit()

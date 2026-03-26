@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
 from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
@@ -20,6 +21,7 @@ from cloud.services.status_store import StatusStore
 from cloud.services.zone_service import ZoneService
 
 router = APIRouter()
+KST = ZoneInfo("Asia/Seoul")
 
 
 @router.post("/heartbeat")
@@ -49,7 +51,7 @@ async def post_heartbeat(
         },
     )
 
-    return {"status": "ok", "updated_at": datetime.utcnow().isoformat()}
+    return {"status": "ok", "updated_at": datetime.now(KST).isoformat()}
 
 
 @router.post("/log")

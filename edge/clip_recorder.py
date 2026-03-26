@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Any, Deque, Dict, List
 from uuid import uuid4
+from zoneinfo import ZoneInfo
 
 import cv2
 import numpy as np
@@ -17,6 +18,8 @@ except Exception:  # pragma: no cover
     av = None
 
 from edge.cloud_client import CloudClient
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 @dataclass(slots=True)
@@ -97,8 +100,14 @@ class EdgeClipRecorder:
     def _resize_frame(self, frame: np.ndarray) -> np.ndarray:
         return cv2.resize(frame, (self.width, self.height), interpolation=cv2.INTER_AREA)
 
+    @staticmethod
+    def _to_kst_aware(ts: datetime) -> datetime:
+        if ts.tzinfo is None:
+            return ts.replace(tzinfo=KST)
+        return ts.astimezone(KST)
+
     def ingest_frame(self, frame: np.ndarray, now: datetime | None = None) -> None:
-        ts = now or datetime.utcnow()
+        ts = self._to_kst_aware(now or datetime.now(KST))
         loop = asyncio.get_running_loop()
         now_mono = loop.time()
         if self._last_append_monotonic and (now_mono - self._last_append_monotonic) < self.frame_interval_sec:
@@ -116,7 +125,7 @@ class EdgeClipRecorder:
 
     def trigger(self, event_uid: str | None = None, event_time: datetime | None = None) -> str:
         uid = event_uid or str(uuid4())
-        at = event_time or datetime.utcnow()
+        at = self._to_kst_aware(event_time or datetime.now(KST))
         started_at = at - timedelta(seconds=self.pre_seconds)
         ends_at = at + timedelta(seconds=self.post_seconds)
 

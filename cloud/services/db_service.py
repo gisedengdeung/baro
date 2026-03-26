@@ -4,10 +4,13 @@ import asyncio
 import json
 from datetime import datetime
 from typing import Any, Dict, List, Optional
+from zoneinfo import ZoneInfo
 
 from cloud.db import get_connection
 from cloud.models.events import LogMessage
 from cloud.services.websocket_manager import WebSocketManager
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class DBService:
@@ -98,7 +101,7 @@ class DBService:
                     "level": message.log_risk_level,
                     "message": message.details.get("description", message.event_type),
                     "edge_id": message.edge_id,
-                    "timestamp": datetime.utcnow().isoformat(),
+                    "timestamp": datetime.now(KST).isoformat(),
                 },
             )
 
@@ -170,7 +173,7 @@ class DBService:
         clip_ended_at: str,
         duration_sec: float,
     ) -> Optional[Dict[str, Any]]:
-        now_iso = datetime.utcnow().isoformat()
+        now_iso = datetime.now(KST).isoformat()
         with get_connection(self.db_path) as conn:
             conn.execute(
                 """
