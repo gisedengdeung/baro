@@ -154,7 +154,7 @@
   background: #ef4444;
   color: white;
 }
-.status-badge.high {
+.status-badge.warn {
   background: #f97316;
   color: white;
 }
@@ -181,9 +181,35 @@
 .col-event {
   width: auto;
 }
+.col-video {
+  width: 110px;
+}
 .col-status {
   width: 100px;
   text-align: center !important;
+}
+
+/* 영상 확인 버튼 */
+.video-cell {
+  text-align: center;
+}
+.video-btn {
+  padding: 4px 10px;
+  background-color: #1e3a8a;
+  color: #bfdbfe;
+  border: 1px solid #3b82f6;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition:
+    background-color 0.2s,
+    transform 0.15s;
+}
+.video-btn:hover {
+  background-color: #1d4ed8;
+  transform: scale(1.04);
 }
 .status-cell {
   text-align: center !important;
