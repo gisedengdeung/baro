@@ -1,5 +1,11 @@
-import { create } from 'zustand';
-import { controlAPI, getWsUrl, logAPI, runtimeConfig, zoneAPI } from '../services/api';
+import { create } from "zustand";
+import {
+  controlAPI,
+  getWsUrl,
+  logAPI,
+  runtimeConfig,
+  zoneAPI,
+} from "../services/api";
 
 let socketInstance = null;
 let timerInstance = null;
@@ -22,7 +28,7 @@ const toRatioZones = (zones, imageSize) => {
   return (zones || []).map((zone) => ({
     ...zone,
     points: (zone.points || []).map((p) => {
-      if (typeof p.xRatio === 'number' && typeof p.yRatio === 'number') {
+      if (typeof p.xRatio === "number" && typeof p.yRatio === "number") {
         return p;
       }
 
@@ -50,7 +56,7 @@ const useDashboardStore = create((set, get) => ({
   operationMode: null,
   conveyorStatus: null,
   conveyorSpeed: 0,
-  riskLevel: 'SAFE',
+  riskLevel: "SAFE",
   isLocked: false,
   testIsActive: false,
   testSpeed: 0,
@@ -67,12 +73,12 @@ const useDashboardStore = create((set, get) => ({
   isDangerMode: false,
   configAction: null,
   selectedZoneId: null,
-  newZoneName: '',
+  newZoneName: "",
   imageSize: null,
 
-  wsStatus: 'closed',
-  videoStatus: 'idle',
-  currentTime: '',
+  wsStatus: "closed",
+  videoStatus: "idle",
+  currentTime: "",
 
   initialize: async () => {
     get().connect();
@@ -84,11 +90,11 @@ const useDashboardStore = create((set, get) => ({
 
   disconnect: () => {
     if (socketInstance) {
-      socketInstance.close(4000, 'User-initiated disconnect');
+      socketInstance.close(4000, "User-initiated disconnect");
       socketInstance = null;
     }
     get().stopTimer();
-    set({ wsStatus: 'closed' });
+    set({ wsStatus: "closed" });
   },
 
   connect: () => {
@@ -96,11 +102,11 @@ const useDashboardStore = create((set, get) => ({
       return;
     }
 
-    set({ wsStatus: 'connecting' });
-    socketInstance = new WebSocket(getWsUrl('/ws/logs'));
+    set({ wsStatus: "connecting" });
+    socketInstance = new WebSocket(getWsUrl("/ws/logs"));
 
     socketInstance.onopen = () => {
-      set({ wsStatus: 'open' });
+      set({ wsStatus: "open" });
     };
 
     socketInstance.onmessage = (event) => {
@@ -108,13 +114,10 @@ const useDashboardStore = create((set, get) => ({
         const message = JSON.parse(event.data);
 
         switch (message.type) {
-          case 'LOG':
+          case "LOG":
             get().addLog(message.data);
             break;
-          case 'LOG_UPDATE':
-            get().upsertLog(message.data);
-            break;
-          case 'STATUS_UPDATE': {
+          case "STATUS_UPDATE": {
             const {
               operation_mode,
               conveyor_status,
@@ -125,16 +128,23 @@ const useDashboardStore = create((set, get) => ({
               test_speed,
             } = message.data;
             const normalizedMode = operation_mode || null;
-            const normalizedTestSpeed = Number.isFinite(Number(test_speed)) ? Number(test_speed) : 0;
+            const normalizedTestSpeed = Number.isFinite(Number(test_speed))
+              ? Number(test_speed)
+              : 0;
             set({
               operationMode: normalizedMode,
               conveyorStatus: conveyor_status,
               conveyorSpeed: conveyor_speed,
               riskLevel: risk_level,
               isLocked: is_locked,
-              testIsActive: Boolean(test_is_active || normalizedMode === 'TEST'),
+              testIsActive: Boolean(
+                test_is_active || normalizedMode === "TEST",
+              ),
               testSpeed: normalizedTestSpeed,
-              testSpeedInput: normalizedMode === 'TEST' ? normalizedTestSpeed : get().testSpeedInput,
+              testSpeedInput:
+                normalizedMode === "TEST"
+                  ? normalizedTestSpeed
+                  : get().testSpeedInput,
             });
             break;
           }
@@ -142,17 +152,17 @@ const useDashboardStore = create((set, get) => ({
             break;
         }
       } catch (e) {
-        console.error('WebSocket 메시지 처리 오류:', e);
+        console.error("WebSocket 메시지 처리 오류:", e);
       }
     };
 
     socketInstance.onerror = () => {
-      set({ wsStatus: 'error' });
+      set({ wsStatus: "error" });
     };
 
     socketInstance.onclose = () => {
       socketInstance = null;
-      set({ wsStatus: 'closed' });
+      set({ wsStatus: "closed" });
     };
   },
 
@@ -164,16 +174,18 @@ const useDashboardStore = create((set, get) => ({
     timerInstance = setInterval(() => {
       const now = new Date();
       const year = now.getFullYear();
-      const month = String(now.getMonth() + 1).padStart(2, '0');
-      const date = String(now.getDate()).padStart(2, '0');
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      const month = String(now.getMonth() + 1).padStart(2, "0");
+      const date = String(now.getDate()).padStart(2, "0");
+      const dayNames = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
       const day = dayNames[now.getDay()];
       let h = now.getHours();
-      const m = String(now.getMinutes()).padStart(2, '0');
-      const ampm = h >= 12 ? 'PM' : 'AM';
+      const m = String(now.getMinutes()).padStart(2, "0");
+      const ampm = h >= 12 ? "PM" : "AM";
       if (h > 12) h -= 12;
       if (h === 0) h = 12;
-      set({ currentTime: `${year}-${month}-${date} (${day}) / ${ampm}-${h}:${m}` });
+      set({
+        currentTime: `${year}-${month}-${date} (${day}) / ${ampm}-${h}:${m}`,
+      });
     }, 1000);
   },
 
@@ -195,18 +207,23 @@ const useDashboardStore = create((set, get) => ({
         return;
       }
       const normalizedMode = edge.operation_mode || null;
-      const normalizedTestSpeed = Number.isFinite(Number(edge.test_speed)) ? Number(edge.test_speed) : 0;
+      const normalizedTestSpeed = Number.isFinite(Number(edge.test_speed))
+        ? Number(edge.test_speed)
+        : 0;
       set({
         operationMode: normalizedMode,
         conveyorSpeed: edge.conveyor_speed || 0,
-        riskLevel: edge.risk_level || 'SAFE',
+        riskLevel: edge.risk_level || "SAFE",
         isLocked: Boolean(edge.is_locked),
-        testIsActive: Boolean(edge.test_is_active || normalizedMode === 'TEST'),
+        testIsActive: Boolean(edge.test_is_active || normalizedMode === "TEST"),
         testSpeed: normalizedTestSpeed,
-        testSpeedInput: normalizedMode === 'TEST' ? normalizedTestSpeed : get().testSpeedInput,
+        testSpeedInput:
+          normalizedMode === "TEST"
+            ? normalizedTestSpeed
+            : get().testSpeedInput,
       });
     } catch (e) {
-      console.error('상태 조회 실패', e);
+      console.error("상태 조회 실패", e);
     }
   },
 
@@ -218,7 +235,7 @@ const useDashboardStore = create((set, get) => ({
       set({ logs: data });
     } catch (e) {
       console.error(e);
-      set({ error: '로그를 불러오는 중 오류가 발생했습니다.' });
+      set({ error: "로그를 불러오는 중 오류가 발생했습니다." });
     } finally {
       if (showLoading) set({ loading: false });
     }
@@ -232,7 +249,7 @@ const useDashboardStore = create((set, get) => ({
         zones: toRatioZones(data, state.imageSize),
       }));
     } catch (e) {
-      console.error('구역 조회 실패', e);
+      console.error("구역 조회 실패", e);
     }
   },
 
@@ -248,15 +265,8 @@ const useDashboardStore = create((set, get) => ({
     });
 
     const riskLevel = newLog?.log_risk_level;
-    if (riskLevel === 'CRITICAL' || riskLevel === 'HIGH') {
-      const marker = `${newLog?.timestamp || Date.now()}-${newLog?.event_type || 'alert'}`;
-      set({ globalAlert: { ...newLog, __marker: marker } });
-
-      setTimeout(() => {
-        if (get().globalAlert?.__marker === marker) {
-          set({ globalAlert: null });
-        }
-      }, 10000);
+    if (riskLevel === "CRITICAL" || riskLevel === "HIGH") {
+      set({ globalAlert: newLog });
     }
   },
 
@@ -298,11 +308,15 @@ const useDashboardStore = create((set, get) => ({
   startTestRun: async () => {
     const { operationMode, isLocked, testSpeedInput } = get();
     if (isLocked) {
-      get().setPopupError('시스템이 잠금(LOCKED) 상태입니다. 리셋 후 다시 시도하세요.');
+      get().setPopupError(
+        "시스템이 잠금(LOCKED) 상태입니다. 리셋 후 다시 시도하세요.",
+      );
       return;
     }
-    if (operationMode !== 'STOPPED') {
-      get().setPopupError('테스트 운행은 정지(STOPPED) 상태에서만 시작할 수 있습니다.');
+    if (operationMode !== "STOPPED") {
+      get().setPopupError(
+        "테스트 운행은 정지(STOPPED) 상태에서만 시작할 수 있습니다.",
+      );
       return;
     }
 
@@ -320,8 +334,8 @@ const useDashboardStore = create((set, get) => ({
 
   applyTestSpeed: async () => {
     const { operationMode, testSpeedInput } = get();
-    if (operationMode !== 'TEST') {
-      get().setPopupError('테스트 모드(TEST)에서만 속도 변경이 가능합니다.');
+    if (operationMode !== "TEST") {
+      get().setPopupError("테스트 모드(TEST)에서만 속도 변경이 가능합니다.");
       return;
     }
 
@@ -356,14 +370,18 @@ const useDashboardStore = create((set, get) => ({
 
   handleControl: async (controlType, confirmed = false) => {
     if (get().isLocked) {
-      get().setPopupError('시스템이 잠금(LOCKED) 상태입니다. 리셋이 필요합니다.');
+      get().setPopupError(
+        "시스템이 잠금(LOCKED) 상태입니다. 리셋이 필요합니다.",
+      );
       return;
     }
 
-    if (controlType === 'start_automatic') {
+    if (controlType === "start_automatic") {
       const { riskLevel } = get();
-      if (riskLevel === 'LOTO_RISK_DETECTED') {
-        get().setPopupError('LOTO 조건 위반: 정비 구역에 사람이 감지되어 시스템을 시작할 수 없습니다.');
+      if (riskLevel === "LOTO_RISK_DETECTED") {
+        get().setPopupError(
+          "LOTO 조건 위반: 정비 구역에 사람이 감지되어 시스템을 시작할 수 없습니다.",
+        );
         return;
       }
     }
@@ -371,11 +389,11 @@ const useDashboardStore = create((set, get) => ({
     set({ loading: true });
     try {
       let response;
-      if (controlType === 'start_automatic') {
+      if (controlType === "start_automatic") {
         response = await controlAPI.startAutomaticMode(confirmed);
-      } else if (controlType === 'start_maintenance') {
+      } else if (controlType === "start_maintenance") {
         response = await controlAPI.startMaintenanceMode();
-      } else if (controlType === 'stop') {
+      } else if (controlType === "stop") {
         response = await controlAPI.stopSystem();
       }
 
@@ -392,13 +410,13 @@ const useDashboardStore = create((set, get) => ({
     }
   },
 
-  enterDangerMode: () => set({ isDangerMode: true, configAction: 'view' }),
+  enterDangerMode: () => set({ isDangerMode: true, configAction: "view" }),
   exitDangerMode: () =>
     set({
       isDangerMode: false,
       configAction: null,
       selectedZoneId: null,
-      newZoneName: '',
+      newZoneName: "",
     }),
 
   setConfigAction: (action) => {
@@ -406,17 +424,19 @@ const useDashboardStore = create((set, get) => ({
       const newState = { ...state, configAction: action };
 
       switch (action) {
-        case 'create':
+        case "create":
           newState.selectedZoneId = null;
-          newState.newZoneName = '';
+          newState.newZoneName = "";
           break;
-        case 'update':
+        case "update":
           if (state.selectedZoneId) {
-            const selectedZone = state.zones.find((z) => z.id === state.selectedZoneId);
-            newState.newZoneName = selectedZone ? selectedZone.name : '';
+            const selectedZone = state.zones.find(
+              (z) => z.id === state.selectedZoneId,
+            );
+            newState.newZoneName = selectedZone ? selectedZone.name : "";
           }
           break;
-        case 'view':
+        case "view":
           newState.selectedZoneId = null;
           break;
         default:
@@ -426,7 +446,7 @@ const useDashboardStore = create((set, get) => ({
     });
   },
 
-  setSelectedZoneId: (id) => set({ selectedZoneId: id, configAction: 'view' }),
+  setSelectedZoneId: (id) => set({ selectedZoneId: id, configAction: "view" }),
   setNewZoneName: (name) => set({ newZoneName: name }),
 
   setImageSize: (size) => {
@@ -440,11 +460,14 @@ const useDashboardStore = create((set, get) => ({
     const { newZoneName, imageSize } = get();
 
     if (!imageSize?.naturalWidth || !imageSize?.naturalHeight) {
-      get().setPopupError('영상 해상도 정보를 아직 받지 못했습니다. 잠시 후 다시 시도하세요.');
+      get().setPopupError(
+        "영상 해상도 정보를 아직 받지 못했습니다. 잠시 후 다시 시도하세요.",
+      );
       return;
     }
 
-    const name = newZoneName.trim() || `새 구역 ${new Date().toLocaleTimeString()}`;
+    const name =
+      newZoneName.trim() || `새 구역 ${new Date().toLocaleTimeString()}`;
     const newZoneId = `zone_${Date.now()}`;
 
     const points = ratioPoints.map((r) => ({
@@ -462,7 +485,10 @@ const useDashboardStore = create((set, get) => ({
       get().exitDangerMode();
     } catch (err) {
       const errorDetail = err.response?.data?.detail || err.message;
-      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail, null, 2) : errorDetail;
+      const errorMessage =
+        typeof errorDetail === "object"
+          ? JSON.stringify(errorDetail, null, 2)
+          : errorDetail;
       get().setPopupError(`위험 구역 생성 실패:\n${errorMessage}`);
     }
   },
@@ -472,7 +498,9 @@ const useDashboardStore = create((set, get) => ({
     if (!selectedZoneId) return;
 
     if (!imageSize?.naturalWidth || !imageSize?.naturalHeight) {
-      get().setPopupError('영상 해상도 정보를 아직 받지 못했습니다. 잠시 후 다시 시도하세요.');
+      get().setPopupError(
+        "영상 해상도 정보를 아직 받지 못했습니다. 잠시 후 다시 시도하세요.",
+      );
       return;
     }
 
@@ -493,7 +521,10 @@ const useDashboardStore = create((set, get) => ({
       get().exitDangerMode();
     } catch (err) {
       const errorDetail = err.response?.data?.detail || err.message;
-      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail, null, 2) : errorDetail;
+      const errorMessage =
+        typeof errorDetail === "object"
+          ? JSON.stringify(errorDetail, null, 2)
+          : errorDetail;
       get().setPopupError(`위험 구역 업데이트 실패:\n${errorMessage}`);
     }
   },
@@ -502,23 +533,27 @@ const useDashboardStore = create((set, get) => ({
     const { selectedZoneId, zones } = get();
     if (!selectedZoneId) return;
 
-    const targetName = zones.find((z) => z.id === selectedZoneId)?.name || '선택된 구역';
+    const targetName =
+      zones.find((z) => z.id === selectedZoneId)?.name || "선택된 구역";
     if (!window.confirm(`${targetName}을 삭제하시겠습니까?`)) return;
 
     try {
       await zoneAPI.deleteZone(selectedZoneId);
       await get().fetchZones();
-      set({ configAction: 'view', selectedZoneId: null });
+      set({ configAction: "view", selectedZoneId: null });
     } catch (err) {
       const errorDetail = err.response?.data?.detail || err.message;
-      const errorMessage = typeof errorDetail === 'object' ? JSON.stringify(errorDetail, null, 2) : errorDetail;
+      const errorMessage =
+        typeof errorDetail === "object"
+          ? JSON.stringify(errorDetail, null, 2)
+          : errorDetail;
       get().setPopupError(`위험 구역 삭제 실패: ${errorMessage}`);
     }
   },
 
   testLotoCondition: () => {
     set({
-      operationMode: 'MAINTENANCE',
+      operationMode: "MAINTENANCE",
       personDetectedInMaintenance: true,
       lotoSensorOn: false,
     });
