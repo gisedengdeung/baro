@@ -11,16 +11,22 @@ from cloud.services.zone_service import ZoneService
 
 router = APIRouter()
 
-
 @router.get("", response_model=List[DangerZone])
-def get_all_zones(zone_service: ZoneService = Depends(get_zone_service)) -> List[DangerZone]:
-    zones = zone_service.get_all_zones()
+def get_all_zones(
+    edge_id: str = Query("edge-default"), 
+    zone_service: ZoneService = Depends(get_zone_service)
+) -> List[DangerZone]:
+    zones = zone_service.get_all_zones(edge_id) # edge_id 전달
     return [DangerZone(id=z["id"], name=z["name"], points=[Point(**p) for p in z.get("points", [])]) for z in zones]
 
 
 @router.get("/{zone_id}", response_model=DangerZone)
-def get_zone(zone_id: str, zone_service: ZoneService = Depends(get_zone_service)) -> DangerZone:
-    zone = zone_service.get_zone(zone_id)
+def get_zone(
+    zone_id: str, 
+    edge_id: str = Query("edge-default"),
+    zone_service: ZoneService = Depends(get_zone_service)
+) -> DangerZone:
+    zone = zone_service.get_zone(zone_id, edge_id) # edge_id 전달
     if not zone:
         raise HTTPException(status_code=404, detail=f"Zone not found: {zone_id}")
     return DangerZone(id=zone["id"], name=zone["name"], points=[Point(**p) for p in zone.get("points", [])])
@@ -33,10 +39,11 @@ def create_zone(
     zone_service: ZoneService = Depends(get_zone_service),
     command_queue: CommandQueueService = Depends(get_command_queue),
 ) -> ZoneResponse:
-    if zone_service.get_zone(zone.id):
+    if zone_service.get_zone(zone.id, edge_id): # edge_id 전달
         raise HTTPException(status_code=409, detail=f"Zone already exists: {zone.id}")
-    zone_service.add_or_update_zone(zone.id, zone.model_dump())
-    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones()})
+    
+    zone_service.add_or_update_zone(edge_id, zone.id, zone.model_dump()) # edge_id 전달
+    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones(edge_id)})
     return ZoneResponse(message="zone created", zone_id=zone.id)
 
 
@@ -48,10 +55,11 @@ def update_zone(
     zone_service: ZoneService = Depends(get_zone_service),
     command_queue: CommandQueueService = Depends(get_command_queue),
 ) -> ZoneResponse:
-    if not zone_service.get_zone(zone_id):
+    if not zone_service.get_zone(zone_id, edge_id): # edge_id 전달
         raise HTTPException(status_code=404, detail=f"Zone not found: {zone_id}")
-    zone_service.add_or_update_zone(zone_id, zone_data.model_dump())
-    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones()})
+        
+    zone_service.add_or_update_zone(edge_id, zone_id, zone_data.model_dump()) # edge_id 전달
+    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones(edge_id)})
     return ZoneResponse(message="zone updated", zone_id=zone_id)
 
 
@@ -62,8 +70,9 @@ def delete_zone(
     zone_service: ZoneService = Depends(get_zone_service),
     command_queue: CommandQueueService = Depends(get_command_queue),
 ) -> ZoneResponse:
-    if not zone_service.get_zone(zone_id):
+    if not zone_service.get_zone(zone_id, edge_id): # edge_id 전달
         raise HTTPException(status_code=404, detail=f"Zone not found: {zone_id}")
-    zone_service.delete_zone(zone_id)
-    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones()})
+        
+    zone_service.delete_zone(zone_id, edge_id) # edge_id 전달
+    command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zone_service.get_all_zones(edge_id)})
     return ZoneResponse(message="zone deleted", zone_id=zone_id)
