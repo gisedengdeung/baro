@@ -3,8 +3,11 @@ from __future__ import annotations
 import threading
 from datetime import datetime
 from typing import Dict, Optional
+from zoneinfo import ZoneInfo
 
 from cloud.models.status import EdgeHeartbeat
+
+KST = ZoneInfo("Asia/Seoul")
 
 
 class StatusStore:
@@ -13,7 +16,7 @@ class StatusStore:
         self._latest: Dict[str, EdgeHeartbeat] = {}
 
     def update(self, heartbeat: EdgeHeartbeat) -> None:
-        hb = heartbeat.model_copy(update={"updated_at": datetime.utcnow()})
+        hb = heartbeat.model_copy(update={"updated_at": datetime.now(KST)})
         with self._lock:
             self._latest[hb.edge_id] = hb
 

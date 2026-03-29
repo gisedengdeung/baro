@@ -2,7 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Dict, List
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi.responses import RedirectResponse
 
 from cloud.dependencies import get_db_service
 from cloud.services.db_service import DBService
@@ -16,3 +17,20 @@ def get_logs(
     db_service: DBService = Depends(get_db_service),
 ) -> List[Dict[str, Any]]:
     return db_service.get_events(limit=limit)
+
+
+@router.get("/{log_id}/clip")
+def get_log_clip(log_id: int, db_service: DBService = Depends(get_db_service)):
+    event = db_service.get_event_by_id(log_id, include_internal=True)
+    if not event:
+        raise HTTPException(status_code=404, detail="Log not found.")
+
+    if event.get("clip_status") != "READY" or not event.get("clip_path"):
+        raise HTTPException(status_code=404, detail="Clip not ready.")
+
+    clip_path_str = event["clip_path"]
+
+    if clip_path_str.startswith("http://") or clip_path_str.startswith("https://"):
+        return RedirectResponse(url=clip_path_str)
+
+    raise HTTPException(status_code=400, detail="Invalid clip path. Expected S3 URL.")

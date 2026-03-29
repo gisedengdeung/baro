@@ -10,6 +10,17 @@ import {
 let socketInstance = null;
 let timerInstance = null;
 
+const isSameLog = (a, b) => {
+  if (!a || !b) return false;
+  if (a.id != null && b.id != null) {
+    return String(a.id) === String(b.id);
+  }
+  if (a.event_uid && b.event_uid) {
+    return a.event_uid === b.event_uid;
+  }
+  return false;
+};
+
 const toRatioZones = (zones, imageSize) => {
   const width = imageSize?.naturalWidth;
   const height = imageSize?.naturalHeight;
@@ -243,12 +254,32 @@ const useDashboardStore = create((set, get) => ({
   },
 
   addLog: (newLog) => {
-    set((state) => ({ logs: [newLog, ...state.logs] }));
+    set((state) => {
+      const exists = state.logs.some((log) => isSameLog(log, newLog));
+      if (exists) {
+        return {
+          logs: state.logs.map((log) => (isSameLog(log, newLog) ? { ...log, ...newLog } : log)),
+        };
+      }
+      return { logs: [newLog, ...state.logs] };
+    });
 
     const riskLevel = newLog?.log_risk_level;
     if (riskLevel === "CRITICAL" || riskLevel === "HIGH") {
       set({ globalAlert: newLog });
     }
+  },
+
+  upsertLog: (updatedLog) => {
+    set((state) => {
+      const found = state.logs.some((log) => isSameLog(log, updatedLog));
+      if (!found) {
+        return { logs: [updatedLog, ...state.logs] };
+      }
+      return {
+        logs: state.logs.map((log) => (isSameLog(log, updatedLog) ? { ...log, ...updatedLog } : log)),
+      };
+    });
   },
 
   resetSystem: async () => {

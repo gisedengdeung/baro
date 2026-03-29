@@ -10,6 +10,8 @@ class EdgeConfig:
     edge_id: str
     cloud_base_url: str
     camera_source: int
+    camera_width: int
+    camera_height: int
     serial_port: str
     serial_baud_rate: int
     serial_mock_mode: bool
@@ -25,6 +27,13 @@ class EdgeConfig:
     visual_overlay_enabled: bool
     draw_zone_polygons: bool
     draw_label_confidence: bool
+    clip_pre_seconds: int
+    clip_post_seconds: int
+    clip_target_fps: int
+    clip_width: int
+    clip_height: int
+    clip_output_dir: str
+    clip_min_trigger_level: str
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -64,6 +73,8 @@ def load_config() -> EdgeConfig:
         edge_id=os.getenv("EDGE_ID", "edge-default"),
         cloud_base_url=os.getenv("CLOUD_BASE_URL", "http://localhost:8000"),
         camera_source=int(os.getenv("EDGE_CAMERA_SOURCE", "0")),
+        camera_width=int(os.getenv("EDGE_CAMERA_WIDTH", "1920")),
+        camera_height=int(os.getenv("EDGE_CAMERA_HEIGHT", "1080")),
         serial_port=os.getenv("EDGE_SERIAL_PORT", "/dev/ttyUSB0"),
         serial_baud_rate=int(os.getenv("EDGE_SERIAL_BAUD", "9600")),
         serial_mock_mode=_env_bool("EDGE_SERIAL_MOCK", False),
@@ -83,4 +94,11 @@ def load_config() -> EdgeConfig:
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
         draw_zone_polygons=_env_bool("EDGE_DRAW_ZONE_POLYGONS", True),
         draw_label_confidence=_env_bool("EDGE_DRAW_LABEL_CONFIDENCE", False),
+        clip_pre_seconds=int(os.getenv("EDGE_CLIP_PRE_SECONDS", "10")),
+        clip_post_seconds=int(os.getenv("EDGE_CLIP_POST_SECONDS", "10")),
+        clip_target_fps=int(os.getenv("EDGE_CLIP_TARGET_FPS", "10")),
+        clip_width=int(os.getenv("EDGE_CLIP_WIDTH", "1280")),
+        clip_height=int(os.getenv("EDGE_CLIP_HEIGHT", "720")),
+        clip_output_dir=os.getenv("EDGE_CLIP_OUTPUT_DIR", "edge/data/clips"),
+        clip_min_trigger_level=os.getenv("EDGE_CLIP_MIN_TRIGGER_LEVEL", "WARNING"),
     )

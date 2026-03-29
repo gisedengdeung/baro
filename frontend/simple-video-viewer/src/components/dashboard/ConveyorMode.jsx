@@ -32,6 +32,13 @@ export default function ConveyorMode({
       >
         {loading && operationMode !== 'MAINTENANCE' ? "⏳ 전환 중..." : "🛠️ 정비 모드 시작"}
       </button>
+      <button
+        onClick={onStop}
+        disabled={loading || operationMode === 'STOPPED'}
+        className="btn-stop"
+      >
+        {loading && operationMode === 'STOPPED' ? "⏳ 정지 중..." : "⏹️ 시스템 정지"}
+      </button>
       <button onClick={onDangerMode} disabled={loading} className="btn-danger-zone">
         ⚠️ 위험 구역 설정
       </button>
@@ -41,4 +48,3 @@ export default function ConveyorMode({
     </div>
   );
 }
-

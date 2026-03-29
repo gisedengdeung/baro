@@ -2,17 +2,26 @@ from __future__ import annotations
 
 from datetime import datetime
 from typing import Any, Dict, List
+from zoneinfo import ZoneInfo
 
-from fastapi import APIRouter, Depends, Query
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile
 
-from cloud.dependencies import get_command_queue, get_db_service, get_status_store, get_zone_service
+from cloud.dependencies import (
+    get_clip_service,
+    get_command_queue,
+    get_db_service,
+    get_status_store,
+    get_zone_service,
+)
 from cloud.models.status import EdgeHeartbeat
+from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.status_store import StatusStore
 from cloud.services.zone_service import ZoneService
 
 router = APIRouter()
+KST = ZoneInfo("Asia/Seoul")
 
 
 @router.post("/heartbeat")
@@ -42,13 +51,70 @@ async def post_heartbeat(
         },
     )
 
-    return {"status": "ok", "updated_at": datetime.utcnow().isoformat()}
+    return {"status": "ok", "updated_at": datetime.now(KST).isoformat()}
 
 
 @router.post("/log")
 async def post_log(payload: Dict[str, Any], db_service: DBService = Depends(get_db_service)):
     message = await db_service.log_event(payload)
     return {"status": "ok", "event_type": message.event_type}
+
+
+@router.post("/clips")
+async def post_clip(
+    edge_id: str = Form("edge-default"),
+    event_uid: str = Form(...),
+    clip_started_at: str | None = Form(None),
+    clip_ended_at: str | None = Form(None),
+    duration_sec: float = Form(0.0),
+    status: str | None = Form(None),
+    error_message: str | None = Form(None),
+    file: UploadFile | None = File(None),
+    clip_service: ClipService = Depends(get_clip_service),
+):
+    normalized_status = (status or "").strip().upper()
+
+    if normalized_status == "FAILED":
+        updated = await clip_service.mark_clip_failed(
+            edge_id=edge_id,
+            event_uid=event_uid,
+            error_message=error_message,
+        )
+        if not updated:
+            raise HTTPException(status_code=404, detail=f"event_uid not found: {event_uid}")
+        return {"status": "ok", "event_uid": event_uid, "clip_status": "FAILED"}
+
+    if file is None:
+        raise HTTPException(status_code=400, detail="Clip file is required unless status=FAILED.")
+
+    if not clip_started_at or not clip_ended_at:
+        raise HTTPException(status_code=400, detail="clip_started_at and clip_ended_at are required.")
+
+    try:
+        updated = await clip_service.save_uploaded_clip(
+            edge_id=edge_id,
+            event_uid=event_uid,
+            clip_started_at=clip_started_at,
+            clip_ended_at=clip_ended_at,
+            duration_sec=duration_sec,
+            upload=file,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+    except Exception as exc:
+        await clip_service.mark_clip_failed(
+            edge_id=edge_id,
+            event_uid=event_uid,
+            error_message=str(exc),
+        )
+        raise HTTPException(status_code=500, detail="Clip upload processing failed.") from exc
+
+    return {
+        "status": "ok",
+        "event_uid": event_uid,
+        "clip_status": updated.get("clip_status"),
+        "log_id": updated.get("id"),
+    }
 
 
 @router.get("/commands")

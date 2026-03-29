@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from contextlib import asynccontextmanager
+import asyncio
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -10,6 +11,7 @@ from cloud.config import load_config
 from cloud.dependencies import require_browser_auth
 from cloud.db import init_db
 from cloud.services.auth_service import AuthConfig, AuthService
+from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.signaling_store import SignalingStore
@@ -52,7 +54,11 @@ async def lifespan(app: FastAPI):
         websocket_manager=websocket_manager,
         db_path=cfg.local_db_path,
     )
+    app.state.clip_service = ClipService(
+        db_service=app.state.db_service
+    )
     app.state.auth_service = auth_service
+  
     yield
 
 

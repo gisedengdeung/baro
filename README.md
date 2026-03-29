@@ -149,6 +149,9 @@ npm start
 - `AUTH_COOKIE_SECURE` (기본: `false`)
 - `AUTH_COOKIE_SAMESITE` (기본: `lax`)
 - `AUTH_COOKIE_DOMAIN` (선택)
+- `CLIP_STORAGE_DIR` (기본: `cloud/data/clips`)
+- `CLIP_RETENTION_DAYS` (기본: `7`)
+- `CLIP_CLEANUP_INTERVAL_SEC` (기본: `3600`)
 
 ### Edge
 
@@ -167,6 +170,12 @@ npm start
 - `EDGE_VISUAL_OVERLAY_ENABLED` (기본: `true`)
 - `EDGE_DRAW_ZONE_POLYGONS` (기본: `true`)
 - `EDGE_DRAW_LABEL_CONFIDENCE` (기본: `false`)
+- `EDGE_CLIP_PRE_SECONDS` (기본: `10`)
+- `EDGE_CLIP_POST_SECONDS` (기본: `10`)
+- `EDGE_CLIP_TARGET_FPS` (기본: `10`)
+- `EDGE_CLIP_WIDTH` (기본: `1280`)
+- `EDGE_CLIP_HEIGHT` (기본: `720`)
+- `EDGE_CLIP_OUTPUT_DIR` (기본: `edge/data/clips`)
 
 장치 확인 팁:
 - macOS 시리얼 포트: `ls /dev/cu.*`
@@ -213,6 +222,7 @@ REACT_APP_EDGE_ID=edge-default
 
 - `POST /api/edge/heartbeat`
 - `POST /api/edge/log`
+- `POST /api/edge/clips`
 
 ### 제어/조회(호환 경로)
 
@@ -226,6 +236,7 @@ REACT_APP_EDGE_ID=edge-default
 - `POST /api/control/reset`
 - `GET /api/control/status`
 - `GET /api/logs`
+- `GET /api/logs/{id}/clip`
 - `CRUD /api/zones`
 - `GET /api/status`
 - `WS /ws/logs`
