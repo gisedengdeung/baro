@@ -1,10 +1,9 @@
 from __future__ import annotations
 
-from pathlib import Path
 from typing import Any, Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, Query
-from fastapi.responses import FileResponse
+from fastapi.responses import RedirectResponse
 
 from cloud.dependencies import get_db_service
 from cloud.services.db_service import DBService
@@ -29,12 +28,9 @@ def get_log_clip(log_id: int, db_service: DBService = Depends(get_db_service)):
     if event.get("clip_status") != "READY" or not event.get("clip_path"):
         raise HTTPException(status_code=404, detail="Clip not ready.")
 
-    clip_path = Path(event["clip_path"])
-    if not clip_path.exists():
-        raise HTTPException(status_code=404, detail="Clip file missing.")
+    clip_path_str = event["clip_path"]
 
-    return FileResponse(
-        path=clip_path,
-        media_type="video/mp4",
-        filename=clip_path.name,
-    )
+    if clip_path_str.startswith("http://") or clip_path_str.startswith("https://"):
+        return RedirectResponse(url=clip_path_str)
+
+    raise HTTPException(status_code=400, detail="Invalid clip path. Expected S3 URL.")

@@ -10,6 +10,8 @@ class EdgeHeartbeat(BaseModel):
     system_is_active: bool = False
     operation_mode: str = "STOPPED"
     is_locked: bool = False
+    test_is_active: bool = False
+    test_speed: int = 0
     conveyor_is_on: bool = False
     conveyor_speed: int = 0
     is_alert_on: bool = False

@@ -14,14 +14,16 @@ class ZoneService:
     def __init__(self, db_path: str) -> None:
         self.db_path = db_path
 
-    def get_all_zones(self) -> List[Dict[str, Any]]:
+    def get_all_zones(self, edge_id: str) -> List[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
                 """
-                SELECT id, name, points_json
+                SELECT id, edge_id, name, points_json
                 FROM danger_zones
+                WHERE edge_id = ?
                 ORDER BY updated_at DESC
-                """
+                """,
+                (edge_id,)
             ).fetchall()
 
         zones: List[Dict[str, Any]] = []
@@ -30,19 +32,19 @@ class ZoneService:
                 points = json.loads(row["points_json"])
             except json.JSONDecodeError:
                 points = []
-            zones.append({"id": row["id"], "name": row["name"], "points": points})
+            zones.append({"id": row["id"], "edge_id": row["edge_id"], "name": row["name"], "points": points})
 
         return zones
 
-    def get_zone(self, zone_id: str) -> Optional[Dict[str, Any]]:
+    def get_zone(self, zone_id: str, edge_id: str) -> Optional[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
             row = conn.execute(
                 """
-                SELECT id, name, points_json
+                SELECT id, edge_id, name, points_json
                 FROM danger_zones
-                WHERE id = ?
+                WHERE id = ? AND edge_id = ?
                 """,
-                (zone_id,),
+                (zone_id, edge_id),
             ).fetchone()
 
         if row is None:
@@ -53,11 +55,12 @@ class ZoneService:
         except json.JSONDecodeError:
             points = []
 
-        return {"id": row["id"], "name": row["name"], "points": points}
+        return {"id": row["id"], "edge_id": row["edge_id"], "name": row["name"], "points": points}
 
-    def add_or_update_zone(self, zone_id: str, zone_data: Dict[str, Any]) -> bool:
+    def add_or_update_zone(self, edge_id: str, zone_id: str, zone_data: Dict[str, Any]) -> bool:
         payload = dict(zone_data)
         payload.pop("id", None)
+        payload.pop("edge_id", None)
 
         name = payload.get("name", "Unnamed Zone")
         points = payload.get("points", [])
@@ -65,15 +68,17 @@ class ZoneService:
         with get_connection(self.db_path) as conn:
             conn.execute(
                 """
-                INSERT INTO danger_zones (id, name, points_json, updated_at)
-                VALUES (?, ?, ?, ?)
+                INSERT INTO danger_zones (id, edge_id, name, points_json, updated_at)
+                VALUES (?, ?, ?, ?, ?)
                 ON CONFLICT(id) DO UPDATE SET
+                    edge_id = excluded.edge_id,
                     name = excluded.name,
                     points_json = excluded.points_json,
                     updated_at = excluded.updated_at
                 """,
                 (
                     zone_id,
+                    edge_id,  
                     name,
                     json.dumps(points, ensure_ascii=False),
                     datetime.now(KST).isoformat(),
@@ -83,8 +88,8 @@ class ZoneService:
 
         return True
 
-    def delete_zone(self, zone_id: str) -> bool:
+    def delete_zone(self, zone_id: str, edge_id: str) -> bool:
         with get_connection(self.db_path) as conn:
-            cursor = conn.execute("DELETE FROM danger_zones WHERE id = ?", (zone_id,))
+            cursor = conn.execute("DELETE FROM danger_zones WHERE id = ? AND edge_id = ?", (zone_id, edge_id))
             conn.commit()
             return cursor.rowcount > 0
