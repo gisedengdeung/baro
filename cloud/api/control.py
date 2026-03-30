@@ -28,7 +28,7 @@ def start_automatic_mode(
     command_queue: CommandQueueService = Depends(get_command_queue),
     zone_service: ZoneService = Depends(get_zone_service),
 ) -> ControlResponse:
-    zones = zone_service.get_all_zones()
+    zones = zone_service.get_all_zones(edge_id)
     command_queue.push(edge_id, {"command": "UPDATE_ZONES", "data": zones})
     command_queue.push(edge_id, {"command": "START_AUTOMATIC"})
     return ControlResponse(message=f"START_AUTOMATIC queued ({len(zones)} zones synced)", edge_id=edge_id)
