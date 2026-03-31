@@ -117,6 +117,10 @@ if [[ -f "$EDGE_ENV_FILE" ]]; then
   FALL_MODEL_PATH="${EDGE_FALL_MODEL_PATH:-$FALL_MODEL_PATH}"
 fi
 
+if [[ -z "${EDGE_SHARED_SECRET:-}" ]]; then
+  echo "[WARN] EDGE_SHARED_SECRET is empty in $EDGE_ENV_FILE"
+fi
+
 check_model_file() {
   local label="$1"
   local path="$2"

@@ -1,5 +1,8 @@
 from __future__ import annotations
 
+import time
+import json
+
 from fastapi import HTTPException, Request, WebSocket, WebSocketException, status
 
 from cloud.models.auth import UserPublic
@@ -11,6 +14,7 @@ from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
 from cloud.services.websocket_manager import WebSocketManager
 from cloud.services.zone_service import ZoneService
+from shared.edge_hmac import verify_edge_signature
 
 
 def _get_state_attr(obj: Request | WebSocket, name: str):
@@ -91,3 +95,74 @@ def require_signaling_browser_auth(
     if sender == "browser" or receiver == "browser":
         return get_current_user(request)
     return None
+
+
+def _load_edge_auth_state(request: Request) -> tuple[str, int]:
+    shared_secret = getattr(request.app.state, "edge_shared_secret", None)
+    skew_sec = getattr(request.app.state, "edge_auth_skew_sec", 30)
+    if not shared_secret:
+        raise HTTPException(status_code=500, detail="Edge auth secret not initialized")
+    return str(shared_secret), int(skew_sec)
+
+
+async def require_edge_hmac(request: Request) -> str:
+    shared_secret, skew_sec = _load_edge_auth_state(request)
+
+    edge_id = request.headers.get("X-Edge-Id", "").strip()
+    timestamp = request.headers.get("X-Edge-Timestamp", "").strip()
+    signature = request.headers.get("X-Edge-Signature", "").strip()
+    if not edge_id or not timestamp or not signature:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing edge auth headers")
+
+    try:
+        timestamp_i = int(timestamp)
+    except ValueError as exc:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid edge timestamp") from exc
+
+    now = int(time.time())
+    if abs(now - timestamp_i) > skew_sec:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Edge signature timestamp expired")
+
+    body = await request.body()
+    is_valid = verify_edge_signature(
+        provided_signature=signature,
+        shared_secret=shared_secret,
+        edge_id=edge_id,
+        timestamp=timestamp,
+        method=request.method,
+        path=request.url.path,
+        query=request.url.query,
+        body=body,
+    )
+    if not is_valid:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid edge signature")
+
+    edge_id_from_query = request.query_params.get("edge_id")
+    if edge_id_from_query and edge_id_from_query != edge_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="edge_id mismatch")
+
+    content_type = request.headers.get("content-type", "").lower()
+    edge_id_from_body: str | None = None
+    if "application/json" in content_type and body:
+        try:
+            parsed = json.loads(body.decode("utf-8"))
+            if isinstance(parsed, dict):
+                raw = parsed.get("edge_id")
+                if isinstance(raw, str):
+                    edge_id_from_body = raw
+        except Exception:
+            edge_id_from_body = None
+    elif "multipart/form-data" in content_type or "application/x-www-form-urlencoded" in content_type:
+        try:
+            form = await request.form()
+            raw = form.get("edge_id")
+            if isinstance(raw, str):
+                edge_id_from_body = raw
+        except Exception:
+            edge_id_from_body = None
+
+    if edge_id_from_body and edge_id_from_body != edge_id:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="edge_id mismatch")
+
+    request.state.edge_id = edge_id
+    return edge_id

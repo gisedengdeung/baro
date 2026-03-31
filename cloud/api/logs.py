@@ -6,6 +6,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi.responses import RedirectResponse
 
 from cloud.dependencies import get_db_service
+from cloud.services.s3_uploader import generate_presigned_download_url
 from cloud.services.db_service import DBService
 
 router = APIRouter()
@@ -31,6 +32,10 @@ def get_log_clip(log_id: int, db_service: DBService = Depends(get_db_service)):
     clip_path_str = event["clip_path"]
 
     if clip_path_str.startswith("http://") or clip_path_str.startswith("https://"):
+        # Backward compatibility with legacy absolute URL entries.
         return RedirectResponse(url=clip_path_str)
 
-    raise HTTPException(status_code=400, detail="Invalid clip path. Expected S3 URL.")
+    presigned_url = generate_presigned_download_url(clip_path_str)
+    if not presigned_url:
+        raise HTTPException(status_code=500, detail="Failed to generate clip download URL.")
+    return RedirectResponse(url=presigned_url)

@@ -22,6 +22,9 @@ class CloudConfig:
     clip_storage_dir: str
     clip_retention_days: int
     clip_cleanup_interval_sec: int
+    edge_shared_secret: str
+    edge_auth_skew_sec: int
+    webrtc_ice_servers_json: str
 
 
 def _parse_bool(value: str, default: bool = False) -> bool:
@@ -42,6 +45,14 @@ def load_config() -> CloudConfig:
     if auth_cookie_domain:
         auth_cookie_domain = auth_cookie_domain.strip() or None
 
+    auth_jwt_secret = os.getenv("AUTH_JWT_SECRET", "").strip()
+    if not auth_jwt_secret:
+        raise RuntimeError("AUTH_JWT_SECRET is required.")
+
+    edge_shared_secret = os.getenv("EDGE_SHARED_SECRET", "").strip()
+    if not edge_shared_secret:
+        raise RuntimeError("EDGE_SHARED_SECRET is required.")
+
     return CloudConfig(
         cors_allow_origins=origins or ["http://localhost:3000"],
         local_db_path=os.getenv("LOCAL_DB_PATH", "cloud/data/cloud.db"),
@@ -50,13 +61,16 @@ def load_config() -> CloudConfig:
         signaling_ice_ttl_sec=int(os.getenv("SIGNALING_ICE_TTL_SEC", "20")),
         auth_admin_email=os.getenv("AUTH_ADMIN_EMAIL"),
         auth_admin_password=os.getenv("AUTH_ADMIN_PASSWORD"),
-        auth_jwt_secret=os.getenv("AUTH_JWT_SECRET", "dev-only-change-this-secret"),
+        auth_jwt_secret=auth_jwt_secret,
         auth_access_ttl_sec=int(os.getenv("AUTH_ACCESS_TTL_SEC", "900")),
         auth_refresh_ttl_sec=int(os.getenv("AUTH_REFRESH_TTL_SEC", "604800")),
-        auth_cookie_secure=_parse_bool(os.getenv("AUTH_COOKIE_SECURE", "false"), default=False),
+        auth_cookie_secure=_parse_bool(os.getenv("AUTH_COOKIE_SECURE", "true"), default=True),
         auth_cookie_samesite=cookie_samesite,
         auth_cookie_domain=auth_cookie_domain,
         clip_storage_dir=os.getenv("CLIP_STORAGE_DIR", "cloud/data/clips"),
         clip_retention_days=int(os.getenv("CLIP_RETENTION_DAYS", "7")),
         clip_cleanup_interval_sec=int(os.getenv("CLIP_CLEANUP_INTERVAL_SEC", "3600")),
+        edge_shared_secret=edge_shared_secret,
+        edge_auth_skew_sec=int(os.getenv("EDGE_AUTH_SKEW_SEC", "30")),
+        webrtc_ice_servers_json=os.getenv("WEBRTC_ICE_SERVERS_JSON", ""),
     )

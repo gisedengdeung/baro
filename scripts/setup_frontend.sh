@@ -52,12 +52,18 @@ echo "[INFO] Installing frontend dependencies"
 npm install --cache "$CACHE_DIR"
 
 if [[ ! -f "$FRONTEND_ENV_FILE" ]]; then
-  cat >"$FRONTEND_ENV_FILE" <<'EOF'
+  if [[ -f "$FRONTEND_DIR/.env.example" ]]; then
+    cp "$FRONTEND_DIR/.env.example" "$FRONTEND_ENV_FILE"
+    echo "[INFO] Created frontend .env from .env.example"
+  else
+    cat >"$FRONTEND_ENV_FILE" <<'EOF'
 REACT_APP_API_BASE_URL=http://localhost:8000
 REACT_APP_WS_BASE_URL=ws://localhost:8000
 REACT_APP_EDGE_ID=edge-default
+REACT_APP_WEBRTC_ICE_SERVERS_JSON=[{"urls":"stun:stun.l.google.com:19302"}]
 EOF
-  echo "[INFO] Created frontend .env with default values"
+    echo "[INFO] Created frontend .env with default values"
+  fi
 else
   echo "[INFO] Keeping existing frontend .env (not overwritten)"
 fi

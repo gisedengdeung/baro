@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import argparse
 import asyncio
+import json
 from datetime import datetime
+from typing import Any
 from zoneinfo import ZoneInfo
 
 from loguru import logger
@@ -39,6 +41,7 @@ def _build_config_from_args() -> EdgeConfig:
 
     return EdgeConfig(
         edge_id=args.edge_id,
+        edge_shared_secret=cfg.edge_shared_secret,
         cloud_base_url=args.cloud_url,
         camera_source=args.camera,
         camera_width=cfg.camera_width,
@@ -63,7 +66,36 @@ def _build_config_from_args() -> EdgeConfig:
         clip_height=cfg.clip_height,
         clip_output_dir=cfg.clip_output_dir,
         clip_min_trigger_level=cfg.clip_min_trigger_level,
+        webrtc_ice_servers_json=cfg.webrtc_ice_servers_json,
     )
+
+
+def _parse_webrtc_ice_servers(raw: str) -> list[dict[str, Any]]:
+    default_servers: list[dict[str, Any]] = [{"urls": "stun:stun.l.google.com:19302"}]
+    candidate = (raw or "").strip()
+    if not candidate:
+        return default_servers
+
+    try:
+        payload = json.loads(candidate)
+    except json.JSONDecodeError as exc:
+        logger.warning(f"WEBRTC_ICE_SERVERS_JSON 파싱 실패, 기본값 사용: {exc}")
+        return default_servers
+
+    if not isinstance(payload, list):
+        logger.warning("WEBRTC_ICE_SERVERS_JSON 형식 오류(list 아님), 기본값 사용")
+        return default_servers
+
+    normalized: list[dict[str, Any]] = []
+    for item in payload:
+        if not isinstance(item, dict) or "urls" not in item:
+            continue
+        normalized.append(item)
+
+    if not normalized:
+        logger.warning("WEBRTC_ICE_SERVERS_JSON 유효 항목 없음, 기본값 사용")
+        return default_servers
+    return normalized
 
 
 async def main() -> None:
@@ -81,6 +113,7 @@ async def main() -> None:
     cloud_client = CloudClient(
         base_url=cfg.cloud_base_url,
         edge_id=cfg.edge_id,
+        edge_shared_secret=cfg.edge_shared_secret,
         command_poll_interval=cfg.command_poll_interval,
         zone_poll_interval=cfg.zone_poll_interval,
         heartbeat_interval=cfg.heartbeat_interval,
@@ -133,7 +166,11 @@ async def main() -> None:
     conveyor = ConveyorController(serial=serial)
     buzzer = BuzzerController(serial=serial)
 
-    webrtc_peer = WebRTCPeer(cloud_client=cloud_client, edge_id=cfg.edge_id)
+    webrtc_peer = WebRTCPeer(
+        cloud_client=cloud_client,
+        edge_id=cfg.edge_id,
+        ice_servers=_parse_webrtc_ice_servers(cfg.webrtc_ice_servers_json),
+    )
     overlay_renderer = OverlayRenderer(
         enabled=cfg.visual_overlay_enabled,
         draw_zone_polygons=cfg.draw_zone_polygons,

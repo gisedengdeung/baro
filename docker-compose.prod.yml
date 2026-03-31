@@ -1,0 +1,78 @@
+services:
+  cloud:
+    build:
+      context: .
+      dockerfile: Dockerfile.cloud
+    env_file:
+      - .env.prod
+    environment:
+      LOCAL_DB_PATH: ${LOCAL_DB_PATH:-/app/cloud/data/cloud.db}
+    volumes:
+      - ${CONVEYOR_DATA_DIR:-/srv/conveyor/data}:/app/cloud/data
+    ports:
+      - "8000:8000"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://127.0.0.1:8000/', timeout=3)"]
+      interval: 30s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+      args:
+        REACT_APP_API_BASE_URL: ${REACT_APP_API_BASE_URL:-}
+        REACT_APP_WS_BASE_URL: ${REACT_APP_WS_BASE_URL:-}
+        REACT_APP_EDGE_ID: ${REACT_APP_EDGE_ID:-edge-default}
+        REACT_APP_WEBRTC_ICE_SERVERS_JSON: '${REACT_APP_WEBRTC_ICE_SERVERS_JSON:-[{"urls":"stun:stun.l.google.com:19302"}]}'
+    depends_on:
+      cloud:
+        condition: service_healthy
+    restart: unless-stopped
+
+  caddy:
+    image: caddy:2.8-alpine
+    depends_on:
+      - cloud
+      - frontend
+    environment:
+      CADDY_DOMAIN: ${CADDY_DOMAIN:-:80}
+      ACME_EMAIL: ${ACME_EMAIL:-}
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./deploy/caddy/Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    restart: unless-stopped
+
+  coturn:
+    image: coturn/coturn:4.6.3
+    environment:
+      TURN_REALM: ${TURN_REALM:-example.com}
+      TURN_USER: ${TURN_USER:-turnuser}
+      TURN_PASSWORD: ${TURN_PASSWORD:-turnpassword}
+    command:
+      - -n
+      - --log-file=stdout
+      - --realm=${TURN_REALM:-example.com}
+      - --lt-cred-mech
+      - --fingerprint
+      - --user=${TURN_USER:-turnuser}:${TURN_PASSWORD:-turnpassword}
+      - --listening-port=3478
+      - --min-port=49160
+      - --max-port=49200
+      - --no-cli
+    ports:
+      - "3478:3478/tcp"
+      - "3478:3478/udp"
+      - "49160-49200:49160-49200/udp"
+    restart: unless-stopped
+
+volumes:
+  caddy_data:
+  caddy_config:

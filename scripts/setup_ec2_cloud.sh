@@ -1,31 +1,29 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# Run this on Ubuntu 24.04 EC2.
+# Run this script on Ubuntu 24.04 EC2.
 
 APP_DIR="${APP_DIR:-$HOME/app/stop}"
-PYTHON_BIN="${PYTHON_BIN:-python3}"
-FRONTEND_ORIGIN="${FRONTEND_ORIGIN:-}"
+ENV_FILE="${ENV_FILE:-.env.prod}"
+COMPOSE_FILE="${COMPOSE_FILE:-docker-compose.prod.yml}"
+CONVEYOR_DATA_DIR="${CONVEYOR_DATA_DIR:-/srv/conveyor/data}"
 
-upsert_env_var() {
-  local key="$1"
-  local value="$2"
-  local file="$3"
-  local escaped
-  escaped=$(printf '%s\n' "$value" | sed 's/[\/&]/\\&/g')
-
-  if grep -q "^${key}=" "$file"; then
-    sed -i "s/^${key}=.*/${key}=${escaped}/" "$file"
-  else
-    printf "%s=%s\n" "$key" "$value" >>"$file"
-  fi
-}
-
-echo "[1/6] apt update and base packages"
+echo "[1/6] Install Docker + Compose"
 sudo apt-get update -y
-sudo apt-get install -y git nginx python3-venv python3-pip
+sudo apt-get install -y ca-certificates curl git gnupg
+sudo install -m 0755 -d /etc/apt/keyrings
+if [[ ! -f /etc/apt/keyrings/docker.gpg ]]; then
+  curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+fi
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker "$USER"
 
-echo "[2/6] check app directory: $APP_DIR"
+echo "[2/6] Validate app dir: $APP_DIR"
 if [[ ! -d "$APP_DIR" ]]; then
   echo "[ERROR] APP_DIR not found: $APP_DIR" >&2
   echo "Clone repo first. Example:"
@@ -35,69 +33,46 @@ fi
 
 cd "$APP_DIR"
 
-echo "[3/6] python virtualenv"
-if [[ ! -d ".venv-cloud" ]]; then
-  "$PYTHON_BIN" -m venv .venv-cloud
-fi
-. .venv-cloud/bin/activate
-python -m pip install --upgrade pip
-pip install -r requirements-cloud.txt
-
-echo "[4/6] env file"
-if [[ ! -f ".env" ]]; then
-  if [[ -f ".env.cloud.example" ]]; then
-    cp .env.cloud.example .env
-    echo "[INFO] Created .env from .env.cloud.example"
+echo "[3/6] Prepare env file"
+if [[ ! -f "$ENV_FILE" ]]; then
+  if [[ -f ".env.prod.example" ]]; then
+    cp .env.prod.example "$ENV_FILE"
+    echo "[INFO] Created $ENV_FILE from .env.prod.example"
   else
-    echo "[WARN] .env.cloud.example not found. Create .env manually."
+    echo "[ERROR] Missing .env.prod.example and $ENV_FILE" >&2
+    exit 1
   fi
 fi
-echo "[INFO] Edit .env and fill AWS/AUTH values before production run."
 
-# Force EC2-friendly DB path unless user already customized.
-if grep -q "^LOCAL_DB_PATH=cloud/data/cloud.db$" .env || ! grep -q "^LOCAL_DB_PATH=" .env; then
-  upsert_env_var "LOCAL_DB_PATH" "$APP_DIR/cloud/data/cloud.db" ".env"
-  echo "[INFO] Set LOCAL_DB_PATH=$APP_DIR/cloud/data/cloud.db"
-fi
-
-if [[ -n "$FRONTEND_ORIGIN" ]]; then
-  upsert_env_var "CLOUD_CORS_ALLOW_ORIGINS" "$FRONTEND_ORIGIN" ".env"
-  echo "[INFO] Set CLOUD_CORS_ALLOW_ORIGINS=$FRONTEND_ORIGIN"
-fi
-
-for required_key in AUTH_ADMIN_EMAIL AUTH_ADMIN_PASSWORD AUTH_JWT_SECRET AWS_ACCESS_KEY AWS_SECRET_KEY; do
-  if ! grep -q "^${required_key}=" .env; then
-    echo "[WARN] Missing .env key: ${required_key}"
-    continue
-  fi
-  current_value="$(grep "^${required_key}=" .env | head -n 1 | cut -d= -f2-)"
-  if [[ -z "$current_value" ]]; then
-    echo "[WARN] Empty .env value: ${required_key}"
+for required_key in CADDY_DOMAIN ACME_EMAIL AUTH_ADMIN_EMAIL AUTH_ADMIN_PASSWORD AUTH_JWT_SECRET EDGE_SHARED_SECRET AWS_S3_BUCKET; do
+  if ! grep -q "^${required_key}=" "$ENV_FILE"; then
+    echo "[WARN] Missing $required_key in $ENV_FILE"
   fi
 done
 
-echo "[5/6] systemd service install"
-sudo cp deploy/ec2/cloud.service /etc/systemd/system/conveyor-guard-cloud.service
-sudo sed -i "s|WorkingDirectory=.*|WorkingDirectory=$APP_DIR|g" /etc/systemd/system/conveyor-guard-cloud.service
-sudo sed -i "s|EnvironmentFile=.*|EnvironmentFile=$APP_DIR/.env|g" /etc/systemd/system/conveyor-guard-cloud.service
-sudo sed -i "s|ExecStart=.*|ExecStart=$APP_DIR/.venv-cloud/bin/uvicorn cloud.main:app --host 127.0.0.1 --port 8000|g" /etc/systemd/system/conveyor-guard-cloud.service
-sudo sed -i "s|User=.*|User=$USER|g" /etc/systemd/system/conveyor-guard-cloud.service
-sudo systemctl daemon-reload
-sudo systemctl enable conveyor-guard-cloud.service
-sudo systemctl restart conveyor-guard-cloud.service
+echo "[4/6] Prepare persistent data directory"
+sudo mkdir -p "$CONVEYOR_DATA_DIR"
+sudo chown -R "$USER":"$USER" "$CONVEYOR_DATA_DIR"
 
-echo "[6/6] nginx config"
-sudo cp deploy/ec2/nginx-cloud.conf /etc/nginx/sites-available/conveyor-guard-cloud
-sudo ln -sf /etc/nginx/sites-available/conveyor-guard-cloud /etc/nginx/sites-enabled/conveyor-guard-cloud
-sudo rm -f /etc/nginx/sites-enabled/default
-sudo nginx -t
-sudo systemctl restart nginx
-sudo systemctl enable nginx
+if ! grep -q "^CONVEYOR_DATA_DIR=" "$ENV_FILE"; then
+  echo "CONVEYOR_DATA_DIR=$CONVEYOR_DATA_DIR" >>"$ENV_FILE"
+  echo "[INFO] Added CONVEYOR_DATA_DIR=$CONVEYOR_DATA_DIR to $ENV_FILE"
+fi
 
-echo ""
-echo "[DONE] EC2 cloud setup completed."
-echo "Check service:"
-echo "  sudo systemctl status conveyor-guard-cloud --no-pager"
-echo "  sudo journalctl -u conveyor-guard-cloud -f"
-echo "Health check:"
-echo "  curl http://127.0.0.1:8000/"
+echo "[5/6] Build and start compose stack"
+sudo docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" up -d --build
+
+echo "[6/6] Show status"
+sudo docker compose -f "$COMPOSE_FILE" --env-file "$ENV_FILE" ps
+
+cat <<EOF
+
+[DONE] EC2 production stack started.
+
+Next:
+  1) Configure UFW to allow 80/443 and tailscale0:8000 only.
+  2) Join Tailscale and point Edge CLOUD_BASE_URL to tailscale IP.
+  3) Verify:
+     curl -I https://<YOUR_DOMAIN>/
+     curl -I https://<YOUR_DOMAIN>/docs
+EOF

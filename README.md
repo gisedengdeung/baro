@@ -24,6 +24,8 @@ scripts/
 requirements-edge.txt
 requirements-cloud.txt
 Dockerfile.cloud
+Dockerfile.frontend
+docker-compose.prod.yml
 ```
 
 ## Setup (1회/필요시)
@@ -68,6 +70,9 @@ Dockerfile.cloud
 ```bash
 export AUTH_ADMIN_EMAIL=admin@example.com
 export AUTH_ADMIN_PASSWORD='ChangeMe123!'
+export AUTH_JWT_SECRET='replace-with-long-random-secret'
+export EDGE_SHARED_SECRET='replace-with-long-random-secret'
+export AWS_S3_BUCKET='your-private-bucket'
 ```
 
 ```bash
@@ -143,20 +148,29 @@ npm start
 - `SIGNALING_ICE_TTL_SEC` (기본: `20`)
 - `AUTH_ADMIN_EMAIL` (초기 관리자 이메일, 최초 부팅 필수)
 - `AUTH_ADMIN_PASSWORD` (초기 관리자 비밀번호, 최초 부팅 필수)
-- `AUTH_JWT_SECRET` (기본: `dev-only-change-this-secret`)
+- `AUTH_JWT_SECRET` (**필수**)
 - `AUTH_ACCESS_TTL_SEC` (기본: `900`)
 - `AUTH_REFRESH_TTL_SEC` (기본: `604800`)
-- `AUTH_COOKIE_SECURE` (기본: `false`)
+- `AUTH_COOKIE_SECURE` (기본: `true`)
 - `AUTH_COOKIE_SAMESITE` (기본: `lax`)
 - `AUTH_COOKIE_DOMAIN` (선택)
+- `EDGE_SHARED_SECRET` (**필수**, Edge HMAC 공유 비밀)
+- `EDGE_AUTH_SKEW_SEC` (기본: `30`)
+- `WEBRTC_ICE_SERVERS_JSON` (기본: `stun:stun.l.google.com:19302`)
 - `CLIP_STORAGE_DIR` (기본: `cloud/data/clips`)
 - `CLIP_RETENTION_DAYS` (기본: `7`)
 - `CLIP_CLEANUP_INTERVAL_SEC` (기본: `3600`)
+- `AWS_S3_BUCKET` (**권장 필수**, private 버킷)
+- `AWS_REGION` (기본: `ap-northeast-2`)
+- `PRESIGNED_URL_TTL_SEC` (기본: `300`)
+- `AWS_ACCESS_KEY`, `AWS_SECRET_KEY` (레거시 호환용, 가능하면 EC2 IAM Role 사용)
 
 ### Edge
 
 - `EDGE_ID` (기본: `edge-default`)
 - `CLOUD_BASE_URL` (기본: `http://localhost:8000`)
+- `EDGE_SHARED_SECRET` (**필수**, Cloud와 동일값)
+- `WEBRTC_ICE_SERVERS_JSON` (기본: `stun:stun.l.google.com:19302`)
 - `EDGE_CAMERA_SOURCE` (기본: `0`)
 - `EDGE_SERIAL_PORT` (기본: `/dev/ttyUSB0`)
 - `EDGE_SERIAL_BAUD` (기본: `9600`)
@@ -198,6 +212,7 @@ PY
 - `REACT_APP_API_BASE_URL` (기본: `http://localhost:8000`)
 - `REACT_APP_WS_BASE_URL` (기본: `ws://localhost:8000`)
 - `REACT_APP_EDGE_ID` (기본: `edge-default`)
+- `REACT_APP_WEBRTC_ICE_SERVERS_JSON` (기본: `stun:stun.l.google.com:19302`)
 
 예시:
 
@@ -205,6 +220,7 @@ PY
 REACT_APP_API_BASE_URL=http://localhost:8000
 REACT_APP_WS_BASE_URL=ws://localhost:8000
 REACT_APP_EDGE_ID=edge-default
+REACT_APP_WEBRTC_ICE_SERVERS_JSON=[{"urls":"stun:stun.l.google.com:19302"}]
 ```
 
 로그인 정책:
@@ -223,6 +239,11 @@ REACT_APP_EDGE_ID=edge-default
 - `POST /api/edge/heartbeat`
 - `POST /api/edge/log`
 - `POST /api/edge/clips`
+
+보안 헤더(필수):
+- `X-Edge-Id`
+- `X-Edge-Timestamp`
+- `X-Edge-Signature` (HMAC-SHA256, body hash 포함)
 
 ### 제어/조회(호환 경로)
 
@@ -262,14 +283,31 @@ REACT_APP_EDGE_ID=edge-default
   - 속도: `s0`~`s255`
   - 부저: `b_medium`, `b_high`, `b_critical`, `b_stop`
 
-## Docker (Cloud 전용)
+## Docker (Production)
+
+Compose 기반 배포 파일:
+- `docker-compose.prod.yml`
+- `Dockerfile.cloud`
+- `Dockerfile.frontend`
+- `deploy/caddy/Caddyfile`
+
+실행:
 
 ```bash
-docker build -f Dockerfile.cloud -t conveyor-guard-cloud .
-docker run --rm -p 8000:8000 conveyor-guard-cloud
+cp .env.prod.example .env.prod
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml ps
 ```
 
-Edge는 하드웨어 접근(카메라/시리얼) 때문에 네이티브 실행을 권장합니다.
+기본 구성:
+- `cloud` (FastAPI)
+- `frontend` (React build)
+- `caddy` (TLS + reverse proxy)
+- `coturn` (TURN server)
+
+참고:
+- Edge는 하드웨어 접근(카메라/시리얼) 때문에 네이티브 실행 권장
+- Edge -> Cloud는 Tailscale 경로(`http://<tailscale-ip>:8000`) 사용
 
 ## Local DB 운영
 

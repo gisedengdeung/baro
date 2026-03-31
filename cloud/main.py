@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from cloud.api import auth, control, edge, logs, signaling, status, streaming, zones
 from cloud.config import load_config
-from cloud.dependencies import require_browser_auth
+from cloud.dependencies import require_browser_auth, require_edge_hmac
 from cloud.db import init_db
 from cloud.services.auth_service import AuthConfig, AuthService
 from cloud.services.clip_service import ClipService
@@ -58,6 +58,8 @@ async def lifespan(app: FastAPI):
         db_service=app.state.db_service
     )
     app.state.auth_service = auth_service
+    app.state.edge_shared_secret = cfg.edge_shared_secret
+    app.state.edge_auth_skew_sec = cfg.edge_auth_skew_sec
   
     yield
 
@@ -103,7 +105,12 @@ app.include_router(
     dependencies=[Depends(require_browser_auth)],
 )
 app.include_router(signaling.router, prefix="/api/signaling", tags=["Signaling"])
-app.include_router(edge.router, prefix="/api/edge", tags=["Edge"])
+app.include_router(
+    edge.router,
+    prefix="/api/edge",
+    tags=["Edge"],
+    dependencies=[Depends(require_edge_hmac)],
+)
 app.include_router(streaming.router, prefix="/api/streaming", tags=["Streaming"])
 app.include_router(log_stream.router, prefix="/ws/logs", tags=["WebSocket"])
 app.include_router(alert_stream.router, prefix="/ws/alerts", tags=["WebSocket"])

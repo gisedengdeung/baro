@@ -1,8 +1,9 @@
 import axios from 'axios';
 
 const trimSlash = (value) => value.replace(/\/$/, '');
+const browserOrigin = typeof window !== 'undefined' ? window.location.origin : 'http://localhost:8000';
 
-const API_BASE_URL = trimSlash(process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000');
+const API_BASE_URL = trimSlash(process.env.REACT_APP_API_BASE_URL || browserOrigin);
 const WS_BASE_URL = trimSlash(
   process.env.REACT_APP_WS_BASE_URL || API_BASE_URL.replace(/^http/i, 'ws')
 );

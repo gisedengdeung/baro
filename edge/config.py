@@ -8,6 +8,7 @@ from pathlib import Path
 @dataclass(slots=True)
 class EdgeConfig:
     edge_id: str
+    edge_shared_secret: str
     cloud_base_url: str
     camera_source: int
     camera_width: int
@@ -34,6 +35,7 @@ class EdgeConfig:
     clip_height: int
     clip_output_dir: str
     clip_min_trigger_level: str
+    webrtc_ice_servers_json: str
 
 
 ROOT_DIR = Path(__file__).resolve().parent.parent
@@ -69,8 +71,13 @@ def _resolve_model_path(raw_path: str, default_rel_path: str) -> str:
 
 
 def load_config() -> EdgeConfig:
+    edge_shared_secret = os.getenv("EDGE_SHARED_SECRET", "").strip()
+    if not edge_shared_secret:
+        raise RuntimeError("EDGE_SHARED_SECRET is required.")
+
     return EdgeConfig(
         edge_id=os.getenv("EDGE_ID", "edge-default"),
+        edge_shared_secret=edge_shared_secret,
         cloud_base_url=os.getenv("CLOUD_BASE_URL", "http://localhost:8000"),
         camera_source=int(os.getenv("EDGE_CAMERA_SOURCE", "0")),
         camera_width=int(os.getenv("EDGE_CAMERA_WIDTH", "1920")),
@@ -101,4 +108,5 @@ def load_config() -> EdgeConfig:
         clip_height=int(os.getenv("EDGE_CLIP_HEIGHT", "720")),
         clip_output_dir=os.getenv("EDGE_CLIP_OUTPUT_DIR", "edge/data/clips"),
         clip_min_trigger_level=os.getenv("EDGE_CLIP_MIN_TRIGGER_LEVEL", "WARNING"),
+        webrtc_ice_servers_json=os.getenv("WEBRTC_ICE_SERVERS_JSON", ""),
     )

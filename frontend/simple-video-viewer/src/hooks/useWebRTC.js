@@ -3,6 +3,29 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { signalingAPI } from '../services/api';
 
 const MAX_BACKOFF_MS = 10000;
+const DEFAULT_ICE_SERVERS = [{ urls: 'stun:stun.l.google.com:19302' }];
+
+const loadIceServers = () => {
+  const raw = process.env.REACT_APP_WEBRTC_ICE_SERVERS_JSON;
+  if (!raw) {
+    return DEFAULT_ICE_SERVERS;
+  }
+
+  try {
+    const parsed = JSON.parse(raw);
+    if (!Array.isArray(parsed)) {
+      console.warn('[useWebRTC] WEBRTC_ICE_SERVERS_JSON must be an array, using default.');
+      return DEFAULT_ICE_SERVERS;
+    }
+    const normalized = parsed.filter((item) => item && typeof item === 'object' && item.urls);
+    return normalized.length > 0 ? normalized : DEFAULT_ICE_SERVERS;
+  } catch (e) {
+    console.warn('[useWebRTC] Failed to parse WEBRTC_ICE_SERVERS_JSON, using default.', e);
+    return DEFAULT_ICE_SERVERS;
+  }
+};
+
+const ICE_SERVERS = loadIceServers();
 
 export function useWebRTC(onImageLoad) {
   const videoRef = useRef(null);
@@ -177,7 +200,7 @@ export function useWebRTC(onImageLoad) {
       setStatus('connecting');
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: ICE_SERVERS,
       });
       pcRef.current = pc;
       seenCandidatesRef.current = new Set();

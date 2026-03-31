@@ -1,28 +1,38 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-EC2_IP="${EC2_IP:-}"
+TARGET_HOST="${TARGET_HOST:-}"
+SCHEME="${SCHEME:-https}"
 TIMEOUT_SEC="${TIMEOUT_SEC:-5}"
+CHECK_8000="${CHECK_8000:-false}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/verify_ec2_http.sh --ip <EC2_PUBLIC_IP> [--timeout <sec>]
+Usage: ./scripts/verify_ec2_http.sh --host <DOMAIN_OR_IP> [--scheme https|http] [--timeout <sec>] [--check-8000]
 
 Checks:
-  - http://<EC2_IP>/ (via nginx)
-  - http://<EC2_IP>/docs (FastAPI docs page)
-  - http://<EC2_IP>:8000/ (direct uvicorn check; optional if SG allows)
+  - <scheme>://<host>/
+  - <scheme>://<host>/docs
+  - optional: http://<host>:8000/
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ip)
+    --host|--ip)
       if [[ $# -lt 2 ]]; then
-        echo "[ERROR] --ip requires a value." >&2
+        echo "[ERROR] $1 requires a value." >&2
         exit 1
       fi
-      EC2_IP="$2"
+      TARGET_HOST="$2"
+      shift 2
+      ;;
+    --scheme)
+      if [[ $# -lt 2 ]]; then
+        echo "[ERROR] --scheme requires a value." >&2
+        exit 1
+      fi
+      SCHEME="$2"
       shift 2
       ;;
     --timeout)
@@ -32,6 +42,10 @@ while [[ $# -gt 0 ]]; do
       fi
       TIMEOUT_SEC="$2"
       shift 2
+      ;;
+    --check-8000)
+      CHECK_8000="true"
+      shift
       ;;
     -h|--help)
       usage
@@ -45,14 +59,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$EC2_IP" ]]; then
-  echo "[ERROR] Missing --ip <EC2_PUBLIC_IP>" >&2
+if [[ -z "$TARGET_HOST" ]]; then
+  echo "[ERROR] Missing --host <DOMAIN_OR_IP>" >&2
   usage
-  exit 1
-fi
-
-if ! [[ "$EC2_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-  echo "[ERROR] Invalid IPv4 format: $EC2_IP" >&2
   exit 1
 fi
 
@@ -68,12 +77,10 @@ check_url() {
   fi
 }
 
-echo "[INFO] Checking EC2 HTTP endpoints for $EC2_IP"
-check_url "nginx root" "http://$EC2_IP/"
-check_url "FastAPI docs" "http://$EC2_IP/docs"
-check_url "direct :8000 (temporary check)" "http://$EC2_IP:8000/"
+echo "[INFO] Verifying $TARGET_HOST via $SCHEME"
+check_url "root" "$SCHEME://$TARGET_HOST/"
+check_url "FastAPI docs" "$SCHEME://$TARGET_HOST/docs"
 
-cat <<EOF
-[DONE] HTTP checks complete.
-If :8000 is open only for bootstrap tests, close inbound 8000 after verification.
-EOF
+if [[ "$CHECK_8000" == "true" ]]; then
+  check_url "direct 8000 (should be blocked on public net)" "http://$TARGET_HOST:8000/"
+fi

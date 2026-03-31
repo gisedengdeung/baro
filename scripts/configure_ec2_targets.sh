@@ -4,44 +4,57 @@ set -euo pipefail
 ROOT_DIR="$(cd "$(dirname "$0")/.." && pwd)"
 EDGE_ENV_FILE="${EDGE_ENV_FILE:-$ROOT_DIR/.env.edge}"
 FRONTEND_ENV_FILE="${FRONTEND_ENV_FILE:-$ROOT_DIR/frontend/simple-video-viewer/.env}"
-EC2_IP="${EC2_IP:-}"
+
+PUBLIC_HOST="${PUBLIC_HOST:-}"
+PUBLIC_SCHEME="${PUBLIC_SCHEME:-https}"
+EDGE_HOST="${EDGE_HOST:-}"
+EDGE_SCHEME="${EDGE_SCHEME:-http}"
 
 usage() {
   cat <<'USAGE'
-Usage: ./scripts/configure_ec2_targets.sh --ip <EC2_PUBLIC_IP> [--edge-env <path>] [--frontend-env <path>]
+Usage: ./scripts/configure_ec2_targets.sh --public-host <DOMAIN_OR_IP> --edge-host <TAILSCALE_IP_OR_HOST> [options]
 
 Options:
-  --ip <IP>            EC2 public IPv4 address (required)
-  --edge-env <path>    Edge env file path (default: .env.edge)
-  --frontend-env <path> Frontend env file path (default: frontend/simple-video-viewer/.env)
-  -h, --help           Show this help message
+  --public-host <host>    Browser-facing host/domain for frontend API/WS env
+  --edge-host <host>      Edge-facing host (typically Tailscale IP)
+  --public-scheme <s>     https|http (default: https)
+  --edge-scheme <s>       http|https (default: http)
+  --edge-env <path>       Edge env file path (default: .env.edge)
+  --frontend-env <path>   Frontend env file path (default: frontend/simple-video-viewer/.env)
+  --ip <host>             Legacy shortcut: sets both public-host and edge-host
+  -h, --help              Show this help message
 USAGE
 }
 
 while [[ $# -gt 0 ]]; do
   case "$1" in
-    --ip)
-      if [[ $# -lt 2 ]]; then
-        echo "[ERROR] --ip requires a value." >&2
-        exit 1
-      fi
-      EC2_IP="$2"
+    --public-host)
+      PUBLIC_HOST="$2"
+      shift 2
+      ;;
+    --edge-host)
+      EDGE_HOST="$2"
+      shift 2
+      ;;
+    --public-scheme)
+      PUBLIC_SCHEME="$2"
+      shift 2
+      ;;
+    --edge-scheme)
+      EDGE_SCHEME="$2"
       shift 2
       ;;
     --edge-env)
-      if [[ $# -lt 2 ]]; then
-        echo "[ERROR] --edge-env requires a value." >&2
-        exit 1
-      fi
       EDGE_ENV_FILE="$2"
       shift 2
       ;;
     --frontend-env)
-      if [[ $# -lt 2 ]]; then
-        echo "[ERROR] --frontend-env requires a value." >&2
-        exit 1
-      fi
       FRONTEND_ENV_FILE="$2"
+      shift 2
+      ;;
+    --ip)
+      PUBLIC_HOST="$2"
+      EDGE_HOST="$2"
       shift 2
       ;;
     -h|--help)
@@ -56,14 +69,9 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ -z "$EC2_IP" ]]; then
-  echo "[ERROR] Missing --ip <EC2_PUBLIC_IP>" >&2
+if [[ -z "$PUBLIC_HOST" || -z "$EDGE_HOST" ]]; then
+  echo "[ERROR] --public-host and --edge-host are required" >&2
   usage
-  exit 1
-fi
-
-if ! [[ "$EC2_IP" =~ ^([0-9]{1,3}\.){3}[0-9]{1,3}$ ]]; then
-  echo "[ERROR] Invalid IPv4 format: $EC2_IP" >&2
   exit 1
 fi
 
@@ -88,15 +96,16 @@ upsert_key() {
   fi
 }
 
-EDGE_URL="http://${EC2_IP}"
-WS_URL="ws://${EC2_IP}"
+EDGE_URL="${EDGE_SCHEME}://${EDGE_HOST}"
+API_URL="${PUBLIC_SCHEME}://${PUBLIC_HOST}"
+WS_URL="${API_URL/http/ws}"
 
 upsert_key "$EDGE_ENV_FILE" "CLOUD_BASE_URL" "$EDGE_URL"
-upsert_key "$FRONTEND_ENV_FILE" "REACT_APP_API_BASE_URL" "$EDGE_URL"
+upsert_key "$FRONTEND_ENV_FILE" "REACT_APP_API_BASE_URL" "$API_URL"
 upsert_key "$FRONTEND_ENV_FILE" "REACT_APP_WS_BASE_URL" "$WS_URL"
 
 cat <<EOF
-[DONE] Updated client targets to EC2.
+[DONE] Updated targets.
 
 Edge:
   $EDGE_ENV_FILE
@@ -104,10 +113,10 @@ Edge:
 
 Frontend:
   $FRONTEND_ENV_FILE
-  REACT_APP_API_BASE_URL=$EDGE_URL
+  REACT_APP_API_BASE_URL=$API_URL
   REACT_APP_WS_BASE_URL=$WS_URL
 
 Next:
-  1) Restart cloud/edge/frontend processes
-  2) Verify from local browser: http://${EC2_IP}/docs
+  1) Restart Edge and Frontend processes
+  2) Verify browser access: $API_URL/docs
 EOF

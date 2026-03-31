@@ -1,106 +1,129 @@
-# EC2 Cloud HTTP Quickstart
+# EC2 + Docker + Caddy + Tailscale Quickstart
 
-This guide applies the repository automation to run the Cloud backend on EC2 and connect local Edge/Frontend.
+This guide deploys Cloud + Frontend on one EC2 instance and connects Edge through Tailscale.
 
-## 1) Launch EC2 (AWS Console)
+## 1) Launch EC2
 
 1. Region: `ap-northeast-2` (Seoul)
 2. AMI: `Ubuntu Server 24.04 LTS`
-3. Type: `t3.micro`
-4. Create/download key pair (`.pem`)
+3. Type: `t3.medium`
+4. Storage:
+   - Root: `30GiB gp3`
+   - Data EBS: `100GiB gp3` (encrypted)
 5. Security Group inbound:
-   - `22` from `My IP`
-   - `80` from `0.0.0.0/0`
-   - `443` optional (future HTTPS)
-   - `8000` temporary for bootstrap checks (close after validation)
+   - `22` from admin IP (`/32`)
+   - `80`, `443` from `0.0.0.0/0`
+   - Do not open `8000`
 
-## 2) Connect to EC2 and deploy backend
-
-From local terminal:
+## 2) Connect and prepare host
 
 ```bash
 ssh -i <key>.pem ubuntu@<EC2_PUBLIC_IP>
 ```
 
-On EC2:
+Install Docker and Compose plugin:
+
+```bash
+sudo apt-get update -y
+sudo apt-get install -y ca-certificates curl git
+sudo install -m 0755 -d /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+echo \
+  "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu \
+  $(. /etc/os-release && echo "$VERSION_CODENAME") stable" | \
+  sudo tee /etc/apt/sources.list.d/docker.list >/dev/null
+sudo apt-get update -y
+sudo apt-get install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker-compose-plugin
+sudo usermod -aG docker ubuntu
+newgrp docker
+```
+
+Mount data EBS (example device name):
+
+```bash
+sudo mkfs -t ext4 /dev/nvme1n1
+sudo mkdir -p /srv/conveyor
+sudo mount /dev/nvme1n1 /srv/conveyor
+sudo chown -R ubuntu:ubuntu /srv/conveyor
+UUID=$(sudo blkid -s UUID -o value /dev/nvme1n1)
+echo "UUID=$UUID /srv/conveyor ext4 defaults,nofail 0 2" | sudo tee -a /etc/fstab
+```
+
+## 3) Install and join Tailscale
+
+```bash
+curl -fsSL https://tailscale.com/install.sh | sh
+sudo tailscale up
+tailscale ip -4
+```
+
+Use this Tailscale IPv4 for Edge `CLOUD_BASE_URL=http://<TAILSCALE_IP>:8000`.
+
+## 4) Deploy repository
 
 ```bash
 mkdir -p ~/app
 cd ~/app
 git clone <YOUR_REPO_URL> stop
 cd stop
-bash scripts/setup_ec2_cloud.sh
+cp .env.prod.example .env.prod
 ```
 
-If you already know frontend origin, you can set CORS while setup runs:
+Edit `.env.prod` and set at minimum:
 
-```bash
-FRONTEND_ORIGIN=http://<YOUR_FRONTEND_HOST> bash scripts/setup_ec2_cloud.sh
-```
-
-## 3) Fill required Cloud env values
-
-On EC2:
-
-```bash
-cd ~/app/stop
-nano .env
-```
-
-Required keys:
-
+- `CADDY_DOMAIN`
+- `ACME_EMAIL`
 - `AUTH_ADMIN_EMAIL`
 - `AUTH_ADMIN_PASSWORD`
 - `AUTH_JWT_SECRET`
-- `AWS_ACCESS_KEY`
-- `AWS_SECRET_KEY`
+- `EDGE_SHARED_SECRET`
+- `AWS_S3_BUCKET`
+- `AWS_REGION`
+- `CONVEYOR_DATA_DIR=/srv/conveyor/data`
+- `LOCAL_DB_PATH=/app/cloud/data/cloud.db`
 
-Recommended DB path on EC2:
-
-- `LOCAL_DB_PATH=/home/ubuntu/app/stop/cloud/data/cloud.db`
-
-Apply:
-
-```bash
-sudo systemctl restart conveyor-guard-cloud
-sudo systemctl status conveyor-guard-cloud --no-pager
-sudo nginx -t
-sudo systemctl restart nginx
-```
-
-## 4) Verify backend is reachable
-
-On EC2:
+Then run:
 
 ```bash
-curl http://127.0.0.1:8000/
-curl -I http://127.0.0.1/
-sudo journalctl -u conveyor-guard-cloud -f
+mkdir -p /srv/conveyor/data
+docker compose -f docker-compose.prod.yml --env-file .env.prod up -d --build
+docker compose -f docker-compose.prod.yml ps
 ```
 
-From local machine:
+## 5) Verify
 
 ```bash
-./scripts/verify_ec2_http.sh --ip <EC2_PUBLIC_IP>
+curl -I https://<YOUR_DOMAIN>/
+curl -I https://<YOUR_DOMAIN>/docs
+docker compose -f docker-compose.prod.yml logs -f cloud
 ```
 
-## 5) Point local Edge/Frontend to EC2
+## 6) Edge target setup
 
-From local repository root:
+On Edge machine `.env.edge`:
+
+```env
+CLOUD_BASE_URL=http://<TAILSCALE_IP>:8000
+EDGE_SHARED_SECRET=<same as cloud>
+WEBRTC_ICE_SERVERS_JSON=[{"urls":["stun:stun.l.google.com:19302","turn:<YOUR_DOMAIN>:3478"],"username":"<TURN_USER>","credential":"<TURN_PASSWORD>"}]
+```
+
+Restart Edge process after update.
+
+## 7) Host firewall recommendation (UFW)
 
 ```bash
-./scripts/configure_ec2_targets.sh --ip <EC2_PUBLIC_IP>
+sudo ufw default deny incoming
+sudo ufw default allow outgoing
+sudo ufw allow 22/tcp
+sudo ufw allow 80/tcp
+sudo ufw allow 443/tcp
+sudo ufw allow in on tailscale0 to any port 8000 proto tcp
+sudo ufw allow 3478/tcp
+sudo ufw allow 3478/udp
+sudo ufw allow 49160:49200/udp
+sudo ufw enable
+sudo ufw status verbose
 ```
 
-It updates:
-
-- `.env.edge`: `CLOUD_BASE_URL=http://<EC2_PUBLIC_IP>`
-- `frontend/simple-video-viewer/.env`:
-  - `REACT_APP_API_BASE_URL=http://<EC2_PUBLIC_IP>`
-  - `REACT_APP_WS_BASE_URL=ws://<EC2_PUBLIC_IP>`
-
-Then restart Edge and Frontend.
-
-## 6) Post-check hardening
-
-After checks are done, remove inbound `8000` from security group and keep public traffic only through nginx (`80`/`443`).
+Do not allow port `8000` on public interfaces.

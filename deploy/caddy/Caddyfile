@@ -1,0 +1,12 @@
+{
+    email {$ACME_EMAIL}
+}
+
+{$CADDY_DOMAIN} {
+    encode gzip zstd
+
+    @cloud_api path /api/* /ws/* /docs* /redoc* /openapi.json
+    reverse_proxy @cloud_api cloud:8000
+
+    reverse_proxy frontend:80
+}

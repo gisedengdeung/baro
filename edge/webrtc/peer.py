@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import asyncio
-from typing import Any, Dict, Optional
+from typing import Any, Dict, List, Optional
 
 import numpy as np
 from loguru import logger
@@ -9,13 +9,21 @@ from loguru import logger
 from edge.cloud_client import CloudClient
 
 try:
-    from aiortc import RTCPeerConnection, RTCSessionDescription, VideoStreamTrack
+    from aiortc import (
+        RTCPeerConnection,
+        RTCConfiguration,
+        RTCIceServer,
+        RTCSessionDescription,
+        VideoStreamTrack,
+    )
     from aiortc.sdp import candidate_from_sdp
     from av import VideoFrame
 
     AIORTC_AVAILABLE = True
 except Exception:  # pragma: no cover
     RTCPeerConnection = object  # type: ignore
+    RTCConfiguration = object  # type: ignore
+    RTCIceServer = object  # type: ignore
     RTCSessionDescription = object  # type: ignore
     VideoStreamTrack = object  # type: ignore
     VideoFrame = object  # type: ignore
@@ -46,9 +54,15 @@ class _CameraTrack(VideoStreamTrack):  # type: ignore[misc]
 
 
 class WebRTCPeer:
-    def __init__(self, cloud_client: CloudClient, edge_id: str) -> None:
+    def __init__(
+        self,
+        cloud_client: CloudClient,
+        edge_id: str,
+        ice_servers: List[Dict[str, Any]] | None = None,
+    ) -> None:
         self.cloud_client = cloud_client
         self.edge_id = edge_id
+        self.ice_servers = ice_servers or [{"urls": "stun:stun.l.google.com:19302"}]
 
         self._pc: Optional[RTCPeerConnection] = None
         self._track: Optional[_CameraTrack] = None
@@ -61,12 +75,34 @@ class WebRTCPeer:
         self._disconnected_restart_task: Optional[asyncio.Task[Any]] = None
         self._is_stopping = False
 
+    def _build_rtc_configuration(self) -> Any:
+        servers: list[Any] = []
+        for server in self.ice_servers:
+            urls = server.get("urls")
+            if not urls:
+                continue
+            username = server.get("username")
+            credential = server.get("credential")
+            try:
+                servers.append(
+                    RTCIceServer(
+                        urls=urls,
+                        username=username,
+                        credential=credential,
+                    )
+                )
+            except Exception as exc:
+                logger.warning(f"유효하지 않은 ICE 서버 항목 무시: {exc}")
+        if not servers:
+            return None
+        return RTCConfiguration(iceServers=servers)
+
     async def start(self) -> None:
         if not AIORTC_AVAILABLE:
             logger.warning("aiortc 미설치: WebRTC 비활성")
             return
 
-        self._pc = RTCPeerConnection()
+        self._pc = RTCPeerConnection(configuration=self._build_rtc_configuration())
         self._track = _CameraTrack()
         self._pc.addTrack(self._track)
         self._seen_answer_id = None

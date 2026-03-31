@@ -85,6 +85,22 @@ echo "[INFO] Upgrading pip in $VENV_PATH"
 echo "[INFO] Installing Cloud dependencies"
 "$VENV_PATH/bin/pip" install -r requirements-cloud.txt
 
+if [[ ! -f ".env.cloud" && -f ".env.cloud.example" ]]; then
+  cp ".env.cloud.example" ".env.cloud"
+  echo "[INFO] Created .env.cloud from .env.cloud.example"
+else
+  echo "[INFO] Keeping existing .env.cloud (not overwritten)"
+fi
+
+if [[ -f ".env.cloud" ]]; then
+  if ! grep -q "^AUTH_JWT_SECRET=" ".env.cloud"; then
+    echo "[WARN] .env.cloud missing AUTH_JWT_SECRET"
+  fi
+  if ! grep -q "^EDGE_SHARED_SECRET=" ".env.cloud"; then
+    echo "[WARN] .env.cloud missing EDGE_SHARED_SECRET"
+  fi
+fi
+
 cat <<EOF
 [DONE] Cloud setup completed.
 

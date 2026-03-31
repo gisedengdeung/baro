@@ -41,18 +41,18 @@ class ClipService:
         day_tag = datetime.now(KST).strftime("%Y%m%d")
         s3_file_name = f"clips/{edge_id}/{day_tag}/{event_uid}.mp4"
 
-        s3_url = await asyncio.to_thread(
+        s3_object_key = await asyncio.to_thread(
             upload_video_to_s3_from_memory, upload, s3_file_name
         )
 
-        if not s3_url:
+        if not s3_object_key:
             raise ValueError(f"S3 업로드 실패: {event_uid}")
 
-        # DB에 S3 URL 주소 저장
+        # DB에 S3 object key 저장
         updated = self.db_service.set_clip_ready_by_event_uid(
             event_uid=event_uid,
             edge_id=edge_id,
-            clip_path=s3_url,
+            clip_path=s3_object_key,
             clip_started_at=clip_started_at,
             clip_ended_at=clip_ended_at,
             duration_sec=duration_sec,

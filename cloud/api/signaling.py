@@ -5,7 +5,7 @@ from typing import Any, Dict, List
 from fastapi import APIRouter, Depends, Query, Request
 from pydantic import BaseModel
 
-from cloud.dependencies import get_auth_service, require_signaling_browser_auth
+from cloud.dependencies import get_auth_service, require_edge_hmac, require_signaling_browser_auth
 from cloud.services.auth_service import AuthService
 from cloud.dependencies import get_signaling_store
 from cloud.services.signaling_store import SignalingStore
@@ -54,12 +54,17 @@ def _normalize_sender_receiver(sender: str | None, receiver: str | None) -> tupl
     return sender_v, receiver_v
 
 
-def _require_signaling_auth_if_needed(
+async def _require_signaling_auth_if_needed(
     request: Request,
     sender: str | None,
     receiver: str | None,
 ) -> None:
     sender_v, receiver_v = _normalize_sender_receiver(sender, receiver)
+
+    # Edge-auth required only for requests that are edge-originated or
+    # edge-polling style (receiver=edge without explicit sender context).
+    if sender_v == "edge" or (sender_v is None and receiver_v == "edge"):
+        await require_edge_hmac(request)
 
     # Auth policy:
     # - Browser-originated signaling must be authenticated.
@@ -74,13 +79,13 @@ def _require_signaling_auth_if_needed(
 
 
 @router.post("/offer")
-def post_offer(
+async def post_offer(
     payload: OfferPayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
+    await _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.upsert_offer(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -90,38 +95,38 @@ def post_offer(
 
 
 @router.get("/offer")
-def get_offer(
+async def get_offer(
     request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, receiver)
+    await _require_signaling_auth_if_needed(request, None, receiver)
     offer = store.get_offer(edge_id, receiver)
     return {"offer": offer}
 
 
 @router.post("/offer/ack")
-def ack_offer(
+async def ack_offer(
     payload: AckPayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, payload.receiver)
+    await _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked = store.ack_offer(payload.edge_id, payload.receiver, payload.message_id)
     return {"status": "ok", "acked": acked}
 
 
 @router.post("/answer")
-def post_answer(
+async def post_answer(
     payload: AnswerPayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
+    await _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.upsert_answer(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -131,38 +136,38 @@ def post_answer(
 
 
 @router.get("/answer")
-def get_answer(
+async def get_answer(
     request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, receiver)
+    await _require_signaling_auth_if_needed(request, None, receiver)
     answer = store.get_answer(edge_id, receiver)
     return {"answer": answer}
 
 
 @router.post("/answer/ack")
-def ack_answer(
+async def ack_answer(
     payload: AckPayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, payload.receiver)
+    await _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked = store.ack_answer(payload.edge_id, payload.receiver, payload.message_id)
     return {"status": "ok", "acked": acked}
 
 
 @router.post("/ice")
-def post_ice(
+async def post_ice(
     payload: IcePayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
+    await _require_signaling_auth_if_needed(request, payload.sender, payload.receiver)
     message = store.push_ice(payload.edge_id, payload.receiver, payload.model_dump())
     return {
         "status": "ok",
@@ -172,25 +177,25 @@ def post_ice(
 
 
 @router.get("/ice")
-def get_ice(
+async def get_ice(
     request: Request,
     edge_id: str = Query("edge-default"),
     receiver: str = Query(...),
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, receiver)
+    await _require_signaling_auth_if_needed(request, None, receiver)
     candidates = store.get_ice(edge_id, receiver)
     return {"candidates": candidates}
 
 
 @router.post("/ice/ack")
-def ack_ice(
+async def ack_ice(
     payload: IceAckPayload,
     request: Request,
     store: SignalingStore = Depends(get_signaling_store),
     _auth_service: AuthService = Depends(get_auth_service),
 ):
-    _require_signaling_auth_if_needed(request, None, payload.receiver)
+    await _require_signaling_auth_if_needed(request, None, payload.receiver)
     acked_count = store.ack_ice(payload.edge_id, payload.receiver, payload.message_ids)
     return {"status": "ok", "acked_count": acked_count}
