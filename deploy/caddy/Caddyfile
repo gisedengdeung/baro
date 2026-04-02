@@ -1,0 +1,12 @@
+{$CADDY_DOMAIN} {
+    encode zstd gzip
+
+    request_body {
+        max_size 200MB
+    }
+
+    @cloud path /api/* /ws/* /docs* /redoc* /openapi.json
+    reverse_proxy @cloud cloud:8000
+
+    reverse_proxy frontend:80
+}

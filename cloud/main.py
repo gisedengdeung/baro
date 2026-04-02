@@ -14,6 +14,7 @@ from cloud.services.auth_service import AuthConfig, AuthService
 from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
+from cloud.services.edge_auth import EdgeAuthService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
 from cloud.services.websocket_manager import WebSocketManager
@@ -48,6 +49,10 @@ async def lifespan(app: FastAPI):
         answer_ttl_sec=cfg.signaling_answer_ttl_sec,
         ice_ttl_sec=cfg.signaling_ice_ttl_sec,
     )
+    app.state.edge_auth_service = EdgeAuthService(
+        shared_secret=cfg.edge_shared_secret,
+        max_age_sec=cfg.edge_signature_ttl_sec,
+    )
     app.state.status_store = StatusStore()
     app.state.zone_service = ZoneService(db_path=cfg.local_db_path)
     app.state.db_service = DBService(
@@ -55,7 +60,10 @@ async def lifespan(app: FastAPI):
         db_path=cfg.local_db_path,
     )
     app.state.clip_service = ClipService(
-        db_service=app.state.db_service
+        db_service=app.state.db_service,
+        s3_bucket=cfg.aws_s3_bucket,
+        aws_region=cfg.aws_region,
+        presigned_url_ttl_sec=cfg.clip_presigned_url_ttl_sec,
     )
     app.state.auth_service = auth_service
   

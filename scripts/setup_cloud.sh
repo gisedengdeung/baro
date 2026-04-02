@@ -85,6 +85,13 @@ echo "[INFO] Upgrading pip in $VENV_PATH"
 echo "[INFO] Installing Cloud dependencies"
 "$VENV_PATH/bin/pip" install -r requirements-cloud.txt
 
+if [[ ! -f "$ROOT_DIR/.env.cloud" && -f "$ROOT_DIR/.env.cloud.example" ]]; then
+  cp "$ROOT_DIR/.env.cloud.example" "$ROOT_DIR/.env.cloud"
+  echo "[INFO] Created .env.cloud from .env.cloud.example"
+else
+  echo "[INFO] Keeping existing .env.cloud (not overwritten)"
+fi
+
 cat <<EOF
 [DONE] Cloud setup completed.
 

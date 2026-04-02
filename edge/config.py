@@ -9,6 +9,7 @@ from pathlib import Path
 class EdgeConfig:
     edge_id: str
     cloud_base_url: str
+    shared_secret: str
     camera_source: int
     camera_width: int
     camera_height: int
@@ -47,6 +48,13 @@ def _env_bool(name: str, default: bool) -> bool:
     return raw.lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 def _resolve_model_path(raw_path: str, default_rel_path: str) -> str:
     # Relative model paths are interpreted from repository root.
     candidate = (raw_path or default_rel_path).strip()
@@ -72,6 +80,7 @@ def load_config() -> EdgeConfig:
     return EdgeConfig(
         edge_id=os.getenv("EDGE_ID", "edge-default"),
         cloud_base_url=os.getenv("CLOUD_BASE_URL", "http://localhost:8000"),
+        shared_secret=_require_env("EDGE_SHARED_SECRET"),
         camera_source=int(os.getenv("EDGE_CAMERA_SOURCE", "0")),
         camera_width=int(os.getenv("EDGE_CAMERA_WIDTH", "1920")),
         camera_height=int(os.getenv("EDGE_CAMERA_HEIGHT", "1080")),

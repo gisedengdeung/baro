@@ -11,12 +11,14 @@ from cloud.dependencies import (
     get_command_queue,
     get_db_service,
     get_status_store,
+    require_edge_request_auth,
     get_zone_service,
 )
 from cloud.models.status import EdgeHeartbeat
 from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
+from cloud.services.edge_auth import ensure_authenticated_edge_id
 from cloud.services.status_store import StatusStore
 from cloud.services.zone_service import ZoneService
 
@@ -27,9 +29,15 @@ KST = ZoneInfo("Asia/Seoul")
 @router.post("/heartbeat")
 async def post_heartbeat(
     payload: Dict[str, Any],
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
     status_store: StatusStore = Depends(get_status_store),
     db_service: DBService = Depends(get_db_service),
 ):
+    payload = dict(payload)
+    payload["edge_id"] = ensure_authenticated_edge_id(
+        authenticated_edge_id,
+        payload.get("edge_id"),
+    )
     heartbeat = EdgeHeartbeat(**payload)
     status_store.update(heartbeat)
 
@@ -55,7 +63,16 @@ async def post_heartbeat(
 
 
 @router.post("/log")
-async def post_log(payload: Dict[str, Any], db_service: DBService = Depends(get_db_service)):
+async def post_log(
+    payload: Dict[str, Any],
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
+    db_service: DBService = Depends(get_db_service),
+):
+    payload = dict(payload)
+    payload["edge_id"] = ensure_authenticated_edge_id(
+        authenticated_edge_id,
+        payload.get("edge_id"),
+    )
     message = await db_service.log_event(payload)
     return {"status": "ok", "event_type": message.event_type}
 
@@ -70,8 +87,10 @@ async def post_clip(
     status: str | None = Form(None),
     error_message: str | None = Form(None),
     file: UploadFile | None = File(None),
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
     clip_service: ClipService = Depends(get_clip_service),
 ):
+    edge_id = ensure_authenticated_edge_id(authenticated_edge_id, edge_id)
     normalized_status = (status or "").strip().upper()
 
     if normalized_status == "FAILED":
@@ -120,14 +139,18 @@ async def post_clip(
 @router.get("/commands")
 def get_commands(
     edge_id: str = Query("edge-default"),
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
     command_queue: CommandQueueService = Depends(get_command_queue),
 ) -> List[Dict[str, Any]]:
+    edge_id = ensure_authenticated_edge_id(authenticated_edge_id, edge_id)
     return command_queue.pop_all(edge_id)
 
 
 @router.get("/zones")
 def get_zones(
     edge_id: str = Query("edge-default"),
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
     zone_service: ZoneService = Depends(get_zone_service),
 ):
+    edge_id = ensure_authenticated_edge_id(authenticated_edge_id, edge_id)
     return zone_service.get_all_zones(edge_id)

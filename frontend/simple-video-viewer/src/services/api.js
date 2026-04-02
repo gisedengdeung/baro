@@ -1,12 +1,38 @@
 import axios from 'axios';
 
 const trimSlash = (value) => value.replace(/\/$/, '');
+const isBrowser = typeof window !== 'undefined';
+const defaultOrigin = isBrowser ? window.location.origin : 'http://localhost:8000';
+const defaultWsOrigin = defaultOrigin.replace(/^http/i, 'ws');
 
-const API_BASE_URL = trimSlash(process.env.REACT_APP_API_BASE_URL || 'http://localhost:8000');
-const WS_BASE_URL = trimSlash(
-  process.env.REACT_APP_WS_BASE_URL || API_BASE_URL.replace(/^http/i, 'ws')
-);
+const resolveBaseUrl = (value, fallback) => {
+  const normalized = (value || '').trim();
+  return trimSlash(normalized || fallback);
+};
+
+const parseIceServers = (rawValue) => {
+  const fallback = [{ urls: 'stun:stun.l.google.com:19302' }];
+  const normalized = (rawValue || '').trim();
+  if (!normalized) {
+    return fallback;
+  }
+
+  try {
+    const parsed = JSON.parse(normalized);
+    if (!Array.isArray(parsed) || parsed.length === 0) {
+      return fallback;
+    }
+    return parsed;
+  } catch (error) {
+    console.warn('[api] invalid REACT_APP_WEBRTC_ICE_SERVERS_JSON, using fallback STUN server', error);
+    return fallback;
+  }
+};
+
+const API_BASE_URL = resolveBaseUrl(process.env.REACT_APP_API_BASE_URL, defaultOrigin);
+const WS_BASE_URL = resolveBaseUrl(process.env.REACT_APP_WS_BASE_URL, defaultWsOrigin);
 const EDGE_ID = process.env.REACT_APP_EDGE_ID || 'edge-default';
+const WEBRTC_ICE_SERVERS = parseIceServers(process.env.REACT_APP_WEBRTC_ICE_SERVERS_JSON);
 
 const withEdgeId = (params = {}) => ({
   ...params,
@@ -17,6 +43,7 @@ export const runtimeConfig = {
   apiBaseUrl: API_BASE_URL,
   wsBaseUrl: WS_BASE_URL,
   edgeId: EDGE_ID,
+  webrtcIceServers: WEBRTC_ICE_SERVERS,
 };
 
 export const getWsUrl = (path = '/ws/logs') => `${WS_BASE_URL}${path.startsWith('/') ? path : `/${path}`}`;

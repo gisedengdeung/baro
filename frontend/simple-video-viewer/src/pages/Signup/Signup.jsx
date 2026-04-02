@@ -7,7 +7,7 @@ function Signup() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState(""); // 비밀번호 확인
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState("operator"); // 사용자 역할 (기본값: operator)
+  const [role] = useState("operator"); // 사용자 역할 (기본값: operator)
   const [localError, setLocalError] = useState(""); // 컴포넌트 자체 에러
 
   const signup = useAuthStore((state) => state.signup);

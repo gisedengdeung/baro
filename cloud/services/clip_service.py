@@ -2,15 +2,17 @@ from __future__ import annotations
 
 import asyncio
 from datetime import datetime
-from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Dict
 from zoneinfo import ZoneInfo
 
 from fastapi import UploadFile
-from loguru import logger
 
 from cloud.services.db_service import DBService
-from cloud.services.s3_uploader import upload_video_to_s3_from_memory
+from cloud.services.s3_uploader import (
+    generate_presigned_get_url,
+    parse_s3_uri,
+    upload_video_to_s3_from_memory,
+)
 
 KST = ZoneInfo("Asia/Seoul")
 
@@ -19,8 +21,19 @@ class ClipService:
     def __init__(
         self,
         db_service: DBService,
+        s3_bucket: str | None,
+        aws_region: str,
+        presigned_url_ttl_sec: int,
     ) -> None:
         self.db_service = db_service
+        self.s3_bucket = s3_bucket
+        self.aws_region = aws_region
+        self.presigned_url_ttl_sec = presigned_url_ttl_sec
+
+    def _require_bucket(self) -> str:
+        if not self.s3_bucket:
+            raise RuntimeError("AWS_S3_BUCKET is not configured.")
+        return self.s3_bucket
 
     async def save_uploaded_clip(
         self,
@@ -40,9 +53,14 @@ class ClipService:
         # S3에 저장될 파일 경로 문자열 생성 (ex. clips/edge-default/20260319/클립고유ID.mp4)
         day_tag = datetime.now(KST).strftime("%Y%m%d")
         s3_file_name = f"clips/{edge_id}/{day_tag}/{event_uid}.mp4"
+        bucket = self._require_bucket()
 
         s3_url = await asyncio.to_thread(
-            upload_video_to_s3_from_memory, upload, s3_file_name
+            upload_video_to_s3_from_memory,
+            upload,
+            bucket_name=bucket,
+            region_name=self.aws_region,
+            s3_file_name=s3_file_name,
         )
 
         if not s3_url:
@@ -77,3 +95,19 @@ class ClipService:
         if updated:
             await self.db_service.broadcast_log_update(updated)
         return updated
+
+    def build_clip_download_url(self, clip_path: str) -> str:
+        parsed = parse_s3_uri(clip_path)
+        if parsed:
+            bucket_name, key = parsed
+            return generate_presigned_get_url(
+                bucket_name=bucket_name,
+                region_name=self.aws_region,
+                s3_file_name=key,
+                expires_in=self.presigned_url_ttl_sec,
+            )
+
+        if clip_path.startswith("http://") or clip_path.startswith("https://"):
+            return clip_path
+
+        raise ValueError("Invalid clip path.")

@@ -81,6 +81,7 @@ async def main() -> None:
     cloud_client = CloudClient(
         base_url=cfg.cloud_base_url,
         edge_id=cfg.edge_id,
+        shared_secret=cfg.shared_secret,
         command_poll_interval=cfg.command_poll_interval,
         zone_poll_interval=cfg.zone_poll_interval,
         heartbeat_interval=cfg.heartbeat_interval,
