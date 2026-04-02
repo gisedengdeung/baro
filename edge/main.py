@@ -40,6 +40,7 @@ def _build_config_from_args() -> EdgeConfig:
     return EdgeConfig(
         edge_id=args.edge_id,
         cloud_base_url=args.cloud_url,
+        shared_secret=cfg.shared_secret,
         camera_source=args.camera,
         camera_width=cfg.camera_width,
         camera_height=cfg.camera_height,
