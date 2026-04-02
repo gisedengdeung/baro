@@ -130,4 +130,4 @@ def get_zones(
     edge_id: str = Query("edge-default"),
     zone_service: ZoneService = Depends(get_zone_service),
 ):
-    return zone_service.get_all_zones()
+    return zone_service.get_all_zones(edge_id) # edge_id를 받도록 수정

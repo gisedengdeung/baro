@@ -58,7 +58,7 @@ async def lifespan(app: FastAPI):
         db_service=app.state.db_service
     )
     app.state.auth_service = auth_service
-  
+
     yield
 
 

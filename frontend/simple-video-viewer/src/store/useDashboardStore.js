@@ -117,6 +117,9 @@ const useDashboardStore = create((set, get) => ({
           case "LOG":
             get().addLog(message.data);
             break;
+          case "LOG_UPDATE": // ← 추가
+            get().upsertLog(message.data);
+            break;
           case "STATUS_UPDATE": {
             const {
               operation_mode,
@@ -258,7 +261,9 @@ const useDashboardStore = create((set, get) => ({
       const exists = state.logs.some((log) => isSameLog(log, newLog));
       if (exists) {
         return {
-          logs: state.logs.map((log) => (isSameLog(log, newLog) ? { ...log, ...newLog } : log)),
+          logs: state.logs.map((log) =>
+            isSameLog(log, newLog) ? { ...log, ...newLog } : log,
+          ),
         };
       }
       return { logs: [newLog, ...state.logs] };
@@ -277,7 +282,9 @@ const useDashboardStore = create((set, get) => ({
         return { logs: [updatedLog, ...state.logs] };
       }
       return {
-        logs: state.logs.map((log) => (isSameLog(log, updatedLog) ? { ...log, ...updatedLog } : log)),
+        logs: state.logs.map((log) =>
+          isSameLog(log, updatedLog) ? { ...log, ...updatedLog } : log,
+        ),
       };
     });
   },
