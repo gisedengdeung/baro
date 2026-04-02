@@ -7,6 +7,9 @@ cd "$ROOT_DIR"
 VENV_PATH=".venv-edge"
 PYTHON_BIN=""
 EDGE_ENV_FILE="$ROOT_DIR/.env.edge"
+ARCH="$(uname -m)"
+EDGE_REQUIREMENTS_DEFAULT="$ROOT_DIR/requirements-edge.txt"
+EDGE_REQUIREMENTS_COMMON="$ROOT_DIR/requirements-edge-common.txt"
 
 usage() {
   cat <<'USAGE'
@@ -82,7 +85,12 @@ fi
 
 if [[ ! -d "$VENV_PATH" ]]; then
   echo "[INFO] Creating virtualenv: $VENV_PATH"
-  "$PYTHON_BIN" -m venv "$VENV_PATH"
+  if [[ "$ARCH" == "aarch64" ]]; then
+    echo "[INFO] aarch64 detected: enabling --system-site-packages for Jetson/Orin PyTorch reuse"
+    "$PYTHON_BIN" -m venv --system-site-packages "$VENV_PATH"
+  else
+    "$PYTHON_BIN" -m venv "$VENV_PATH"
+  fi
 else
   echo "[INFO] Reusing existing virtualenv: $VENV_PATH"
 fi
@@ -95,8 +103,34 @@ fi
 echo "[INFO] Upgrading pip/setuptools/wheel in $VENV_PATH"
 "$VENV_PATH/bin/python" -m pip install --upgrade pip setuptools wheel
 
-echo "[INFO] Installing Edge dependencies"
-"$VENV_PATH/bin/pip" install -r requirements-edge.txt
+if [[ "$ARCH" == "aarch64" ]]; then
+  echo "[INFO] aarch64 detected: expecting NVIDIA JetPack-compatible PyTorch to be preinstalled"
+  if ! "$VENV_PATH/bin/python" - <<'PY'
+import sys
+try:
+    import torch
+except Exception:
+    raise SystemExit(1)
+
+print(f"[INFO] Detected preinstalled torch={torch.__version__}, cuda_available={torch.cuda.is_available()}")
+PY
+  then
+    cat >&2 <<'EOF'
+[ERROR] Jetson/Orin environment detected, but PyTorch is not available in the edge virtualenv.
+        Install an NVIDIA JetPack-compatible PyTorch build first, then recreate the venv if needed:
+          rm -rf .venv-edge
+          ./scripts/setup_edge.sh --python python3
+        The recreated venv uses --system-site-packages so the preinstalled Jetson PyTorch can be reused.
+EOF
+    exit 1
+  fi
+
+  echo "[INFO] Installing Edge common dependencies (torch is reused from the Jetson system install)"
+  "$VENV_PATH/bin/pip" install -r "$EDGE_REQUIREMENTS_COMMON"
+else
+  echo "[INFO] Installing Edge dependencies"
+  "$VENV_PATH/bin/pip" install -r "$EDGE_REQUIREMENTS_DEFAULT"
+fi
 
 if [[ ! -f "$EDGE_ENV_FILE" && -f "$ROOT_DIR/.env.edge.example" ]]; then
   cp "$ROOT_DIR/.env.edge.example" "$EDGE_ENV_FILE"

@@ -52,6 +52,7 @@ def _build_config_from_args() -> EdgeConfig:
         heartbeat_interval=cfg.heartbeat_interval,
         person_model_path=cfg.person_model_path,
         fall_model_path=cfg.fall_model_path,
+        inference_device_request=cfg.inference_device_request,
         person_conf_threshold=cfg.person_conf_threshold,
         fall_conf_threshold=cfg.fall_conf_threshold,
         visual_overlay_enabled=cfg.visual_overlay_enabled,
@@ -69,7 +70,12 @@ def _build_config_from_args() -> EdgeConfig:
 
 async def main() -> None:
     cfg = _build_config_from_args()
-    logger.info(f"Edge 시작: edge_id={cfg.edge_id}, cloud={cfg.cloud_base_url}")
+    logger.info(
+        "Edge 시작: "
+        f"edge_id={cfg.edge_id}, "
+        f"cloud={cfg.cloud_base_url}, "
+        f"inference_device_request={cfg.inference_device_request}"
+    )
 
     camera = Camera(
         source=cfg.camera_source,
@@ -125,8 +131,16 @@ async def main() -> None:
     serial.set_is_locked_checker(state.is_locked_status)
     serial.start_listening()
 
-    person_detector = PersonDetector(model_path=cfg.person_model_path, conf_threshold=cfg.person_conf_threshold)
-    fall_detector = FallDetector(model_path=cfg.fall_model_path, conf_threshold=cfg.fall_conf_threshold)
+    person_detector = PersonDetector(
+        model_path=cfg.person_model_path,
+        conf_threshold=cfg.person_conf_threshold,
+        inference_device_request=cfg.inference_device_request,
+    )
+    fall_detector = FallDetector(
+        model_path=cfg.fall_model_path,
+        conf_threshold=cfg.fall_conf_threshold,
+        inference_device_request=cfg.inference_device_request,
+    )
     zone_checker = ZoneChecker()
 
     risk_evaluator = RiskEvaluator()

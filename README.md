@@ -36,6 +36,17 @@ cp .env.edge.example .env.edge
 ./scripts/setup_frontend.sh
 ```
 
+Edge 추론 장치:
+- `EDGE_INFERENCE_DEVICE=auto`가 기본이며, CUDA가 가능하면 `cuda:0`, 아니면 `cpu`를 사용합니다.
+- 강제로 CPU를 쓰려면 `EDGE_INFERENCE_DEVICE=cpu`
+- 강제로 첫 GPU를 쓰려면 `EDGE_INFERENCE_DEVICE=cuda:0`
+- `EDGE_INFERENCE_DEVICE=cuda*`인데 CUDA가 실제로 없으면 시작 시 즉시 실패합니다.
+
+플랫폼별 설치:
+- 일반 CPU/일반 NVIDIA GPU Linux: `./scripts/setup_edge.sh` 그대로 사용
+- Jetson/Orin (`aarch64`): NVIDIA JetPack 호환 PyTorch를 먼저 설치한 뒤 `./scripts/setup_edge.sh` 실행
+- Jetson/Orin에서는 `setup_edge.sh`가 `--system-site-packages` venv를 만들고, 일반 `torch==...`를 덮어쓰지 않습니다.
+
 3. 각 프로세스를 실행합니다.
 
 ```bash
@@ -98,6 +109,7 @@ Edge:
 - `EDGE_SHARED_SECRET`
 - `CLOUD_BASE_URL`
 - `EDGE_ID`
+- `EDGE_INFERENCE_DEVICE`
 
 Frontend build:
 - `REACT_APP_EDGE_ID`
@@ -109,6 +121,37 @@ Frontend build:
 - 브라우저가 로그인 후 offer를 받아 answer와 ICE를 보낸다.
 - Edge가 `/api/signaling/answer`, `/api/signaling/ice`를 받아 peer connection을 완성한다.
 - 운영망에서는 TURN candidate가 보이는지 확인해야 한다.
+
+## Edge 추론 장치 예시
+
+CPU-only:
+
+```env
+EDGE_INFERENCE_DEVICE=cpu
+```
+
+일반 NVIDIA GPU:
+
+```env
+EDGE_INFERENCE_DEVICE=auto
+```
+
+특정 GPU 강제:
+
+```env
+EDGE_INFERENCE_DEVICE=cuda:0
+```
+
+Jetson/Orin Nano:
+
+```bash
+# JetPack-compatible PyTorch를 먼저 설치한 뒤
+./scripts/setup_edge.sh --python python3
+```
+
+```env
+EDGE_INFERENCE_DEVICE=cuda:0
+```
 
 ## 참고 문서
 
