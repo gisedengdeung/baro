@@ -66,7 +66,7 @@ async def lifespan(app: FastAPI):
         presigned_url_ttl_sec=cfg.clip_presigned_url_ttl_sec,
     )
     app.state.auth_service = auth_service
-  
+
     yield
 
 
