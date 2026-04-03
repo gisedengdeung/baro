@@ -4,6 +4,7 @@ dist/
 .env
 .env.edge
 .env.cloud
+.env.prod
 build/
 
 # Python
@@ -50,4 +51,6 @@ cloud/data/*.db
 cloud/data/*.db-shm
 cloud/data/*.db-wal
 cloud/data/clips/
+cloud/data/incidents/
 edge/data/clips/
+.deploy/

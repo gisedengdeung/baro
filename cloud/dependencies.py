@@ -7,6 +7,7 @@ from cloud.services.auth_service import ACCESS_COOKIE_NAME, AuthService
 from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
+from cloud.services.edge_auth import EdgeAuthService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
 from cloud.services.websocket_manager import WebSocketManager
@@ -52,6 +53,10 @@ def get_clip_service(request: Request) -> ClipService:
     return _get_state_attr(request, "clip_service")
 
 
+def get_edge_auth_service(request: Request) -> EdgeAuthService:
+    return _get_state_attr(request, "edge_auth_service")
+
+
 def get_auth_service_ws(websocket: WebSocket) -> AuthService:
     return _get_state_attr(websocket, "auth_service")
 
@@ -91,3 +96,8 @@ def require_signaling_browser_auth(
     if sender == "browser" or receiver == "browser":
         return get_current_user(request)
     return None
+
+
+def require_edge_request_auth(request: Request) -> str:
+    auth_service = get_edge_auth_service(request)
+    return auth_service.authenticate(request)

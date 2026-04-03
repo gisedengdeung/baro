@@ -1,6 +1,6 @@
 // src/hooks/useWebRTC.js
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { signalingAPI } from '../services/api';
+import { runtimeConfig, signalingAPI } from '../services/api';
 
 const MAX_BACKOFF_MS = 10000;
 
@@ -177,7 +177,7 @@ export function useWebRTC(onImageLoad) {
       setStatus('connecting');
 
       const pc = new RTCPeerConnection({
-        iceServers: [{ urls: 'stun:stun.l.google.com:19302' }],
+        iceServers: runtimeConfig.webrtcIceServers,
       });
       pcRef.current = pc;
       seenCandidatesRef.current = new Set();

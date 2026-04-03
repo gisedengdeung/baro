@@ -22,9 +22,7 @@ function Dashboard() {
   // Dashboard Store - System State
   const {
     logs,
-    activeId,
     operationMode,
-    conveyorSpeed,
     riskLevel,
     isLocked,
     loading,
@@ -47,7 +45,6 @@ function Dashboard() {
     applyTestSpeed,
     stopTestRun,
     setVideoStatus,
-    setActiveId,
   } = useDashboardStore();
 
   // Dashboard Store - Danger Zone State & Actions

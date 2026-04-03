@@ -3,18 +3,36 @@ from __future__ import annotations
 from typing import Any, Dict, List
 
 import numpy as np
-import torch
 from loguru import logger
 from ultralytics import YOLO
 
+from edge.detect.inference_device import resolve_inference_device
+
 
 class FallDetector:
-    def __init__(self, model_path: str = "edge/models/fall_det_1.pt", conf_threshold: float = 0.4) -> None:
-        self.device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    def __init__(
+        self,
+        model_path: str = "edge/models/fall_det_1.pt",
+        conf_threshold: float = 0.4,
+        inference_device_request: str = "auto",
+    ) -> None:
+        self.inference_device = resolve_inference_device(inference_device_request)
         self.model = YOLO(model_path)
-        self.model.to(self.device)
+        self.model.to(self.inference_device.resolved)
         self.conf_threshold = conf_threshold
-        logger.info(f"FallDetector 초기화 완료: model={model_path}")
+        gpu_suffix = (
+            f", gpu_name={self.inference_device.gpu_name}"
+            if self.inference_device.gpu_name
+            else ""
+        )
+        logger.info(
+            "FallDetector 초기화 완료: "
+            f"model={model_path}, "
+            f"requested_device={self.inference_device.requested}, "
+            f"resolved_device={self.inference_device.resolved}, "
+            f"cuda_available={self.inference_device.cuda_available}"
+            f"{gpu_suffix}"
+        )
 
     @staticmethod
     def _calculate_iou(box_a: np.ndarray, box_b: np.ndarray) -> float:
@@ -40,7 +58,7 @@ class FallDetector:
             fall_results = self.model.predict(
                 source=frame,
                 conf=self.conf_threshold,
-                device=self.device,
+                device=self.inference_device.resolved,
                 verbose=False,
             )
         except Exception as exc:

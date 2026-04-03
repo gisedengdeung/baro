@@ -9,6 +9,7 @@ from pathlib import Path
 class EdgeConfig:
     edge_id: str
     cloud_base_url: str
+    shared_secret: str
     camera_source: int
     camera_width: int
     camera_height: int
@@ -22,6 +23,7 @@ class EdgeConfig:
 
     person_model_path: str
     fall_model_path: str
+    inference_device_request: str
     person_conf_threshold: float
     fall_conf_threshold: float
     visual_overlay_enabled: bool
@@ -45,6 +47,13 @@ def _env_bool(name: str, default: bool) -> bool:
     if raw is None:
         return default
     return raw.lower() in {"1", "true", "yes", "y", "on"}
+
+
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
 
 
 def _resolve_model_path(raw_path: str, default_rel_path: str) -> str:
@@ -72,6 +81,7 @@ def load_config() -> EdgeConfig:
     return EdgeConfig(
         edge_id=os.getenv("EDGE_ID", "edge-default"),
         cloud_base_url=os.getenv("CLOUD_BASE_URL", "http://localhost:8000"),
+        shared_secret=_require_env("EDGE_SHARED_SECRET"),
         camera_source=int(os.getenv("EDGE_CAMERA_SOURCE", "0")),
         camera_width=int(os.getenv("EDGE_CAMERA_WIDTH", "1920")),
         camera_height=int(os.getenv("EDGE_CAMERA_HEIGHT", "1080")),
@@ -89,6 +99,7 @@ def load_config() -> EdgeConfig:
             os.getenv("EDGE_FALL_MODEL_PATH", ""),
             "edge/models/fall_det_1.pt",
         ),
+        inference_device_request=os.getenv("EDGE_INFERENCE_DEVICE", "auto").strip() or "auto",
         person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
         fall_conf_threshold=float(os.getenv("EDGE_FALL_CONF", "0.4")),
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),

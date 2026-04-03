@@ -11,6 +11,8 @@ class CloudConfig:
     signaling_offer_ttl_sec: int
     signaling_answer_ttl_sec: int
     signaling_ice_ttl_sec: int
+    edge_shared_secret: str
+    edge_signature_ttl_sec: int
     auth_admin_email: str | None
     auth_admin_password: str | None
     auth_jwt_secret: str
@@ -22,6 +24,9 @@ class CloudConfig:
     clip_storage_dir: str
     clip_retention_days: int
     clip_cleanup_interval_sec: int
+    clip_presigned_url_ttl_sec: int
+    aws_s3_bucket: str | None
+    aws_region: str
 
 
 def _parse_bool(value: str, default: bool = False) -> bool:
@@ -30,8 +35,18 @@ def _parse_bool(value: str, default: bool = False) -> bool:
     return value.strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+def _require_env(name: str) -> str:
+    value = os.getenv(name, "").strip()
+    if not value:
+        raise RuntimeError(f"Missing required environment variable: {name}")
+    return value
+
+
 def load_config() -> CloudConfig:
-    cors_raw = os.getenv("CLOUD_CORS_ALLOW_ORIGINS", "http://localhost:3000")
+    cors_raw = os.getenv(
+        "CLOUD_CORS_ALLOW_ORIGINS",
+        "http://localhost:3000,http://127.0.0.1:3000",
+    )
     origins = [x.strip() for x in cors_raw.split(",") if x.strip()]
 
     cookie_samesite = os.getenv("AUTH_COOKIE_SAMESITE", "lax").strip().lower()
@@ -42,12 +57,18 @@ def load_config() -> CloudConfig:
     if auth_cookie_domain:
         auth_cookie_domain = auth_cookie_domain.strip() or None
 
+    aws_s3_bucket = os.getenv("AWS_S3_BUCKET")
+    if aws_s3_bucket:
+        aws_s3_bucket = aws_s3_bucket.strip() or None
+
     return CloudConfig(
         cors_allow_origins=origins or ["http://localhost:3000"],
         local_db_path=os.getenv("LOCAL_DB_PATH", "cloud/data/cloud.db"),
         signaling_offer_ttl_sec=int(os.getenv("SIGNALING_OFFER_TTL_SEC", "30")),
         signaling_answer_ttl_sec=int(os.getenv("SIGNALING_ANSWER_TTL_SEC", "30")),
         signaling_ice_ttl_sec=int(os.getenv("SIGNALING_ICE_TTL_SEC", "20")),
+        edge_shared_secret=_require_env("EDGE_SHARED_SECRET"),
+        edge_signature_ttl_sec=int(os.getenv("EDGE_SIGNATURE_TTL_SEC", "30")),
         auth_admin_email=os.getenv("AUTH_ADMIN_EMAIL"),
         auth_admin_password=os.getenv("AUTH_ADMIN_PASSWORD"),
         auth_jwt_secret=os.getenv("AUTH_JWT_SECRET", "dev-only-change-this-secret"),
@@ -59,4 +80,7 @@ def load_config() -> CloudConfig:
         clip_storage_dir=os.getenv("CLIP_STORAGE_DIR", "cloud/data/clips"),
         clip_retention_days=int(os.getenv("CLIP_RETENTION_DAYS", "7")),
         clip_cleanup_interval_sec=int(os.getenv("CLIP_CLEANUP_INTERVAL_SEC", "3600")),
+        clip_presigned_url_ttl_sec=int(os.getenv("CLIP_PRESIGNED_URL_TTL_SEC", "300")),
+        aws_s3_bucket=aws_s3_bucket,
+        aws_region=os.getenv("AWS_REGION", "ap-northeast-2").strip() or "ap-northeast-2",
     )

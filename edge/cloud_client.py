@@ -7,6 +7,9 @@ from typing import Any, Dict, List
 
 import httpx
 from loguru import logger
+from httpx import QueryParams
+
+from shared.edge_auth import build_edge_auth_headers, build_request_target
 
 
 class CloudClient:
@@ -14,12 +17,14 @@ class CloudClient:
         self,
         base_url: str,
         edge_id: str,
+        shared_secret: str,
         command_poll_interval: float,
         zone_poll_interval: float,
         heartbeat_interval: float,
     ) -> None:
         self.base_url = base_url.rstrip("/")
         self.edge_id = edge_id
+        self.shared_secret = shared_secret
         self.command_poll_interval = command_poll_interval
         self.zone_poll_interval = zone_poll_interval
         self.heartbeat_interval = heartbeat_interval
@@ -31,6 +36,37 @@ class CloudClient:
         self._command_queue: asyncio.Queue[Dict[str, Any]] = asyncio.Queue()
         self._zones: List[Dict[str, Any]] = []
         self._last_heartbeat_at = 0.0
+
+    @staticmethod
+    def _request_target(path: str, params: Dict[str, Any] | None = None) -> str:
+        query_string = str(QueryParams(params or {}))
+        return build_request_target(path, query_string)
+
+    def _signed_headers(self, method: str, path: str, params: Dict[str, Any] | None = None) -> Dict[str, str]:
+        return build_edge_auth_headers(
+            shared_secret=self.shared_secret,
+            method=method,
+            request_target=self._request_target(path, params),
+            edge_id=self.edge_id,
+        )
+
+    async def _request(
+        self,
+        method: str,
+        path: str,
+        *,
+        params: Dict[str, Any] | None = None,
+        **kwargs: Any,
+    ) -> httpx.Response:
+        headers = dict(kwargs.pop("headers", {}) or {})
+        headers.update(self._signed_headers(method, path, params))
+        return await self._http.request(
+            method,
+            path,
+            params=params,
+            headers=headers,
+            **kwargs,
+        )
 
     async def start(self) -> None:
         if self._running:
@@ -53,7 +89,8 @@ class CloudClient:
         backoff = 1.0
         while self._running:
             try:
-                response = await self._http.get(
+                response = await self._request(
+                    "GET",
                     "/api/edge/commands",
                     params={"edge_id": self.edge_id},
                 )
@@ -73,7 +110,8 @@ class CloudClient:
         backoff = 1.0
         while self._running:
             try:
-                response = await self._http.get(
+                response = await self._request(
+                    "GET",
                     "/api/edge/zones",
                     params={"edge_id": self.edge_id},
                 )
@@ -106,14 +144,14 @@ class CloudClient:
         self._last_heartbeat_at = now
         payload = {"edge_id": self.edge_id, **heartbeat}
         try:
-            await self._http.post("/api/edge/heartbeat", json=payload)
+            await self._request("POST", "/api/edge/heartbeat", json=payload)
         except Exception as exc:
             logger.warning(f"heartbeat 전송 실패(무시): {exc}")
 
     async def report_log(self, event: Dict[str, Any]) -> None:
         payload = {"edge_id": self.edge_id, **event}
         try:
-            await self._http.post("/api/edge/log", json=payload)
+            await self._request("POST", "/api/edge/log", json=payload)
         except Exception as exc:
             logger.warning(f"로그 전송 실패(무시): {exc}")
 
@@ -141,7 +179,7 @@ class CloudClient:
                 "clip_ended_at": clip_ended_at,
                 "duration_sec": str(duration_sec),
             }
-            response = await self._http.post("/api/edge/clips", data=data, files=files)
+            response = await self._request("POST", "/api/edge/clips", data=data, files=files)
             response.raise_for_status()
 
     async def report_clip_failed(
@@ -156,15 +194,15 @@ class CloudClient:
             "status": "FAILED",
             "error_message": error_message,
         }
-        response = await self._http.post("/api/edge/clips", data=data)
+        response = await self._request("POST", "/api/edge/clips", data=data)
         response.raise_for_status()
 
     async def signaling_post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
-        response = await self._http.post(path, json=payload)
+        response = await self._request("POST", path, json=payload)
         response.raise_for_status()
         return response.json() if response.text else {}
 
     async def signaling_get(self, path: str, params: Dict[str, Any]) -> Dict[str, Any]:
-        response = await self._http.get(path, params=params)
+        response = await self._request("GET", path, params=params)
         response.raise_for_status()
         return response.json() if response.text else {}
