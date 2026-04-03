@@ -198,7 +198,7 @@ class DBService:
                 ),
             )
             conn.commit()
-        return self.get_event_by_event_uid(event_uid)
+        return self.get_event_by_event_uid(event_uid, include_internal=True) # include_internal=True 추가
 
     def set_clip_failed_by_event_uid(
         self,
