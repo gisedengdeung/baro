@@ -154,15 +154,7 @@ function ZoneRanking({ logs }) {
       .map(([z, c]) => ({ zone: z, count: c }))
       .sort((a, b) => b.count - a.count)
       .slice(0, 7);
-    return s.length > 0
-      ? s
-      : [
-          { zone: "A구역 (1F 출입구)", count: 24 },
-          { zone: "B구역 (2F 창고)", count: 18 },
-          { zone: "C구역 (옥상)", count: 12 },
-          { zone: "D구역 (지하 주차)", count: 9 },
-          { zone: "E구역 (3F 복도)", count: 5 },
-        ];
+    return s.length > 0 ? s : [];
   }, [logs]);
   const max = items[0]?.count || 1;
   return (
@@ -195,6 +187,7 @@ function ZoneRanking({ logs }) {
 /* ══ 메인 ══════════════════════════════════════════════════════ */
 export default function StatsPage({ logs = [] }) {
   const today = new Date();
+  const todayStr = new Date().toLocaleDateString("sv-SE");
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [applied, setApplied] = useState({ from: "", to: "" });
@@ -335,7 +328,7 @@ export default function StatsPage({ logs = [] }) {
                   type="date"
                   className="sp2-date-input"
                   value={dateFrom}
-                  max={dateTo || today.toISOString().slice(0, 10)}
+                  max={dateTo || todayStr}
                   onChange={(e) => setDateFrom(e.target.value)}
                 />
                 <span className="sp2-date-sep">~</span>
@@ -344,7 +337,7 @@ export default function StatsPage({ logs = [] }) {
                   className="sp2-date-input"
                   value={dateTo}
                   min={dateFrom}
-                  max={today.toISOString().slice(0, 10)}
+                  max={todayStr}
                   onChange={(e) => setDateTo(e.target.value)}
                 />
               </div>
