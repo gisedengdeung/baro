@@ -9,6 +9,8 @@ import {
 
 let socketInstance = null;
 let timerInstance = null;
+let reconnectTimer = null;
+let shouldReconnect = true;
 
 const isSameLog = (a, b) => {
   if (!a || !b) return false;
@@ -89,6 +91,11 @@ const useDashboardStore = create((set, get) => ({
   },
 
   disconnect: () => {
+    shouldReconnect = false;
+    if (reconnectTimer) {
+      clearTimeout(reconnectTimer);
+      reconnectTimer = null;
+    }
     if (socketInstance) {
       socketInstance.close(4000, "User-initiated disconnect");
       socketInstance = null;
@@ -102,11 +109,15 @@ const useDashboardStore = create((set, get) => ({
       return;
     }
 
+    shouldReconnect = true;
     set({ wsStatus: "connecting" });
     socketInstance = new WebSocket(getWsUrl("/ws/logs"));
 
     socketInstance.onopen = () => {
       set({ wsStatus: "open" });
+      // 재연결 성공 시 최신 데이터 동기화
+      get().fetchSystemStatus();
+      get().fetchLogs(false);
     };
 
     socketInstance.onmessage = (event) => {
@@ -117,7 +128,7 @@ const useDashboardStore = create((set, get) => ({
           case "LOG":
             get().addLog(message.data);
             break;
-          case "LOG_UPDATE": // ← 추가
+          case "LOG_UPDATE":
             get().upsertLog(message.data);
             break;
           case "STATUS_UPDATE": {
@@ -134,12 +145,18 @@ const useDashboardStore = create((set, get) => ({
             const normalizedTestSpeed = Number.isFinite(Number(test_speed))
               ? Number(test_speed)
               : 0;
+
+            // ✅ FIX: 잠금 상태가 새로 true가 됐을 때 globalAlert 세팅
+            const wasLocked = get().isLocked;
+            const nowLocked = Boolean(is_locked);
+            const shouldAlert = nowLocked && !wasLocked;
+
             set({
               operationMode: normalizedMode,
               conveyorStatus: conveyor_status,
               conveyorSpeed: conveyor_speed,
               riskLevel: risk_level,
-              isLocked: is_locked,
+              isLocked: nowLocked,
               testIsActive: Boolean(
                 test_is_active || normalizedMode === "TEST",
               ),
@@ -148,6 +165,17 @@ const useDashboardStore = create((set, get) => ({
                 normalizedMode === "TEST"
                   ? normalizedTestSpeed
                   : get().testSpeedInput,
+              // 잠금이 새로 발생한 경우에만 globalAlert 세팅
+              ...(shouldAlert && {
+                globalAlert: {
+                  event_type: "SYSTEM_LOCKED",
+                  log_risk_level: "CRITICAL",
+                  timestamp: new Date().toISOString(),
+                  details: {
+                    description: "시스템이 잠금(LOCKED) 상태로 전환되었습니다.",
+                  },
+                },
+              }),
             });
             break;
           }
@@ -166,6 +194,13 @@ const useDashboardStore = create((set, get) => ({
     socketInstance.onclose = () => {
       socketInstance = null;
       set({ wsStatus: "closed" });
+
+      // 의도적 종료가 아닌 경우 3초 후 자동 재연결
+      if (shouldReconnect) {
+        reconnectTimer = setTimeout(() => {
+          get().connect();
+        }, 3000);
+      }
     };
   },
 
@@ -205,25 +240,42 @@ const useDashboardStore = create((set, get) => ({
   fetchSystemStatus: async () => {
     try {
       const data = await controlAPI.getStatus();
-      const edge = data?.edge_status;
+
+      // ✅ FIX: edge_status 없으면 data 자체를 fallback으로 시도
+      const edge = data?.edge_status ?? data;
       if (!edge) {
         return;
       }
+
       const normalizedMode = edge.operation_mode || null;
       const normalizedTestSpeed = Number.isFinite(Number(edge.test_speed))
         ? Number(edge.test_speed)
         : 0;
+
+      const nowLocked = Boolean(edge.is_locked);
+
       set({
         operationMode: normalizedMode,
         conveyorSpeed: edge.conveyor_speed || 0,
         riskLevel: edge.risk_level || "SAFE",
-        isLocked: Boolean(edge.is_locked),
+        isLocked: nowLocked,
         testIsActive: Boolean(edge.test_is_active || normalizedMode === "TEST"),
         testSpeed: normalizedTestSpeed,
         testSpeedInput:
           normalizedMode === "TEST"
             ? normalizedTestSpeed
             : get().testSpeedInput,
+        // ✅ FIX: 초기 조회 시 이미 잠금 상태면 globalAlert 세팅
+        ...(nowLocked && {
+          globalAlert: {
+            event_type: "SYSTEM_LOCKED",
+            log_risk_level: "CRITICAL",
+            timestamp: new Date().toISOString(),
+            details: {
+              description: "시스템이 잠금(LOCKED) 상태입니다.",
+            },
+          },
+        }),
       });
     } catch (e) {
       console.error("상태 조회 실패", e);

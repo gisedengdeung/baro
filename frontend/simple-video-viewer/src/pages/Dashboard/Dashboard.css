@@ -315,6 +315,18 @@ CSS 변수 (디자인 토큰)
   color: #fca5a5 !important;
 }
 
+/* 감지내역 탭 전용 레이아웃 — 전체 너비 사용, max-width 없음 */
+.detections-page {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  padding: 24px 24px 16px;
+  background: var(--primary-bg);
+  box-sizing: border-box;
+}
+
 /* 통계 전용 전체 화면 */
 .stats-page {
   flex: 1;
@@ -1001,6 +1013,34 @@ CSS 변수 (디자인 토큰)
 }
 
 /* 테스트 운행 토글 버튼 - 이벤트 로그의 '로그 및 통계' 버튼과 동일한 스타일 */
+.conveyor-header-btns {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.system-reset-small-btn {
+  padding: 5px 10px;
+  background-color: var(--secondary-bg);
+  color: var(--text-secondary);
+  font-size: 12px;
+  font-weight: bold;
+  border: 1px solid var(--border-color);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s;
+  white-space: nowrap;
+}
+.system-reset-small-btn:hover:not(:disabled) {
+  background-color: var(--primary-bg);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+.system-reset-small-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
 .test-run-toggle-btn {
   padding: 6px 14px;
   background-color: var(--accent-color);
@@ -1728,14 +1768,13 @@ translateX로 슬라이드하여 탭 전환 효과 구현
 - control-panel 전체를 덮는 SYSTEM LOCKED 오버레이 */
 
 .global-alert-overlay {
-  position: absolute;
+  position: fixed;
   inset: 0;
-  z-index: 500;
-  background-color: var(--status-danger);
+  z-index: 9999;
+  background-color: rgba(239, 68, 68, 0.95);
   display: flex;
   align-items: center;
   justify-content: center;
-  border-radius: 8px;
   animation: alertFadeIn 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
