@@ -1,32 +1,52 @@
 /* VideoLogTable.css */
 
-/* 전체 레이아웃: 좌측 플레이어 + 우측 테이블 */
+/* ════════════════════════════════════════
+   전체 레이아웃: 영상(flex:6) | 로그(flex:4)
+   ════════════════════════════════════════ */
 .vlt-layout {
   display: flex;
+  width: 100%;
   height: 100%;
-  gap: 16px;
+  gap: 12px;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
-/* 좌측 영상 플레이어 패널 */
+/* 부모 컨테이너(stats-page 등)의 좌우 패딩을 상쇄해서 전체 너비를 꽉 채움.
+   부모 padding이 없는 환경에서는 이 줄을 제거하세요. */
+/* .vlt-layout { margin: 0 -40px; width: calc(100% + 80px); } */
+
+/* ════════════════════════════════════════
+   왼쪽: 영상 플레이어
+   ════════════════════════════════════════ */
 .vlt-player-panel {
-  width: 420px;
-  flex-shrink: 0;
+  flex: 0 0 0px;
+  overflow: hidden;
   display: flex;
   flex-direction: column;
   background: var(--secondary-bg, #2b3035);
-  border: 1px solid var(--border-color, #374151);
   border-radius: 8px;
-  overflow: hidden;
+  border: 1px solid transparent;
+  transition:
+    flex-basis 0.3s cubic-bezier(0.4, 0, 0.2, 1),
+    border-color 0.3s;
+}
+
+.vlt-player-panel.open {
+  flex: 6 1 0px;
+  border-color: var(--border-color, #374151);
 }
 
 .vlt-player-header {
+  flex-shrink: 0;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  padding: 12px 16px;
-  border-bottom: 1px solid var(--border-color, #374151);
+  padding: 10px 14px;
   background: #1f2937;
+  border-bottom: 1px solid var(--border-color, #374151);
+  border-radius: 8px 8px 0 0;
+  min-width: 300px;
 }
 
 .vlt-player-info {
@@ -36,14 +56,16 @@
 }
 
 .vlt-player-title {
-  font-size: 14px;
+  font-size: 13px;
   font-weight: 700;
   color: var(--accent-color, #f59e0b);
+  white-space: nowrap;
 }
 
 .vlt-player-time {
   font-size: 11px;
   color: var(--text-secondary, #9ca3af);
+  white-space: nowrap;
 }
 
 .vlt-player-close {
@@ -54,60 +76,58 @@
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 4px;
-  transition: all 0.2s;
+  flex-shrink: 0;
+  transition:
+    background 0.2s,
+    color 0.2s;
 }
 .vlt-player-close:hover {
   background: rgba(239, 68, 68, 0.15);
-  color: var(--status-danger, #ef4444);
+  color: #ef4444;
 }
 
 .vlt-player-body {
   flex: 1;
+  min-height: 0;
+  min-width: 300px;
   display: flex;
   align-items: center;
   justify-content: center;
   background: #000;
-  padding: 8px;
 }
 
 .vlt-video {
   width: 100%;
-  max-height: 100%;
-  border-radius: 4px;
+  height: 100%;
+  object-fit: contain;
+  display: block;
 }
 
-/* 재생 중인 행 하이라이트 */
-.modern-table tbody tr.playing {
-  background-color: rgba(59, 130, 246, 0.1) !important;
-  border-left: 4px solid #3b82f6;
-}
-
-.video-btn.playing {
-  background-color: #1d4ed8;
-  border-color: #60a5fa;
-}
-
+/* ════════════════════════════════════════
+   오른쪽: 이벤트 로그 테이블
+   flex:4 — 영상 열렸을 때도 충분한 너비
+   ════════════════════════════════════════ */
 .video-log-container {
-  flex: 1;
+  flex: 4 1 0px;
   min-width: 0;
   display: flex;
   flex-direction: column;
   height: 100%;
-  background: var(--secondary-bg, #2b3035);
   overflow: hidden;
 }
 
 .table-wrapper {
   flex: 1;
+  overflow-x: auto;
   overflow-y: auto;
   border-radius: 8px;
   background-color: var(--primary-bg, #343a40);
   border: 1px solid var(--border-color, #374151);
 }
 
-/* Custom Scrollbar */
 .table-wrapper::-webkit-scrollbar {
-  width: 8px;
+  width: 6px;
+  height: 6px;
 }
 .table-wrapper::-webkit-scrollbar-track {
   background: transparent;
@@ -120,12 +140,14 @@
   background: #6b7280;
 }
 
+/* 테이블: 컨테이너 너비를 꽉 채우되 최소 너비 보장 */
 .modern-table {
   width: 100%;
+  min-width: 420px;
   border-collapse: separate;
   border-spacing: 0;
   color: var(--text-primary, #f9fafb);
-  font-size: 14px;
+  font-size: 13px;
 }
 
 .modern-table thead {
@@ -136,38 +158,41 @@
 }
 
 .modern-table th {
-  padding: 12px 16px;
+  padding: 10px 12px;
   text-align: left;
   font-weight: 600;
   color: var(--accent-color, #f59e0b);
   border-bottom: 2px solid var(--border-color, #374151);
   text-transform: uppercase;
-  font-size: 12px;
+  font-size: 11px;
   letter-spacing: 0.05em;
+  white-space: nowrap;
 }
-
 .modern-table th.col-status {
   text-align: center;
 }
 
 .modern-table td {
-  padding: 12px 16px;
+  padding: 10px 12px;
   border-bottom: 1px solid var(--border-color, #374151);
   vertical-align: middle;
+  white-space: nowrap;
 }
 
 .modern-table tbody tr {
-  transition: background-color 0.2s;
   cursor: pointer;
+  transition: background-color 0.15s;
 }
-
 .modern-table tbody tr:hover {
-  background-color: rgba(245, 158, 11, 0.05);
+  background-color: rgba(245, 158, 11, 0.06);
 }
-
 .modern-table tbody tr.active {
   background-color: rgba(245, 158, 11, 0.15) !important;
-  border-left: 4px solid var(--accent-color, #f59e0b);
+  border-left: 3px solid var(--accent-color, #f59e0b);
+}
+.modern-table tbody tr.playing {
+  background-color: rgba(59, 130, 246, 0.1) !important;
+  border-left: 3px solid #3b82f6;
 }
 
 .empty-row {
@@ -177,31 +202,50 @@
   font-style: italic;
 }
 
-/* Date Cell */
+/* ── Column Widths ──
+   flex:4 컨테이너에서 모든 컬럼이 다 보이도록 압축 */
+.col-time {
+  width: 85px;
+}
+.col-mode {
+  width: 85px;
+}
+.col-event {
+  width: auto;
+} /* 남은 공간 모두 사용 */
+.col-video {
+  width: 85px;
+}
+.col-status {
+  width: 75px;
+  text-align: center !important;
+}
+
+/* ── Date Cell ── */
 .date-cell {
   display: flex;
   flex-direction: column;
-  line-height: 1.2;
-  width: 100px;
+  line-height: 1.3;
 }
 .date-small {
-  font-size: 11px;
+  font-size: 10px;
   color: var(--text-secondary, #9ca3af);
 }
 .time-bold {
   font-weight: 700;
-  color: var(--text-primary, #f9fafb);
+  font-size: 13px;
 }
 
-/* Mode Badge */
+/* ── Mode Badge ── */
 .mode-badge {
   display: inline-block;
-  padding: 4px 10px;
+  padding: 2px 7px;
   border-radius: 9999px;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 600;
   background: #374151;
   color: #e5e7eb;
+  white-space: nowrap;
 }
 .mode-badge.automatic {
   background: #1e3a8a;
@@ -220,74 +264,26 @@
   color: #d1fae5;
 }
 
-/* Description */
+/* ── Description ── */
 .description-cell {
   font-weight: 500;
+  font-size: 13px;
 }
 .event-icon {
-  margin-right: 8px;
-  display: inline-block;
-  font-style: normal;
+  margin-right: 5px;
 }
 
-/* Status Badge */
-.status-badge {
-  display: inline-block;
-  padding: 2px 8px;
-  border-radius: 4px;
-  font-size: 11px;
-  font-weight: 800;
-}
-.status-badge.critical {
-  background: #ef4444;
-  color: white;
-}
-.status-badge.warn {
-  background: #f97316;
-  color: white;
-}
-.status-badge.medium {
-  background: #eab308;
-  color: #451a03;
-}
-.status-badge.safe {
-  background: #10b981;
-  color: white;
-}
-.status-badge.info {
-  background: #3b82f6;
-  color: white;
-}
-
-/* Column Widths */
-.col-time {
-  width: 120px;
-}
-.col-mode {
-  width: 130px;
-}
-.col-event {
-  width: auto;
-}
-.col-video {
-  width: 110px;
-}
-.col-status {
-  width: 100px;
-  text-align: center !important;
-}
-
-/* 영상 확인 버튼 */
+/* ── Video Button ── */
 .video-cell {
   text-align: center;
 }
 .video-btn {
-  padding: 4px 10px;
+  padding: 3px 8px;
   background-color: #1e3a8a;
   color: #bfdbfe;
   border: 1px solid #3b82f6;
-  border-radius: 6px;
-  font-size: 12px;
+  border-radius: 5px;
+  font-size: 11px;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
@@ -299,9 +295,40 @@
   background-color: #1d4ed8;
   transform: scale(1.04);
 }
+.video-btn.playing {
+  background-color: #1d4ed8;
+  border-color: #60a5fa;
+}
+
+/* ── Status Badge ── */
 .status-cell {
   text-align: center !important;
 }
-.status-cell .status-badge {
+.status-badge {
   display: inline-block;
+  padding: 2px 6px;
+  border-radius: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+}
+.status-badge.critical {
+  background: #ef4444;
+  color: #fff;
+}
+.status-badge.warn {
+  background: #f97316;
+  color: #fff;
+}
+.status-badge.medium {
+  background: #eab308;
+  color: #451a03;
+}
+.status-badge.safe {
+  background: #10b981;
+  color: #fff;
+}
+.status-badge.info {
+  background: #3b82f6;
+  color: #fff;
 }

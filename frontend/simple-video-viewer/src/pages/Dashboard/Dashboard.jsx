@@ -1,6 +1,7 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
+import { useShallow } from "zustand/react/shallow";
 import useAuthStore from "../../store/useAuthStore";
 import useDashboardStore from "../../store/useDashboardStore";
 
@@ -18,6 +19,7 @@ function Dashboard() {
   const user = useAuthStore((state) => state.user);
   const logout = useAuthStore((state) => state.logout);
 
+  // ✅ useShallow로 상태값 구독 → store 업데이트 시 리렌더 정상 트리거
   const {
     logs,
     operationMode,
@@ -30,37 +32,51 @@ function Dashboard() {
     currentTime,
     videoStatus,
     globalAlert,
-  } = useDashboardStore();
-
-  const {
-    initialize: initializeDashboard,
-    disconnect: disconnectDashboard,
-    handleControl,
-    resetSystem,
-    setTestSpeedInput,
-    startTestRun,
-    applyTestSpeed,
-    stopTestRun,
-    setVideoStatus,
-  } = useDashboardStore();
-
-  const {
     isDangerMode,
     zones,
     selectedZoneId,
     configAction,
     newZoneName,
     imageSize,
-    enterDangerMode,
-    exitDangerMode,
-    setSelectedZoneId,
-    setConfigAction,
-    setNewZoneName,
-    handleCreateZone,
-    handleUpdateZone,
-    handleDeleteZone,
-    setImageSize,
-  } = useDashboardStore();
+  } = useDashboardStore(
+    useShallow((state) => ({
+      logs: state.logs,
+      operationMode: state.operationMode,
+      riskLevel: state.riskLevel,
+      isLocked: state.isLocked,
+      loading: state.loading,
+      popupError: state.popupError,
+      testSpeed: state.testSpeed,
+      testSpeedInput: state.testSpeedInput,
+      currentTime: state.currentTime,
+      videoStatus: state.videoStatus,
+      globalAlert: state.globalAlert,
+      isDangerMode: state.isDangerMode,
+      zones: state.zones,
+      selectedZoneId: state.selectedZoneId,
+      configAction: state.configAction,
+      newZoneName: state.newZoneName,
+      imageSize: state.imageSize,
+    })),
+  );
+
+  // ✅ 액션은 개별 selector로 안정적으로 참조
+  const handleControl = useDashboardStore((s) => s.handleControl);
+  const resetSystem = useDashboardStore((s) => s.resetSystem);
+  const setTestSpeedInput = useDashboardStore((s) => s.setTestSpeedInput);
+  const startTestRun = useDashboardStore((s) => s.startTestRun);
+  const applyTestSpeed = useDashboardStore((s) => s.applyTestSpeed);
+  const stopTestRun = useDashboardStore((s) => s.stopTestRun);
+  const setVideoStatus = useDashboardStore((s) => s.setVideoStatus);
+  const enterDangerMode = useDashboardStore((s) => s.enterDangerMode);
+  const exitDangerMode = useDashboardStore((s) => s.exitDangerMode);
+  const setSelectedZoneId = useDashboardStore((s) => s.setSelectedZoneId);
+  const setConfigAction = useDashboardStore((s) => s.setConfigAction);
+  const setNewZoneName = useDashboardStore((s) => s.setNewZoneName);
+  const handleCreateZone = useDashboardStore((s) => s.handleCreateZone);
+  const handleUpdateZone = useDashboardStore((s) => s.handleUpdateZone);
+  const handleDeleteZone = useDashboardStore((s) => s.handleDeleteZone);
+  const setImageSize = useDashboardStore((s) => s.setImageSize);
 
   // Local UI State
   const [sidebarSection, setSidebarSection] = useState("dashboard");
@@ -80,14 +96,15 @@ function Dashboard() {
     }
   };
 
+  // ✅ deps 빈 배열 + getState() → 마운트/언마운트 1회만 실행
   useEffect(() => {
-    initializeDashboard();
+    useDashboardStore.getState().initialize();
     document.body.classList.add("dashboard-body-no-scroll");
     return () => {
-      disconnectDashboard();
+      useDashboardStore.getState().disconnect();
       document.body.classList.remove("dashboard-body-no-scroll");
     };
-  }, [initializeDashboard, disconnectDashboard]);
+  }, []);
 
   const systemStatus =
     isLocked || riskLevel === "CRITICAL"
@@ -171,11 +188,9 @@ function Dashboard() {
 
         {/* 감지내역 탭 */}
         {sidebarSection === "detections" && (
-          <main className="stats-page">
-            <div className="stats-page-inner">
-              <h2 className="stats-page-title">전체 이벤트 로그</h2>
-              <VideoLogTable logs={logs} />
-            </div>
+          <main className="detections-page">
+            <h2 className="stats-page-title">전체 이벤트 로그</h2>
+            <VideoLogTable logs={logs} />
           </main>
         )}
 
@@ -215,40 +230,6 @@ function Dashboard() {
           </section>
 
           <aside className="control-panel" style={{ position: "relative" }}>
-            {globalAlert && (
-              <div className="global-alert-overlay">
-                <div className="global-alert-overlay-content">
-                  <div className="global-alert-title">⚠ SYSTEM LOCKED</div>
-                  <div className="global-alert-desc">
-                    {globalAlert.details?.description || globalAlert.event_type}
-                  </div>
-                  <div className="global-alert-desc-sub">
-                    관리자의 확인 후 시스템을 리셋하세요.
-                  </div>
-                  <div className="global-alert-time">
-                    {new Date(globalAlert.timestamp).toLocaleTimeString(
-                      "ko-KR",
-                      {
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        second: "2-digit",
-                      },
-                    )}
-                  </div>
-                  <button
-                    className="alert-reset-btn"
-                    disabled={loading}
-                    onClick={() => {
-                      useDashboardStore.setState({ globalAlert: null });
-                      resetSystem();
-                    }}
-                  >
-                    ⚡ 시스템 리셋
-                  </button>
-                </div>
-              </div>
-            )}
-
             <div className="system-infos">
               <h3>시스템 정보</h3>
               <div className="time-card">
@@ -346,13 +327,23 @@ function Dashboard() {
             <div className="conveyor-control-section">
               <div className="conveyor-control-header">
                 <h3>컨베이어 제어</h3>
-                <button
-                  className="test-run-toggle-btn"
-                  disabled={isDangerMode}
-                  onClick={() => setShowTestRun((prev) => !prev)}
-                >
-                  테스트 운행
-                </button>
+                <div className="conveyor-header-btns">
+                  <button
+                    className="system-reset-small-btn"
+                    disabled={loading}
+                    onClick={resetSystem}
+                    title="시스템 리셋"
+                  >
+                    🔄 리셋
+                  </button>
+                  <button
+                    className="test-run-toggle-btn"
+                    disabled={isDangerMode}
+                    onClick={() => setShowTestRun((prev) => !prev)}
+                  >
+                    테스트 운행
+                  </button>
+                </div>
               </div>
               <div className="control-buttons">
                 <button
@@ -455,6 +446,41 @@ function Dashboard() {
         </main>
         {/* end dashboard main-layout */}
       </div>
+
+      {/* 긴급 알림 오버레이 - fixed로 항상 표시 */}
+      {globalAlert && (
+        <div
+          className="global-alert-overlay"
+          style={{ position: "fixed", inset: 0, zIndex: 9999 }}
+        >
+          <div className="global-alert-overlay-content">
+            <div className="global-alert-title">⚠ SYSTEM LOCKED</div>
+            <div className="global-alert-desc">
+              {globalAlert.details?.description || globalAlert.event_type}
+            </div>
+            <div className="global-alert-desc-sub">
+              관리자의 확인 후 시스템을 리셋하세요.
+            </div>
+            <div className="global-alert-time">
+              {new Date(globalAlert.timestamp).toLocaleTimeString("ko-KR", {
+                hour: "2-digit",
+                minute: "2-digit",
+                second: "2-digit",
+              })}
+            </div>
+            <button
+              className="alert-reset-btn"
+              disabled={loading}
+              onClick={() => {
+                useDashboardStore.setState({ globalAlert: null });
+                resetSystem();
+              }}
+            >
+              ⚡ 시스템 리셋
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* 테스트 운행 팝업 */}
       {showTestRun && (

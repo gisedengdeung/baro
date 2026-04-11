@@ -36,20 +36,23 @@ export default function VideoLogTable({ logs = [], activeId, onSelect }) {
 
   return (
     <div className="vlt-layout">
-      {selectedLog && (
-        <div className="vlt-player-panel">
-          <div className="vlt-player-header">
-            <div className="vlt-player-info">
-              <span className="vlt-player-title">🎥 넘어짐 감지 영상</span>
+      {/* ── 왼쪽: 영상 플레이어 ── */}
+      <div className={`vlt-player-panel${selectedLog ? " open" : ""}`}>
+        <div className="vlt-player-header">
+          <div className="vlt-player-info">
+            <span className="vlt-player-title">🎥 넘어짐 감지 영상</span>
+            {selectedLog && (
               <span className="vlt-player-time">
                 {new Date(selectedLog.timestamp).toLocaleString("ko-KR")}
               </span>
-            </div>
-            <button className="vlt-player-close" onClick={closeVideo}>
-              ✕
-            </button>
+            )}
           </div>
-          <div className="vlt-player-body">
+          <button className="vlt-player-close" onClick={closeVideo}>
+            ✕
+          </button>
+        </div>
+        <div className="vlt-player-body">
+          {selectedLog && (
             <video
               key={videoUrl}
               controls
@@ -59,10 +62,11 @@ export default function VideoLogTable({ logs = [], activeId, onSelect }) {
             >
               <source src={videoUrl} type="video/mp4" />
             </video>
-          </div>
+          )}
         </div>
-      )}
+      </div>
 
+      {/* ── 오른쪽: 이벤트 로그 테이블 ── */}
       <div className="video-log-container">
         <div className="table-wrapper">
           <table className="modern-table">

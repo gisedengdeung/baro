@@ -5,6 +5,7 @@ dist/
 .env.edge
 .env.cloud
 .env.prod
+.env.development
 build/
 
 # Python
