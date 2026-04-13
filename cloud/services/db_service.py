@@ -107,6 +107,25 @@ class DBService:
 
         return message
 
+    def get_edges(self) -> List[Dict[str, Any]]:
+        with get_connection(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT id, name, is_active, created_at
+                FROM edges
+                ORDER BY created_at ASC
+                """
+            ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "is_active": bool(row["is_active"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+
     def get_events(self, limit: int = 50) -> List[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
             rows = conn.execute(

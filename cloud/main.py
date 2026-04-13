@@ -6,7 +6,7 @@ import asyncio
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
-from cloud.api import auth, control, edge, logs, signaling, status, streaming, zones
+from cloud.api import auth, control, edge, edges, logs, signaling, status, streaming, zones
 from cloud.config import load_config
 from cloud.dependencies import require_browser_auth
 from cloud.db import init_db
@@ -108,6 +108,12 @@ app.include_router(
     status.router,
     prefix="/api/status",
     tags=["Status"],
+    dependencies=[Depends(require_browser_auth)],
+)
+app.include_router(
+    edges.router,
+    prefix="/api/edges",
+    tags=["Edges"],
     dependencies=[Depends(require_browser_auth)],
 )
 app.include_router(signaling.router, prefix="/api/signaling", tags=["Signaling"])
