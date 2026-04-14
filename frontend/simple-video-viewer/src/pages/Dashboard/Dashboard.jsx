@@ -18,15 +18,17 @@ import "./Dashboard.css";
 const CAMERA_LIST = [
   {
     id: 1,
-    name: "카메라1",
+    name: "카메라 · 도시/라팅",
     location: "공장 1구역",
     status: "online",
+    risk: "warning",
   },
   {
     id: 2,
-    name: "카메라2",
+    name: "카메라 안전 관리",
     location: "공장 2구역",
     status: "online",
+    risk: "safe",
   },
 ];
 
@@ -153,8 +155,10 @@ function Dashboard() {
   const previewLogs = logs.slice(0, 5);
 
   const NAV_ITEMS = [
-    { id: "camera-switch", icon: "📹", label: "카메라" },
     { id: "dashboard", icon: "⊞", label: "대시보드" },
+    { id: "cctv", icon: "📹", label: "CCTV" },
+    { id: "multicctv", icon: "📍", label: "멀티CCTV" },
+    { id: "camera-switch", icon: "🔄", label: "카메라" },
     { id: "detections", icon: "📋", label: "감지내역" },
     { id: "stats", icon: "📊", label: "통계" },
   ];
@@ -416,11 +420,10 @@ function Dashboard() {
               <div className="system-power-buttons">
                 <button
                   className="system-power-btn system-on-btn"
-                  disabled={
-                    loading || (isDangerMode && operationMode !== "MAINTENANCE")
-                  }
+                  disabled={loading}
                   onClick={() => {
-                    if (operationMode === "MAINTENANCE" && isDangerMode) {
+                    // 정비 모드 중 시스템 ON 시도 → 안전 차단 팝업
+                    if (operationMode === "MAINTENANCE") {
                       setShowMaintenanceBlock(true);
                       return;
                     }
@@ -463,8 +466,15 @@ function Dashboard() {
               <div className="control-buttons">
                 <button
                   className="conveyor-run-btn"
-                  disabled={loading || isDangerMode}
-                  onClick={() => handleControl("start_automatic")}
+                  disabled={loading}
+                  onClick={() => {
+                    // 정비 모드 중 컨베이어 운행 시도 → 동일한 안전 차단 팝업
+                    if (operationMode === "MAINTENANCE") {
+                      setShowMaintenanceBlock(true);
+                      return;
+                    }
+                    handleControl("start_automatic");
+                  }}
                 >
                   ▶ 컨베이어 운행
                 </button>
