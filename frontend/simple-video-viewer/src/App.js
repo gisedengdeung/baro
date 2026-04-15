@@ -1,13 +1,14 @@
-import React, { useEffect } from 'react';
-import { Navigate, Route, Routes } from 'react-router-dom';
-import './App.css';
+import React, { useEffect } from "react";
+import { Navigate, Route, Routes } from "react-router-dom";
+import "./App.css";
 
-import RequireAuth from './components/auth/RequireAuth';
-import Intro from './pages/Intro/Intro';
-import Login from './pages/Login/Login';
-import Signup from './pages/Signup/Signup';
-import Dashboard from './pages/Dashboard/Dashboard';
-import useAuthStore from './store/useAuthStore';
+import RequireAuth from "./components/auth/RequireAuth";
+import Intro from "./pages/Intro/Intro";
+import Login from "./pages/Login/Login";
+import Signup from "./pages/Signup/Signup";
+import Dashboard from "./pages/Dashboard/Dashboard";
+import GuideLine from "./pages/Guideline/GuideLine";
+import useAuthStore from "./store/useAuthStore";
 
 export default function App() {
   const initialized = useAuthStore((state) => state.initialized);
@@ -21,14 +22,32 @@ export default function App() {
   }, []);
 
   if (!initialized && isLoading) {
-    return <div style={{ padding: '24px' }}>Loading...</div>;
+    return <div style={{ padding: "24px" }}>Loading...</div>;
   }
 
   return (
     <Routes>
       <Route path="/" element={<Intro />} />
-      <Route path="/login" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Login />} />
-      <Route path="/signup" element={isAuthenticated ? <Navigate to="/dashboard" replace /> : <Signup />} />
+      <Route
+        path="/login"
+        element={
+          isAuthenticated ? <Navigate to="/guideline" replace /> : <Login />
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          isAuthenticated ? <Navigate to="/guideline" replace /> : <Signup />
+        }
+      />
+      <Route
+        path="/guideline"
+        element={
+          <RequireAuth>
+            <GuideLine />
+          </RequireAuth>
+        }
+      />
       <Route
         path="/dashboard"
         element={

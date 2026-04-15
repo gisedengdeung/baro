@@ -16,8 +16,8 @@ function Login() {
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 로그인 성공시 /dashboard로 이동
-  const from = location.state?.from?.pathname || "/dashboard";
+  // 로그인 성공시 /gudieline로 이동
+  const from = location.state?.from?.pathname || "/guideline";
 
   // 폼 제출 핸들러
   const handleSubmit = async (e) => {

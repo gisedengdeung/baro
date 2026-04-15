@@ -1,0 +1,410 @@
+/* src/pages/GuideLine/GuideLine.css */
+@import url("https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Noto+Sans+KR:wght@400;500;700&display=swap");
+
+/* ── 토큰 ── */
+:root {
+  --gl-bg: #1a1e24;
+  --gl-surface: #22272e;
+  --gl-surface2: #2b3035;
+  --gl-border: #333b44;
+  --gl-accent: #f59e0b;
+  --gl-accent-dim: rgba(245, 158, 11, 0.12);
+  --gl-ok: #10b981;
+  --gl-ok-dim: rgba(16, 185, 129, 0.12);
+  --gl-warning: #f59e0b;
+  --gl-warning-dim: rgba(245, 158, 11, 0.12);
+  --gl-danger: #ef4444;
+  --gl-danger-dim: rgba(239, 68, 68, 0.12);
+  --gl-offline: #6b7280;
+  --gl-text: #f0f4f8;
+  --gl-text-sub: #8b949e;
+  --gl-radius: 12px;
+}
+
+/* ── 루트 ── */
+.guideline-root {
+  min-height: 100vh;
+  background: var(--gl-bg);
+  color: var(--gl-text);
+  font-family: "Noto Sans KR", sans-serif;
+  position: relative;
+  overflow-x: hidden;
+  opacity: 0;
+  transform: translateY(16px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.guideline-root.gl-visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+/* ── 배경 효과 ── */
+.gl-bg-grid {
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(rgba(245, 158, 11, 0.03) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(245, 158, 11, 0.03) 1px, transparent 1px);
+  background-size: 40px 40px;
+  pointer-events: none;
+  z-index: 0;
+}
+.gl-bg-glow {
+  position: fixed;
+  top: -200px;
+  right: -200px;
+  width: 600px;
+  height: 600px;
+  background: radial-gradient(circle, rgba(245, 158, 11, 0.06) 0%, transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* ── 컨테이너 ── */
+.gl-container {
+  position: relative;
+  z-index: 1;
+  max-width: 860px;
+  margin: 0 auto;
+  padding: 48px 24px 64px;
+  display: flex;
+  flex-direction: column;
+  gap: 36px;
+}
+
+/* ── 헤더 ── */
+.gl-header {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.gl-logo-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.gl-logo {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 28px;
+  color: var(--gl-accent);
+  letter-spacing: 0.1em;
+  line-height: 1;
+}
+.gl-logo-sub {
+  font-size: 11px;
+  color: var(--gl-text-sub);
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  border-left: 1px solid var(--gl-border);
+  padding-left: 12px;
+}
+.gl-title {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: clamp(40px, 7vw, 68px);
+  line-height: 1.0;
+  letter-spacing: 0.04em;
+  color: var(--gl-text);
+  margin: 0;
+}
+.gl-title-accent {
+  color: var(--gl-accent);
+}
+.gl-subtitle {
+  font-size: 14px;
+  color: var(--gl-text-sub);
+  line-height: 1.8;
+  margin: 0;
+  border-left: 3px solid var(--gl-accent);
+  padding-left: 14px;
+}
+
+/* ── 탭 ── */
+.gl-tabs {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.gl-tab {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 18px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: 8px;
+  color: var(--gl-text-sub);
+  font-family: "Noto Sans KR", sans-serif;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.18s ease;
+}
+.gl-tab:hover {
+  background: var(--gl-surface2);
+  color: var(--gl-text);
+  border-color: #4a5568;
+}
+.gl-tab-active.gl-tab-ok {
+  background: var(--gl-ok-dim);
+  border-color: var(--gl-ok);
+  color: var(--gl-ok);
+}
+.gl-tab-active.gl-tab-warning {
+  background: var(--gl-warning-dim);
+  border-color: var(--gl-warning);
+  color: var(--gl-warning);
+}
+.gl-tab-active.gl-tab-danger {
+  background: var(--gl-danger-dim);
+  border-color: var(--gl-danger);
+  color: var(--gl-danger);
+}
+.gl-tab-icon {
+  font-size: 15px;
+  line-height: 1;
+}
+.gl-tab-label {
+  white-space: nowrap;
+}
+
+/* ── 콘텐츠 ── */
+.gl-content {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  animation: glFadeUp 0.3s ease both;
+}
+@keyframes glFadeUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+.gl-section-title {
+  font-family: "Noto Sans KR", sans-serif;
+  font-size: 18px;
+  font-weight: 700;
+  margin: 0;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: var(--gl-text);
+}
+.gl-section-accent {
+  font-size: 20px;
+}
+.gl-accent-ok    { color: var(--gl-ok); }
+.gl-accent-warning { color: var(--gl-warning); }
+.gl-accent-danger  { color: var(--gl-danger); }
+
+/* ── 카드 그리드 ── */
+.gl-cards {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 12px;
+}
+
+/* ── 카드 ── */
+.gl-card {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius);
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  transition: border-color 0.18s, transform 0.18s, box-shadow 0.18s;
+  animation: glFadeUp 0.35s ease both;
+}
+.gl-card:hover {
+  border-color: #4a5568;
+  transform: translateY(-2px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.3);
+}
+.gl-card-delay-0 { animation-delay: 0.00s; }
+.gl-card-delay-1 { animation-delay: 0.05s; }
+.gl-card-delay-2 { animation-delay: 0.10s; }
+.gl-card-delay-3 { animation-delay: 0.15s; }
+.gl-card-delay-4 { animation-delay: 0.20s; }
+
+.gl-card-highlight {
+  border-color: var(--gl-danger);
+  background: linear-gradient(135deg, var(--gl-surface) 0%, rgba(239,68,68,0.06) 100%);
+}
+.gl-card-highlight:hover {
+  border-color: var(--gl-danger);
+  box-shadow: 0 6px 24px rgba(239,68,68,0.15);
+}
+
+/* step 뱃지 */
+.gl-step-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  padding: 3px 8px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.gl-badge-ok      { background: var(--gl-ok-dim);      color: var(--gl-ok); }
+.gl-badge-warning { background: var(--gl-warning-dim);  color: var(--gl-warning); }
+.gl-badge-danger  { background: var(--gl-danger-dim);   color: var(--gl-danger); }
+
+/* 상태 도트 */
+.gl-card-dot-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.gl-dot {
+  display: inline-block;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.gl-dot-ok      { background: var(--gl-ok);      box-shadow: 0 0 8px var(--gl-ok); }
+.gl-dot-warning { background: var(--gl-warning);  box-shadow: 0 0 8px var(--gl-warning); }
+.gl-dot-danger  { background: var(--gl-danger);   box-shadow: 0 0 8px var(--gl-danger); }
+.gl-dot-offline { background: var(--gl-offline); }
+
+/* 카드 아이콘 */
+.gl-card-icon {
+  font-size: 22px;
+  line-height: 1;
+}
+
+/* 카드 텍스트 */
+.gl-card-body {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.gl-card-name {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gl-text);
+}
+.gl-card-desc {
+  font-size: 13px;
+  color: var(--gl-text-sub);
+  line-height: 1.7;
+}
+
+/* ── 푸터 ── */
+.gl-footer {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  padding: 28px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius);
+}
+
+/* 체크박스 */
+.gl-check-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  cursor: pointer;
+  user-select: none;
+}
+.gl-checkbox {
+  display: none;
+}
+.gl-check-custom {
+  flex-shrink: 0;
+  width: 20px;
+  height: 20px;
+  border: 2px solid var(--gl-border);
+  border-radius: 5px;
+  background: var(--gl-bg);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+  margin-top: 1px;
+  position: relative;
+}
+.gl-checkbox:checked + .gl-check-custom {
+  background: var(--gl-accent);
+  border-color: var(--gl-accent);
+}
+.gl-checkbox:checked + .gl-check-custom::after {
+  content: "";
+  position: absolute;
+  width: 5px;
+  height: 9px;
+  border: 2px solid #1a1a1a;
+  border-top: none;
+  border-left: none;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.gl-check-text {
+  font-size: 14px;
+  color: var(--gl-text-sub);
+  line-height: 1.6;
+}
+.gl-check-label:hover .gl-check-text {
+  color: var(--gl-text);
+}
+
+/* 진입 버튼 */
+.gl-enter-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  padding: 16px 32px;
+  background: var(--gl-surface2);
+  border: 1px solid var(--gl-border);
+  border-radius: 10px;
+  color: var(--gl-text-sub);
+  font-family: "Noto Sans KR", sans-serif;
+  font-size: 15px;
+  font-weight: 700;
+  cursor: not-allowed;
+  transition: all 0.22s ease;
+  width: 100%;
+}
+.gl-enter-btn.gl-enter-active {
+  background: var(--gl-accent);
+  border-color: var(--gl-accent);
+  color: #1a1a1a;
+  cursor: pointer;
+  box-shadow: 0 4px 20px rgba(245, 158, 11, 0.3);
+}
+.gl-enter-btn.gl-enter-active:hover {
+  background: #d48806;
+  border-color: #d48806;
+  transform: translateY(-1px);
+  box-shadow: 0 6px 28px rgba(245, 158, 11, 0.4);
+}
+.gl-enter-btn.gl-enter-active:active {
+  transform: translateY(0);
+}
+.gl-enter-arrow {
+  font-size: 18px;
+  transition: transform 0.18s ease;
+}
+.gl-enter-btn.gl-enter-active:hover .gl-enter-arrow {
+  transform: translateX(4px);
+}
+
+/* ── 반응형 ── */
+@media (max-width: 600px) {
+  .gl-container {
+    padding: 32px 16px 48px;
+    gap: 28px;
+  }
+  .gl-tabs {
+    gap: 6px;
+  }
+  .gl-tab {
+    padding: 8px 14px;
+    font-size: 12px;
+  }
+  .gl-cards {
+    grid-template-columns: 1fr;
+  }
+}

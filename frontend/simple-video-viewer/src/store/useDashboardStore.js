@@ -424,7 +424,6 @@ const useDashboardStore = create((set, get) => ({
 
   setPopupError: (message) => {
     set({ popupError: message });
-    setTimeout(() => set({ popupError: null }), 5000);
   },
 
   handleControl: async (controlType, confirmed = false) => {

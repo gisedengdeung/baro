@@ -1,6 +1,6 @@
 // src/hooks/useWebRTC.js
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { runtimeConfig, signalingAPI } from '../services/api';
+import { useCallback, useEffect, useRef, useState } from "react";
+import { runtimeConfig, signalingAPI } from "../services/api";
 
 const MAX_BACKOFF_MS = 10000;
 
@@ -19,7 +19,7 @@ export function useWebRTC(onImageLoad) {
   const pendingOfferIdRef = useRef(null);
   const processedIceIdsRef = useRef(new Set());
 
-  const [status, setStatus] = useState('idle');
+  const [status, setStatus] = useState("idle");
 
   const clearTimers = useCallback(() => {
     if (offerTimerRef.current) {
@@ -87,7 +87,7 @@ export function useWebRTC(onImageLoad) {
       offerPollingEnabledRef.current = true;
       cleanup();
       const delay = retryDelayRef.current;
-      setStatus(delay >= MAX_BACKOFF_MS ? 'failed' : 'reconnecting');
+      setStatus(delay >= MAX_BACKOFF_MS ? "failed" : "reconnecting");
 
       reconnectTimerRef.current = setTimeout(() => {
         if (!cancelledRef.current) {
@@ -96,7 +96,7 @@ export function useWebRTC(onImageLoad) {
       }, delay);
 
       retryDelayRef.current = Math.min(delay * 2, MAX_BACKOFF_MS);
-      console.warn('[useWebRTC] reconnect scheduled:', reason, 'delay=', delay);
+      console.warn("[useWebRTC] reconnect scheduled:", reason, "delay=", delay);
     };
 
     const startIcePolling = () => {
@@ -106,7 +106,7 @@ export function useWebRTC(onImageLoad) {
 
       iceTimerRef.current = setInterval(async () => {
         const pc = pcRef.current;
-        if (!pc || pc.connectionState === 'closed') {
+        if (!pc || pc.connectionState === "closed") {
           return;
         }
 
@@ -127,7 +127,10 @@ export function useWebRTC(onImageLoad) {
               continue;
             }
 
-            if (!messageId && seenCandidatesRef.current.has(candidate.candidate)) {
+            if (
+              !messageId &&
+              seenCandidatesRef.current.has(candidate.candidate)
+            ) {
               continue;
             }
 
@@ -140,7 +143,7 @@ export function useWebRTC(onImageLoad) {
                 seenCandidatesRef.current.add(candidate.candidate);
               }
             } catch (e) {
-              console.warn('[useWebRTC] remote ICE add failed:', e);
+              console.warn("[useWebRTC] remote ICE add failed:", e);
             }
           }
 
@@ -148,11 +151,11 @@ export function useWebRTC(onImageLoad) {
             try {
               await signalingAPI.ackIce(Array.from(ackIds));
             } catch (e) {
-              console.warn('[useWebRTC] ICE ack failed:', e);
+              console.warn("[useWebRTC] ICE ack failed:", e);
             }
           }
         } catch (e) {
-          console.warn('[useWebRTC] ICE polling failed:', e);
+          console.warn("[useWebRTC] ICE polling failed:", e);
         }
       }, 1000);
     };
@@ -169,12 +172,12 @@ export function useWebRTC(onImageLoad) {
         await signalingAPI.ackOffer(offerId);
         processedOfferIdRef.current = offerId;
       } catch (e) {
-        console.warn('[useWebRTC] offer ack failed:', e);
+        console.warn("[useWebRTC] offer ack failed:", e);
       }
     };
 
     const attachOffer = async (offer) => {
-      setStatus('connecting');
+      setStatus("connecting");
 
       const pc = new RTCPeerConnection({
         iceServers: runtimeConfig.webrtcIceServers,
@@ -196,7 +199,7 @@ export function useWebRTC(onImageLoad) {
             clearTimeout(offerTimerRef.current);
             offerTimerRef.current = null;
           }
-          setStatus('connected');
+          setStatus("connected");
           ackCurrentOfferIfNeeded();
         }
       };
@@ -213,14 +216,14 @@ export function useWebRTC(onImageLoad) {
             sdpMLineIndex: event.candidate.sdpMLineIndex,
           });
         } catch (e) {
-          console.warn('[useWebRTC] local ICE send failed:', e);
+          console.warn("[useWebRTC] local ICE send failed:", e);
         }
       };
 
       pc.onconnectionstatechange = () => {
         const connectionState = pc.connectionState;
 
-        if (connectionState === 'connected') {
+        if (connectionState === "connected") {
           everConnectedRef.current = true;
           retryDelayRef.current = 1000;
           offerPollingEnabledRef.current = false;
@@ -228,12 +231,12 @@ export function useWebRTC(onImageLoad) {
             clearTimeout(offerTimerRef.current);
             offerTimerRef.current = null;
           }
-          setStatus('connected');
+          setStatus("connected");
           ackCurrentOfferIfNeeded();
           return;
         }
 
-        if (['disconnected', 'failed', 'closed'].includes(connectionState)) {
+        if (["disconnected", "failed", "closed"].includes(connectionState)) {
           scheduleReconnect(connectionState);
         }
       };
@@ -242,7 +245,7 @@ export function useWebRTC(onImageLoad) {
         new RTCSessionDescription({
           type: offer.type,
           sdp: offer.sdp,
-        })
+        }),
       );
 
       const answer = await pc.createAnswer();
@@ -271,7 +274,7 @@ export function useWebRTC(onImageLoad) {
         return;
       }
 
-      setStatus('waiting_offer');
+      setStatus("waiting_offer");
 
       try {
         const payload = await signalingAPI.getOffer();
@@ -282,22 +285,31 @@ export function useWebRTC(onImageLoad) {
           return;
         }
 
-        if (offer?.message_id && offer.message_id === processedOfferIdRef.current) {
+        if (
+          offer?.message_id &&
+          offer.message_id === processedOfferIdRef.current
+        ) {
           offerTimerRef.current = setTimeout(pollOffer, 1000);
           return;
         }
 
         await attachOffer(offer);
       } catch (e) {
-        console.warn('[useWebRTC] offer polling failed:', e);
-        scheduleReconnect('offer_poll_failed');
+        console.warn("[useWebRTC] offer polling failed:", e);
+        scheduleReconnect("offer_poll_failed");
       }
     };
 
     const startOfferPolling = () => {
       offerPollingEnabledRef.current = true;
+      // Fix: stale offer/ICE ID cache reset on each polling start
+      //      prevents infinite spinner when Edge server restarts.
+      processedOfferIdRef.current = null;
+      pendingOfferIdRef.current = null;
+      processedIceIdsRef.current = new Set();
+      seenCandidatesRef.current = new Set();
       cleanup();
-      setStatus(everConnectedRef.current ? 'reconnecting' : 'idle');
+      setStatus(everConnectedRef.current ? "reconnecting" : "idle");
       pollOffer();
     };
 
@@ -312,7 +324,7 @@ export function useWebRTC(onImageLoad) {
   return {
     videoRef,
     status,
-    connected: status === 'connected',
+    connected: status === "connected",
     handleLoadedMetadata,
   };
 }

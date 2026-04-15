@@ -1,5 +1,6 @@
 // src/pages/Dashboard/Dashboard.jsx
 import React, { useState, useEffect } from "react";
+import { createPortal } from "react-dom";
 import { useNavigate } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 import useAuthStore from "../../store/useAuthStore";
@@ -12,6 +13,24 @@ import ZoneOverlay from "../../components/dashboard/ZoneOverlay";
 import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import StatsPage from "../../components/dashboard/StatsPage";
 import "./Dashboard.css";
+
+// 카메라 목록 — 실제 API 연결 시 이 배열을 교체하거나 상태로 관리하세요
+const CAMERA_LIST = [
+  {
+    id: 1,
+    name: "카메라 · 도시/라팅",
+    location: "공장 1구역",
+    status: "online",
+    risk: "warning",
+  },
+  {
+    id: 2,
+    name: "카메라 안전 관리",
+    location: "공장 2구역",
+    status: "online",
+    risk: "safe",
+  },
+];
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -79,22 +98,19 @@ function Dashboard() {
   const setImageSize = useDashboardStore((s) => s.setImageSize);
 
   // Local UI State
-  const [sidebarSection, setSidebarSection] = useState("dashboard");
+  const [sidebarSection, setSidebarSection] = useState("camera-switch"); // 첫 진입 시 카메라 선택 탭 오픈
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [hour12, setHour12] = useState(true);
   const [isEmergencyStopped, setIsEmergencyStopped] = useState(false);
   const [showTestRun, setShowTestRun] = useState(false);
+  const [showMaintenanceBlock, setShowMaintenanceBlock] = useState(false);
+
+  // 선택된 카메라 — null이면 아직 미선택 (카메라 탭에서 선택)
+  const [selectedCamera, setSelectedCamera] = useState(null);
 
   useEffect(() => {
     if (operationMode !== "STOPPED") setIsEmergencyStopped(false);
   }, [operationMode]);
-
-  const handleLogout = async () => {
-    if (window.confirm("로그아웃 하시겠습니까?")) {
-      await logout();
-      navigate("/");
-    }
-  };
 
   // ✅ deps 빈 배열 + getState() → 마운트/언마운트 1회만 실행
   useEffect(() => {
@@ -106,18 +122,33 @@ function Dashboard() {
     };
   }, []);
 
+  const handleLogout = async () => {
+    if (window.confirm("로그아웃 하시겠습니까?")) {
+      await logout();
+      navigate("/");
+    }
+  };
+
+  const isIntrusion =
+    (operationMode === "AUTOMATIC" || operationMode === "RUNNING") &&
+    (riskLevel === "WARNING" ||
+      riskLevel === "NOTICE" ||
+      riskLevel === "LOTO_RISK_DETECTED");
+
   const systemStatus =
     isLocked || riskLevel === "CRITICAL"
       ? "danger"
-      : riskLevel === "WARNING" ||
-          riskLevel === "NOTICE" ||
-          riskLevel === "LOTO_RISK_DETECTED"
-        ? "warning"
+      : operationMode === "MAINTENANCE"
+        ? "maintenance"
         : !operationMode || operationMode === "STOPPED"
           ? "offline"
-          : operationMode === "MAINTENANCE" || operationMode === "TEST"
-            ? "warning"
-            : "ok";
+          : isIntrusion
+            ? "intrusion"
+            : operationMode === "AUTOMATIC" || operationMode === "RUNNING"
+              ? "ok"
+              : operationMode === "TEST"
+                ? "warning"
+                : "ok";
 
   const isStopped = operationMode === "STOPPED";
   const isTestMode = operationMode === "TEST";
@@ -127,6 +158,7 @@ function Dashboard() {
     { id: "dashboard", icon: "⊞", label: "대시보드" },
     { id: "cctv", icon: "📹", label: "CCTV" },
     { id: "multicctv", icon: "📍", label: "멀티CCTV" },
+    { id: "camera-switch", icon: "🔄", label: "카메라" },
     { id: "detections", icon: "📋", label: "감지내역" },
     { id: "stats", icon: "📊", label: "통계" },
   ];
@@ -191,6 +223,84 @@ function Dashboard() {
           <main className="detections-page">
             <h2 className="stats-page-title">전체 이벤트 로그</h2>
             <VideoLogTable logs={logs} />
+          </main>
+        )}
+
+        {/* 카메라 전환 탭 */}
+        {sidebarSection === "camera-switch" && (
+          <main className="camera-switch-page">
+            <h2 className="stats-page-title">카메라 선택</h2>
+            <p className="camera-switch-desc">
+              {selectedCamera ? (
+                <>
+                  현재 보고 있는 카메라: <strong>{selectedCamera.name}</strong>
+                </>
+              ) : (
+                <span className="camera-switch-desc--hint">
+                  📷 카메라를 선택하면 대시보드로 이동합니다.
+                </span>
+              )}
+            </p>
+            <div className="camera-switch-grid">
+              {CAMERA_LIST.map((cam) => (
+                <div
+                  key={cam.id}
+                  className={`camera-switch-card ${selectedCamera?.id === cam.id ? "camera-switch-card--active" : ""} ${cam.status === "offline" ? "camera-switch-card--offline" : ""}`}
+                  onClick={() => {
+                    if (cam.status !== "offline") {
+                      setSelectedCamera(cam);
+                      setSidebarSection("dashboard");
+                    }
+                  }}
+                >
+                  <div className="camera-switch-card__thumb">
+                    {cam.status === "offline" ? (
+                      <div className="camera-switch-card__offline">
+                        <span>📷</span>
+                        <span>오프라인</span>
+                      </div>
+                    ) : (
+                      <div className="camera-switch-card__live">
+                        <span className="camera-switch-card__live-dot"></span>
+                        <span>LIVE</span>
+                      </div>
+                    )}
+                    {cam.risk && (
+                      <span
+                        className={`camera-switch-card__badge camera-switch-card__badge--${cam.risk}`}
+                      >
+                        {cam.risk === "warning" ? "WARNING" : "SAFE"}
+                      </span>
+                    )}
+                    {selectedCamera?.id === cam.id && (
+                      <div className="camera-switch-card__active-label">
+                        현재 선택
+                      </div>
+                    )}
+                  </div>
+                  <div className="camera-switch-card__info">
+                    <span
+                      className="camera-switch-card__dot"
+                      data-status={cam.status}
+                    ></span>
+                    <div className="camera-switch-card__text">
+                      <span className="camera-switch-card__name">
+                        {cam.name}
+                      </span>
+                      <span className="camera-switch-card__location">
+                        {cam.location}
+                      </span>
+                    </div>
+                    {selectedCamera?.id !== cam.id &&
+                      cam.status !== "offline" && (
+                        <button className="camera-switch-card__select-btn">
+                          전환 →
+                        </button>
+                      )}
+                  </div>
+                </div>
+              ))}
+            </div>
           </main>
         )}
 
@@ -265,6 +375,7 @@ function Dashboard() {
                         if (!operationMode) return "시스템 꺼짐";
                         if (operationMode === "STOPPED" && isEmergencyStopped)
                           return "긴급 정지 (STOPPED)";
+                        if (isIntrusion) return "⚠ 위험구역 침입 감지";
                         switch (operationMode) {
                           case "STOPPED":
                             return `시스템 대기 중 (${operationMode})`;
@@ -309,8 +420,15 @@ function Dashboard() {
               <div className="system-power-buttons">
                 <button
                   className="system-power-btn system-on-btn"
-                  disabled={loading || isDangerMode}
-                  onClick={() => handleControl("start_automatic")}
+                  disabled={loading}
+                  onClick={() => {
+                    // 정비 모드 중 시스템 ON 시도 → 안전 차단 팝업
+                    if (operationMode === "MAINTENANCE") {
+                      setShowMaintenanceBlock(true);
+                      return;
+                    }
+                    handleControl("start_automatic");
+                  }}
                 >
                   <span className="power-icon">⏻</span> 전체 시스템 ON
                 </button>
@@ -347,6 +465,22 @@ function Dashboard() {
               </div>
               <div className="control-buttons">
                 <button
+                  className="conveyor-run-btn"
+                  disabled={loading}
+                  onClick={() => {
+                    // 정비 모드 중 컨베이어 운행 시도 → 동일한 안전 차단 팝업
+                    if (operationMode === "MAINTENANCE") {
+                      setShowMaintenanceBlock(true);
+                      return;
+                    }
+                    handleControl("start_automatic");
+                  }}
+                >
+                  ▶ 컨베이어 운행
+                </button>
+              </div>
+              <div className="control-buttons">
+                <button
                   disabled={loading || isDangerMode}
                   onClick={() => handleControl("start_maintenance")}
                 >
@@ -370,9 +504,6 @@ function Dashboard() {
               >
                 🛑 긴급 정지
               </button>
-              {popupError && (
-                <div className="dashboard-error-banner">{popupError}</div>
-              )}
             </div>
 
             <div className="log-board panel-card">
@@ -542,6 +673,64 @@ function Dashboard() {
           </div>
         </div>
       )}
+
+      {/* 에러 팝업 모달 */}
+      {popupError &&
+        createPortal(
+          <div
+            className="popup-error-overlay"
+            onClick={() => useDashboardStore.setState({ popupError: null })}
+          >
+            <div
+              className="popup-error-modal"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="popup-error-icon">⚠️</div>
+              <div className="popup-error-title">오류</div>
+              <div className="popup-error-desc">{popupError}</div>
+              <button
+                className="popup-error-close-btn"
+                onClick={() => useDashboardStore.setState({ popupError: null })}
+              >
+                확인
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
+
+      {/* 정비모드 시스템 ON 차단 팝업 */}
+      {showMaintenanceBlock &&
+        createPortal(
+          <div
+            className="maintenance-block-overlay"
+            onClick={() => setShowMaintenanceBlock(false)}
+          >
+            <div
+              className="maintenance-block-popup"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="maintenance-block-icon">🔧</div>
+              <div className="maintenance-block-title">
+                전원을 킬 수 없습니다
+              </div>
+              <div className="maintenance-block-desc">
+                현재 장비가 <strong>정비 중</strong>입니다.
+                <br />
+                위험구역 내 작업자가 있어 시스템을 가동할 수 없습니다.
+                <br />
+                위험구역에서 모든 인원이 퇴출된 후 다시 시도하세요.
+              </div>
+              <button
+                className="maintenance-block-close-btn"
+                onClick={() => setShowMaintenanceBlock(false)}
+              >
+                확인
+              </button>
+            </div>
+          </div>,
+          document.body,
+        )}
 
       {/* 위험구역 설정 팝업 */}
       {isDangerMode && (
