@@ -243,7 +243,7 @@ export const signalingAPI = {
     const response = await apiClient.post('/api/signaling/answer', {
       edge_id: EDGE_ID,
       sender: BROWSER_RECEIVER,
-      receiver: 'edge',
+      receiver: `edge-${SESSION_ID}`,
       type,
       sdp,
     });
@@ -253,7 +253,7 @@ export const signalingAPI = {
     const response = await apiClient.post('/api/signaling/ice', {
       edge_id: EDGE_ID,
       sender: BROWSER_RECEIVER,
-      receiver: 'edge',
+      receiver: `edge-${SESSION_ID}`,
       candidate,
     });
     return response.data;

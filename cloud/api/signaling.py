@@ -66,6 +66,13 @@ def _is_browser(value: str | None) -> bool:
     return value == "browser" or value.startswith("browser-")
 
 
+def _is_edge_receiver(value: str | None) -> bool:
+    """'edge' 또는 'edge-{session_id}' 형태를 edge receiver로 인식."""
+    if value is None:
+        return False
+    return value == "edge" or value.startswith("edge-")
+
+
 def _require_signaling_auth_if_needed(
     request: Request,
     sender: str | None,
@@ -81,7 +88,7 @@ def _require_signaling_auth_if_needed(
         require_signaling_browser_auth(request, sender=sender_v, receiver=receiver_v)
         return None
 
-    if sender_v == "edge" or (sender_v is None and receiver_v == "edge"):
+    if sender_v == "edge" or (sender_v is None and _is_edge_receiver(receiver_v)):
         return require_edge_request_auth(request)
 
     if sender_v != "edge" and _is_browser(receiver_v):
@@ -131,6 +138,7 @@ def get_offer(
 ):
     edge_id = _resolve_signaling_edge_id(request, None, receiver, edge_id)
     if _is_browser(receiver) and receiver != "browser":
+        store.record_viewer(edge_id, receiver)
         offer = store.get_offer_for_browser_session(edge_id, receiver)
     else:
         offer = store.get_offer(edge_id, receiver)
@@ -224,10 +232,22 @@ def get_ice(
 ):
     edge_id = _resolve_signaling_edge_id(request, None, receiver, edge_id)
     if _is_browser(receiver) and receiver != "browser":
+        store.record_viewer(edge_id, receiver)
         candidates = store.get_ice_for_browser_session(edge_id, receiver)
     else:
         candidates = store.get_ice(edge_id, receiver)
     return {"candidates": candidates}
+
+
+@router.get("/viewers")
+def get_viewers(
+    request: Request,
+    edge_id: str = Query(...),
+    store: SignalingStore = Depends(get_signaling_store),
+    authenticated_edge_id: str = Depends(require_edge_request_auth),
+):
+    edge_id = ensure_authenticated_edge_id(authenticated_edge_id, edge_id)
+    return {"viewers": store.get_active_viewers(edge_id)}
 
 
 @router.post("/ice/ack")

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import datetime, timedelta, timezone
 import threading
+import time as _time_module
 from collections import defaultdict
 from typing import Any, Dict, List, Tuple
 from uuid import uuid4
@@ -22,6 +23,9 @@ class SignalingStore:
         self._answers: Dict[Tuple[str, str], Dict[str, Any]] = {}
         self._ice: Dict[Tuple[str, str], List[Dict[str, Any]]] = defaultdict(list)
         self._lock = threading.Lock()
+
+        self._viewer_sessions: Dict[str, Dict[str, float]] = defaultdict(dict)
+        self._viewer_ttl_sec: int = 60
 
     @staticmethod
     def _now() -> datetime:
@@ -105,6 +109,20 @@ class SignalingStore:
                     }
                     self._ice[session_key].append(copy)
             return [dict(m) for m in self._ice.get(session_key, []) if not m.get("acked")]
+
+    def record_viewer(self, edge_id: str, session_id: str) -> None:
+        """브라우저 세션이 활성 상태임을 기록."""
+        with self._lock:
+            self._viewer_sessions[edge_id][session_id] = _time_module.time()
+
+    def get_active_viewers(self, edge_id: str) -> List[str]:
+        """TTL 내에 폴링한 브라우저 세션 목록 반환."""
+        with self._lock:
+            now = _time_module.time()
+            sessions = self._viewer_sessions.get(edge_id, {})
+            active = {sid: ts for sid, ts in sessions.items() if now - ts < self._viewer_ttl_sec}
+            self._viewer_sessions[edge_id] = active
+            return list(active.keys())
 
     def upsert_offer(self, edge_id: str, receiver: str, offer: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:

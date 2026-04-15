@@ -197,6 +197,20 @@ class CloudClient:
         response = await self._request("POST", "/api/edge/clips", data=data)
         response.raise_for_status()
 
+    async def get_viewers(self) -> List[str]:
+        """이 edge에 연결 대기 중인 브라우저 세션 목록 반환."""
+        try:
+            response = await self._request(
+                "GET",
+                "/api/signaling/viewers",
+                params={"edge_id": self.edge_id},
+            )
+            response.raise_for_status()
+            return response.json().get("viewers", [])
+        except Exception as exc:
+            logger.warning(f"viewer 목록 조회 실패(무시): {exc}")
+            return []
+
     async def signaling_post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         response = await self._request("POST", path, json=payload)
         response.raise_for_status()
