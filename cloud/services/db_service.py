@@ -88,14 +88,16 @@ class DBService:
             "id": inserted_id,
             "has_clip": bool(message.clip_status == "READY" and message.clip_path),
         }
-        await self.websocket_manager.broadcast(
+        await self.websocket_manager.broadcast_to_edge(
             "logs",
+            message.edge_id,
             {"type": "LOG", "data": event_payload},
         )
 
         if message.log_risk_level in {"CRITICAL", "HIGH"}:
-            await self.websocket_manager.broadcast(
+            await self.websocket_manager.broadcast_to_edge(
                 "alerts",
+                message.edge_id,
                 {
                     "type": "SYSTEM_ALERT",
                     "level": message.log_risk_level,
