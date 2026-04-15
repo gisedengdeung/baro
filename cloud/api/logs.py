@@ -15,9 +15,10 @@ router = APIRouter()
 @router.get("", response_model=List[Dict[str, Any]])
 def get_logs(
     limit: int = Query(50, ge=1, le=200),
+    edge_id: str | None = Query(None),
     db_service: DBService = Depends(get_db_service),
 ) -> List[Dict[str, Any]]:
-    return db_service.get_events(limit=limit)
+    return db_service.get_events(limit=limit, edge_id=edge_id)
 
 
 @router.get("/{log_id}/clip")

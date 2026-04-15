@@ -126,20 +126,35 @@ class DBService:
             for row in rows
         ]
 
-    def get_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_events(self, limit: int = 50, edge_id: str | None = None) -> List[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
-            rows = conn.execute(
-                """
-                SELECT id, edge_id, event_type, details_json,
-                       log_risk_level, operation_mode, timestamp,
-                       event_uid, clip_status, clip_path, clip_started_at,
-                       clip_ended_at, clip_duration_sec, clip_created_at
-                FROM event_logs
-                ORDER BY timestamp DESC
-                LIMIT ?
-                """,
-                (limit,),
-            ).fetchall()
+            if edge_id is not None:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    WHERE edge_id = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                    """,
+                    (edge_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
 
         return [self._row_to_event(row) for row in rows]
 
