@@ -59,6 +59,13 @@ def _normalize_sender_receiver(sender: str | None, receiver: str | None) -> tupl
     return sender_v, receiver_v
 
 
+def _is_browser(value: str | None) -> bool:
+    """'browser' 또는 'browser-{session_id}' 형태를 브라우저로 인식."""
+    if value is None:
+        return False
+    return value == "browser" or value.startswith("browser-")
+
+
 def _require_signaling_auth_if_needed(
     request: Request,
     sender: str | None,
@@ -70,14 +77,14 @@ def _require_signaling_auth_if_needed(
     # - Browser-originated signaling must be authenticated.
     # - browser receiver without sender context (GET/ACK from browser) must be authenticated.
     # - Edge-originated offer (sender=edge, receiver=browser) remains allowed.
-    if sender_v == "browser" or (sender_v is None and receiver_v == "browser"):
+    if _is_browser(sender_v) or (sender_v is None and _is_browser(receiver_v)):
         require_signaling_browser_auth(request, sender=sender_v, receiver=receiver_v)
         return None
 
     if sender_v == "edge" or (sender_v is None and receiver_v == "edge"):
         return require_edge_request_auth(request)
 
-    if sender_v != "edge" and receiver_v == "browser":
+    if sender_v != "edge" and _is_browser(receiver_v):
         require_signaling_browser_auth(request, sender=sender_v, receiver=receiver_v)
     return None
 
@@ -123,7 +130,10 @@ def get_offer(
     _auth_service: AuthService = Depends(get_auth_service),
 ):
     edge_id = _resolve_signaling_edge_id(request, None, receiver, edge_id)
-    offer = store.get_offer(edge_id, receiver)
+    if _is_browser(receiver) and receiver != "browser":
+        offer = store.get_offer_for_browser_session(edge_id, receiver)
+    else:
+        offer = store.get_offer(edge_id, receiver)
     return {"offer": offer}
 
 
@@ -213,7 +223,10 @@ def get_ice(
     _auth_service: AuthService = Depends(get_auth_service),
 ):
     edge_id = _resolve_signaling_edge_id(request, None, receiver, edge_id)
-    candidates = store.get_ice(edge_id, receiver)
+    if _is_browser(receiver) and receiver != "browser":
+        candidates = store.get_ice_for_browser_session(edge_id, receiver)
+    else:
+        candidates = store.get_ice(edge_id, receiver)
     return {"candidates": candidates}
 
 

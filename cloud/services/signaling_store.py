@@ -73,6 +73,39 @@ class SignalingStore:
             else:
                 self._ice.pop(key, None)
 
+    def get_offer_for_browser_session(self, edge_id: str, session_receiver: str) -> Dict[str, Any] | None:
+        """브라우저 세션별 offer 조회. 세션 슬롯에 없으면 edge가 저장한 'browser' 슬롯에서 복사."""
+        with self._lock:
+            self._purge_expired_locked()
+            message = self._offers.get((edge_id, session_receiver))
+            if message and not message.get("acked"):
+                return dict(message)
+            base = self._offers.get((edge_id, "browser"))
+            if base and not base.get("acked"):
+                copy = {**base, "message_id": str(uuid4()), "acked": False, "acked_at": None}
+                self._offers[(edge_id, session_receiver)] = copy
+                return dict(copy)
+            return None
+
+    def get_ice_for_browser_session(self, edge_id: str, session_receiver: str) -> List[Dict[str, Any]]:
+        """브라우저 세션별 ICE 조회. edge가 저장한 'browser' 슬롯의 후보를 세션 슬롯으로 fan-out."""
+        with self._lock:
+            self._purge_expired_locked()
+            base_candidates = self._ice.get((edge_id, "browser"), [])
+            session_key = (edge_id, session_receiver)
+            existing_source_ids = {m.get("_source_id") for m in self._ice.get(session_key, [])}
+            for candidate in base_candidates:
+                if not candidate.get("acked") and candidate["message_id"] not in existing_source_ids:
+                    copy = {
+                        **candidate,
+                        "message_id": str(uuid4()),
+                        "_source_id": candidate["message_id"],
+                        "acked": False,
+                        "acked_at": None,
+                    }
+                    self._ice[session_key].append(copy)
+            return [dict(m) for m in self._ice.get(session_key, []) if not m.get("acked")]
+
     def upsert_offer(self, edge_id: str, receiver: str, offer: Dict[str, Any]) -> Dict[str, Any]:
         with self._lock:
             self._purge_expired_locked()
