@@ -41,8 +41,9 @@ async def post_heartbeat(
     heartbeat = EdgeHeartbeat(**payload)
     status_store.update(heartbeat)
 
-    await db_service.websocket_manager.broadcast(
+    await db_service.websocket_manager.broadcast_to_edge(
         "logs",
+        heartbeat.edge_id,
         {
             "type": "STATUS_UPDATE",
             "data": {

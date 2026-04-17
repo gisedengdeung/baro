@@ -88,14 +88,16 @@ class DBService:
             "id": inserted_id,
             "has_clip": bool(message.clip_status == "READY" and message.clip_path),
         }
-        await self.websocket_manager.broadcast(
+        await self.websocket_manager.broadcast_to_edge(
             "logs",
+            message.edge_id,
             {"type": "LOG", "data": event_payload},
         )
 
         if message.log_risk_level in {"CRITICAL", "HIGH"}:
-            await self.websocket_manager.broadcast(
+            await self.websocket_manager.broadcast_to_edge(
                 "alerts",
+                message.edge_id,
                 {
                     "type": "SYSTEM_ALERT",
                     "level": message.log_risk_level,
@@ -107,20 +109,54 @@ class DBService:
 
         return message
 
-    def get_events(self, limit: int = 50) -> List[Dict[str, Any]]:
+    def get_edges(self) -> List[Dict[str, Any]]:
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
                 """
-                SELECT id, edge_id, event_type, details_json,
-                       log_risk_level, operation_mode, timestamp,
-                       event_uid, clip_status, clip_path, clip_started_at,
-                       clip_ended_at, clip_duration_sec, clip_created_at
-                FROM event_logs
-                ORDER BY timestamp DESC
-                LIMIT ?
-                """,
-                (limit,),
+                SELECT id, name, is_active, created_at
+                FROM edges
+                ORDER BY created_at ASC
+                """
             ).fetchall()
+        return [
+            {
+                "id": row["id"],
+                "name": row["name"],
+                "is_active": bool(row["is_active"]),
+                "created_at": row["created_at"],
+            }
+            for row in rows
+        ]
+
+    def get_events(self, limit: int = 50, edge_id: str | None = None) -> List[Dict[str, Any]]:
+        with get_connection(self.db_path) as conn:
+            if edge_id is not None:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    WHERE edge_id = ?
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                    """,
+                    (edge_id, limit),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    ORDER BY timestamp DESC
+                    LIMIT ?
+                    """,
+                    (limit,),
+                ).fetchall()
 
         return [self._row_to_event(row) for row in rows]
 
@@ -278,7 +314,8 @@ class DBService:
             return cursor.rowcount
 
     async def broadcast_log_update(self, event_data: Dict[str, Any]) -> None:
-        await self.websocket_manager.broadcast(
-            "logs",
-            {"type": "LOG_UPDATE", "data": event_data},
-        )
+        message = {"type": "LOG_UPDATE", "data": event_data}
+        await self.websocket_manager.broadcast("logs", message)
+        edge_id = event_data.get("edge_id")
+        if edge_id:
+            await self.websocket_manager.broadcast(f"logs:{edge_id}", message)

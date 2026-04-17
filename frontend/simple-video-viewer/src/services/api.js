@@ -34,6 +34,19 @@ const WS_BASE_URL = resolveBaseUrl(process.env.REACT_APP_WS_BASE_URL, defaultWsO
 const EDGE_ID = process.env.REACT_APP_EDGE_ID || 'edge-default';
 const WEBRTC_ICE_SERVERS = parseIceServers(process.env.REACT_APP_WEBRTC_ICE_SERVERS_JSON);
 
+const SESSION_ID = (() => {
+  const key = 'signaling_session_id';
+  let id = sessionStorage.getItem(key);
+  if (!id) {
+    id = (typeof crypto !== 'undefined' && crypto.randomUUID)
+      ? crypto.randomUUID()
+      : Math.random().toString(36).slice(2) + Date.now().toString(36);
+    sessionStorage.setItem(key, id);
+  }
+  return id;
+})();
+const BROWSER_RECEIVER = `browser-${SESSION_ID}`;
+
 const withEdgeId = (params = {}) => ({
   ...params,
   edge_id: params.edge_id || EDGE_ID,
@@ -214,14 +227,14 @@ export const controlAPI = {
 export const signalingAPI = {
   getOffer: async () => {
     const response = await apiClient.get('/api/signaling/offer', {
-      params: { edge_id: EDGE_ID, receiver: 'browser' },
+      params: { edge_id: EDGE_ID, receiver: BROWSER_RECEIVER },
     });
     return response.data;
   },
   ackOffer: async (messageId) => {
     const response = await apiClient.post('/api/signaling/offer/ack', {
       edge_id: EDGE_ID,
-      receiver: 'browser',
+      receiver: BROWSER_RECEIVER,
       message_id: messageId,
     });
     return response.data;
@@ -229,8 +242,8 @@ export const signalingAPI = {
   postAnswer: async ({ type, sdp }) => {
     const response = await apiClient.post('/api/signaling/answer', {
       edge_id: EDGE_ID,
-      sender: 'browser',
-      receiver: 'edge',
+      sender: BROWSER_RECEIVER,
+      receiver: `edge-${SESSION_ID}`,
       type,
       sdp,
     });
@@ -239,22 +252,22 @@ export const signalingAPI = {
   postIce: async (candidate) => {
     const response = await apiClient.post('/api/signaling/ice', {
       edge_id: EDGE_ID,
-      sender: 'browser',
-      receiver: 'edge',
+      sender: BROWSER_RECEIVER,
+      receiver: `edge-${SESSION_ID}`,
       candidate,
     });
     return response.data;
   },
   getIce: async () => {
     const response = await apiClient.get('/api/signaling/ice', {
-      params: { edge_id: EDGE_ID, receiver: 'browser' },
+      params: { edge_id: EDGE_ID, receiver: BROWSER_RECEIVER },
     });
     return response.data;
   },
   ackIce: async (messageIds) => {
     const response = await apiClient.post('/api/signaling/ice/ack', {
       edge_id: EDGE_ID,
-      receiver: 'browser',
+      receiver: BROWSER_RECEIVER,
       message_ids: messageIds,
     });
     return response.data;

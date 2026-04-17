@@ -26,5 +26,10 @@ class WebSocketManager:
                 logger.warning(f"WS 전송 실패({channel}): {exc}")
                 self.disconnect(ws, channel)
 
+    async def broadcast_to_edge(self, channel: str, edge_id: str, message: Dict[str, Any]) -> None:
+        """edge_id 구독자와 전체 구독자(edge_id 없이 연결된 브라우저) 모두에게 전송."""
+        await self.broadcast(f"{channel}:{edge_id}", message)
+        await self.broadcast(channel, message)
+
     def status(self) -> Dict[str, int]:
         return {channel: len(connections) for channel, connections in self._connections.items()}
