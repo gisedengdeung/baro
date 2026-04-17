@@ -422,11 +422,10 @@ function Dashboard() {
                   className="system-power-btn system-on-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 위험구역에 사람이 있을 때만 안전 차단 팝업
+                    // 정비 모드 중 센서가 위험 감지 시에만 안전 차단 팝업
                     if (
                       operationMode === "MAINTENANCE" &&
-                      (isDangerMode ||
-                        riskLevel === "WARNING" ||
+                      (riskLevel === "WARNING" ||
                         riskLevel === "NOTICE" ||
                         riskLevel === "LOTO_RISK_DETECTED")
                     ) {
@@ -474,11 +473,10 @@ function Dashboard() {
                   className="conveyor-run-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 위험구역에 사람이 있을 때만 안전 차단 팝업
+                    // 정비 모드 중 센서가 위험 감지 시에만 안전 차단 팝업
                     if (
                       operationMode === "MAINTENANCE" &&
-                      (
-                        riskLevel === "WARNING" ||
+                      (riskLevel === "WARNING" ||
                         riskLevel === "NOTICE" ||
                         riskLevel === "LOTO_RISK_DETECTED")
                     ) {
