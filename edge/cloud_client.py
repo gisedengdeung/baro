@@ -198,18 +198,18 @@ class CloudClient:
         response.raise_for_status()
 
     async def get_viewers(self) -> List[str]:
-        """이 edge에 연결 대기 중인 브라우저 세션 목록 반환."""
-        try:
-            response = await self._request(
-                "GET",
-                "/api/signaling/viewers",
-                params={"edge_id": self.edge_id},
-            )
-            response.raise_for_status()
-            return response.json().get("viewers", [])
-        except Exception as exc:
-            logger.warning(f"viewer 목록 조회 실패(무시): {exc}")
-            return []
+        """이 edge에 연결 대기 중인 브라우저 세션 목록 반환.
+
+        실패 시 예외를 전파한다. 빈 목록([])과 통신 오류를 구분해야
+        WebRTCPeerManager가 일시적 오류로 기존 세션을 잘못 종료하지 않는다.
+        """
+        response = await self._request(
+            "GET",
+            "/api/signaling/viewers",
+            params={"edge_id": self.edge_id},
+        )
+        response.raise_for_status()
+        return response.json().get("viewers", [])
 
     async def signaling_post(self, path: str, payload: Dict[str, Any]) -> Dict[str, Any]:
         response = await self._request("POST", path, json=payload)

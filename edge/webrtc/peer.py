@@ -66,8 +66,15 @@ class WebRTCSession:
 
     @property
     def _edge_receiver(self) -> str:
-        """브라우저가 edge에 보낼 때 사용하는 receiver 값 (edge-{session_id})."""
-        return f"edge-{self.session_id}"
+        """브라우저가 edge에 보낼 때 사용하는 receiver 값 (edge-{uuid}).
+
+        session_id는 viewers API에서 'browser-{uuid}' 형태로 오므로
+        'browser-' 접두사를 제거해 브라우저의 receiver 형식(edge-{uuid})과 맞춘다.
+        """
+        sid = self.session_id
+        if sid.startswith("browser-"):
+            sid = sid[len("browser-"):]
+        return f"edge-{sid}"
 
     async def start(self) -> None:
         if not AIORTC_AVAILABLE:

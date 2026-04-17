@@ -314,7 +314,8 @@ class DBService:
             return cursor.rowcount
 
     async def broadcast_log_update(self, event_data: Dict[str, Any]) -> None:
-        await self.websocket_manager.broadcast(
-            "logs",
-            {"type": "LOG_UPDATE", "data": event_data},
-        )
+        message = {"type": "LOG_UPDATE", "data": event_data}
+        await self.websocket_manager.broadcast("logs", message)
+        edge_id = event_data.get("edge_id")
+        if edge_id:
+            await self.websocket_manager.broadcast(f"logs:{edge_id}", message)
