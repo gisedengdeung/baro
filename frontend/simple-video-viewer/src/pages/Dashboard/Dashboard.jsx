@@ -422,8 +422,14 @@ function Dashboard() {
                   className="system-power-btn system-on-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 시스템 ON 시도 → 안전 차단 팝업
-                    if (operationMode === "MAINTENANCE") {
+                    // 정비 모드 중 위험구역에 사람이 있을 때만 안전 차단 팝업
+                    if (
+                      operationMode === "MAINTENANCE" &&
+                      (isDangerMode ||
+                        riskLevel === "WARNING" ||
+                        riskLevel === "NOTICE" ||
+                        riskLevel === "LOTO_RISK_DETECTED")
+                    ) {
                       setShowMaintenanceBlock(true);
                       return;
                     }
@@ -468,9 +474,26 @@ function Dashboard() {
                   className="conveyor-run-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 컨베이어 운행 시도 → 동일한 안전 차단 팝업
-                    if (operationMode === "MAINTENANCE") {
+                    // 정비 모드 중 위험구역에 사람이 있을 때만 안전 차단 팝업
+                    if (
+                      operationMode === "MAINTENANCE" &&
+                      (
+                        riskLevel === "WARNING" ||
+                        riskLevel === "NOTICE" ||
+                        riskLevel === "LOTO_RISK_DETECTED")
+                    ) {
                       setShowMaintenanceBlock(true);
+                      return;
+                    }
+                    // 위험구역 침입 감지 상태면 시작 차단
+                    if (
+                      riskLevel === "WARNING" ||
+                      riskLevel === "NOTICE" ||
+                      riskLevel === "LOTO_RISK_DETECTED"
+                    ) {
+                      useDashboardStore.setState({
+                        popupError: "위험구역 침입이 감지된 상태입니다. 위험구역을 먼저 해제하세요.",
+                    });
                       return;
                     }
                     handleControl("start_automatic");
