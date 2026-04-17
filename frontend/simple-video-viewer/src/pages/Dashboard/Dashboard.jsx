@@ -485,17 +485,6 @@ function Dashboard() {
                       setShowMaintenanceBlock(true);
                       return;
                     }
-                    // 위험구역 침입 감지 상태면 시작 차단
-                    if (
-                      riskLevel === "WARNING" ||
-                      riskLevel === "NOTICE" ||
-                      riskLevel === "LOTO_RISK_DETECTED"
-                    ) {
-                      useDashboardStore.setState({
-                        popupError: "위험구역 침입이 감지된 상태입니다. 위험구역을 먼저 해제하세요.",
-                    });
-                      return;
-                    }
                     handleControl("start_automatic");
                   }}
                 >
