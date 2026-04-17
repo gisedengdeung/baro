@@ -422,8 +422,13 @@ function Dashboard() {
                   className="system-power-btn system-on-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 시스템 ON 시도 → 안전 차단 팝업
-                    if (operationMode === "MAINTENANCE") {
+                    // 정비 모드 중 센서가 위험 감지 시에만 안전 차단 팝업
+                    if (
+                      operationMode === "MAINTENANCE" &&
+                      (riskLevel === "WARNING" ||
+                        riskLevel === "NOTICE" ||
+                        riskLevel === "LOTO_RISK_DETECTED")
+                    ) {
                       setShowMaintenanceBlock(true);
                       return;
                     }
@@ -468,8 +473,13 @@ function Dashboard() {
                   className="conveyor-run-btn"
                   disabled={loading}
                   onClick={() => {
-                    // 정비 모드 중 컨베이어 운행 시도 → 동일한 안전 차단 팝업
-                    if (operationMode === "MAINTENANCE") {
+                    // 정비 모드 중 센서가 위험 감지 시에만 안전 차단 팝업
+                    if (
+                      operationMode === "MAINTENANCE" &&
+                      (riskLevel === "WARNING" ||
+                        riskLevel === "NOTICE" ||
+                        riskLevel === "LOTO_RISK_DETECTED")
+                    ) {
                       setShowMaintenanceBlock(true);
                       return;
                     }
