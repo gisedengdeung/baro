@@ -122,8 +122,9 @@ class ActionRecognizer:
             p = np.array(list(self._buffer), dtype=np.float32)  # (40, 17, 2)
 
             M = _compute_jcd(p)                                  # (40, 136)
-            M_tensor = torch.from_numpy(M).float().unsqueeze(0)  # (1, 40, 136)
-            P_tensor = torch.from_numpy(p).float().unsqueeze(0)  # (1, 40, 17, 2)
+            device = next(self._model.parameters()).device
+            M_tensor = torch.from_numpy(M).float().unsqueeze(0).to(device)  # (1, 40, 136)
+            P_tensor = torch.from_numpy(p).float().unsqueeze(0).to(device)  # (1, 40, 17, 2)
 
             with torch.no_grad():
                 output = self._model(M_tensor, P_tensor)         # (1, 12)

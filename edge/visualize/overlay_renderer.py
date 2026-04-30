@@ -8,6 +8,28 @@ import numpy as np
 from loguru import logger
 
 
+VIOLATION_LABEL_EN: dict[str, str] = {
+    "안전모미착용": "No Helmet",
+    "안전대미착용": "No Harness",
+    "절연장갑미착용": "No Gloves",
+    "스마트스틱미착용": "No SmartStick",
+}
+
+ACTION_LABEL_EN: dict[str, str] = {
+    "케이블협착-정상": "Cable-Normal",
+    "케이블협착-사고": "Cable-ACCIDENT",
+    "감전-정상": "Electric-Normal",
+    "감전-사고": "Electric-ACCIDENT",
+    "추락-정상": "Fall-Normal",
+    "추락-사고": "Fall-ACCIDENT",
+    "고소차량협착-정상": "Vehicle-Normal",
+    "고소차량협착-사고": "Vehicle-ACCIDENT",
+    "낙하-정상": "Drop-Normal",
+    "낙하-사고": "Drop-ACCIDENT",
+    "미확인-정상": "Unknown-Normal",
+    "미확인-사고": "Unknown-ACCIDENT",
+}
+
 SKELETON_EDGES = [
     (0, 1), (0, 2), (1, 3), (2, 4),          # 얼굴
     (5, 6),                                    # 어깨
@@ -173,7 +195,8 @@ class OverlayRenderer:
 
             label_parts = ["Person"]
             if is_accident and action_result:
-                label_parts.append(action_result.get("class_name", "ACCIDENT"))
+                raw = action_result.get("class_name", "ACCIDENT")
+                label_parts.append(ACTION_LABEL_EN.get(raw, raw))
             if is_intrusion:
                 zone_names = sorted(intrusion_map.get(idx, set()))
                 label_parts.append(f"INTRUSION:{'|'.join(zone_names) if zone_names else 'YES'}")
@@ -198,7 +221,8 @@ class OverlayRenderer:
                 continue
             x1, y1, x2, y2 = bbox
             cv2.rectangle(frame, (x1, y1), (x2, y2), self.COLOR_RED, 2)
-            label = v.get("class_name", "VIOLATION")
+            raw = v.get("class_name", "VIOLATION")
+            label = VIOLATION_LABEL_EN.get(raw, raw)
             if self.draw_label_confidence:
                 conf = v.get("confidence")
                 if isinstance(conf, (int, float)):
