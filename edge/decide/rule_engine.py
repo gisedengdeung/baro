@@ -30,13 +30,12 @@ class RuleEngine:
             return actions
 
         has_intrusion = any(f["type"] == "ZONE_INTRUSION" for f in risk_factors)
-        is_falling = any(f["type"] == "POSTURE_FALLING" for f in risk_factors)
-        is_crouching = any(f["type"] == "POSTURE_CROUCHING" for f in risk_factors)
+        is_accident = any(f["type"] == "ACTION_ACCIDENT" for f in risk_factors)
         has_sensor_alert = any(f["type"] == "SENSOR_ALERT" for f in risk_factors)
 
         log_action: Dict[str, Any] | None = None
 
-        if is_falling or has_sensor_alert:
+        if is_accident or has_sensor_alert:
             if has_sensor_alert:
                 reason = "sensor_alert"
                 log_type = "LOG_CRITICAL_SENSOR"
@@ -66,9 +65,6 @@ class RuleEngine:
                     actions.append({"type": "REDUCE_SPEED_50", "details": {"reason": "zone_intrusion"}})
                 actions.append({"type": "TRIGGER_ALARM_HIGH", "details": {"reason": "intrusion"}})
                 log_action = {"type": "LOG_INTRUSION_SLOWDOWN", "details": {}}
-            elif is_crouching:
-                actions.append({"type": "TRIGGER_ALARM_MEDIUM", "details": {"reason": "crouching"}})
-                log_action = {"type": "LOG_CROUCHING_WARN", "details": {}}
             else:
                 if not conveyor_is_on:
                     actions.append({"type": "POWER_ON", "details": {"reason": "normal_operation"}})

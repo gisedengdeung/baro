@@ -8,6 +8,15 @@ import numpy as np
 from loguru import logger
 
 
+SKELETON_EDGES = [
+    (0, 1), (0, 2), (1, 3), (2, 4),          # 얼굴
+    (5, 6),                                    # 어깨
+    (5, 7), (7, 9), (6, 8), (8, 10),          # 팔
+    (5, 11), (6, 12), (11, 12),               # 몸통
+    (11, 13), (13, 15), (12, 14), (14, 16),   # 다리
+]
+
+
 class OverlayRenderer:
     COLOR_GREEN = (0, 200, 0)
     COLOR_ORANGE = (0, 165, 255)
@@ -112,24 +121,44 @@ class OverlayRenderer:
 
         cv2.addWeighted(overlay, 0.18, frame, 0.82, 0, frame)
 
+    def _draw_skeleton(
+        self,
+        frame: np.ndarray,
+        keypoints: list[list[float]],
+        color: tuple[int, int, int],
+    ) -> None:
+        for i, j in SKELETON_EDGES:
+            if i >= len(keypoints) or j >= len(keypoints):
+                continue
+            x1, y1 = int(keypoints[i][0]), int(keypoints[i][1])
+            x2, y2 = int(keypoints[j][0]), int(keypoints[j][1])
+            if x1 == 0 and y1 == 0 or x2 == 0 and y2 == 0:
+                continue
+            cv2.line(frame, (x1, y1), (x2, y2), color, 2)
+        for kp in keypoints:
+            x, y = int(kp[0]), int(kp[1])
+            if x == 0 and y == 0:
+                continue
+            cv2.circle(frame, (x, y), 3, self.COLOR_WHITE, -1)
+
     def _draw_persons(
         self,
         frame: np.ndarray,
         persons: list[dict[str, Any]],
         intrusion_indices: set[int],
         intrusion_map: dict[int, set[str]],
+        action_result: dict[str, Any] | None = None,
     ) -> None:
+        is_accident = bool(action_result and action_result.get("is_accident"))
+
         for idx, person in enumerate(persons):
             bbox = self._safe_int_bbox(person.get("bbox"))
             if bbox is None:
                 continue
             x1, y1, x2, y2 = bbox
-
-            pose = person.get("pose_analysis", {})
-            is_falling = bool(pose.get("is_falling", False))
             is_intrusion = idx in intrusion_indices
 
-            if is_falling:
+            if is_accident:
                 color = self.COLOR_RED
             elif is_intrusion:
                 color = self.COLOR_ORANGE
@@ -138,9 +167,13 @@ class OverlayRenderer:
 
             cv2.rectangle(frame, (x1, y1), (x2, y2), color, 2)
 
+            keypoints = person.get("keypoints", [])
+            if keypoints:
+                self._draw_skeleton(frame, keypoints, color)
+
             label_parts = ["Person"]
-            if is_falling:
-                label_parts.append("FALL")
+            if is_accident and action_result:
+                label_parts.append(action_result.get("class_name", "ACCIDENT"))
             if is_intrusion:
                 zone_names = sorted(intrusion_map.get(idx, set()))
                 label_parts.append(f"INTRUSION:{'|'.join(zone_names) if zone_names else 'YES'}")
@@ -151,6 +184,26 @@ class OverlayRenderer:
                     label_parts.append(f"{float(conf):.2f}")
 
             self._draw_text_badge(frame, " ".join(label_parts), (x1, y1 - 2), color)
+
+    def _draw_violations(
+        self,
+        frame: np.ndarray,
+        violations: list[dict[str, Any]],
+    ) -> None:
+        for v in violations:
+            if not v.get("is_violation"):
+                continue
+            bbox = self._safe_int_bbox(v.get("bbox"))
+            if bbox is None:
+                continue
+            x1, y1, x2, y2 = bbox
+            cv2.rectangle(frame, (x1, y1), (x2, y2), self.COLOR_RED, 2)
+            label = v.get("class_name", "VIOLATION")
+            if self.draw_label_confidence:
+                conf = v.get("confidence")
+                if isinstance(conf, (int, float)):
+                    label += f" {float(conf):.2f}"
+            self._draw_text_badge(frame, label, (x1, y1 - 2), self.COLOR_RED)
 
     def _draw_risk_level(self, frame: np.ndarray, risk_level: str) -> None:
         if not risk_level:
@@ -173,6 +226,8 @@ class OverlayRenderer:
         zones: list[dict[str, Any]],
         zone_alerts: list[dict[str, Any]],
         risk_level: str,
+        violations: list[dict[str, Any]] | None = None,
+        action_result: dict[str, Any] | None = None,
     ) -> np.ndarray:
         if not self.enabled:
             return frame
@@ -202,7 +257,8 @@ class OverlayRenderer:
                         intrusion_map[person_index].add(zone_name)
 
             self._draw_zones(canvas, zones, intrusion_zone_ids, intrusion_zone_names)
-            self._draw_persons(canvas, persons, intrusion_indices, intrusion_map)
+            self._draw_persons(canvas, persons, intrusion_indices, intrusion_map, action_result)
+            self._draw_violations(canvas, violations or [])
             self._draw_risk_level(canvas, risk_level)
             return canvas
         except Exception as exc:

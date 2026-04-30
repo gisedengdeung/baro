@@ -21,11 +21,13 @@ class EdgeConfig:
     zone_poll_interval: float
     heartbeat_interval: float
 
-    person_model_path: str
-    fall_model_path: str
+    object_model_path: str
+    keypoint_model_path: str
+    action_model_path: str
     inference_device_request: str
-    person_conf_threshold: float
-    fall_conf_threshold: float
+    object_conf_threshold: float
+    keypoint_conf_threshold: float
+    action_conf_threshold: float
     visual_overlay_enabled: bool
     draw_zone_polygons: bool
     draw_label_confidence: bool
@@ -91,17 +93,22 @@ def load_config() -> EdgeConfig:
         command_poll_interval=float(os.getenv("EDGE_COMMAND_POLL_INTERVAL", "0.3")),
         zone_poll_interval=float(os.getenv("EDGE_ZONE_POLL_INTERVAL", "5.0")),
         heartbeat_interval=float(os.getenv("EDGE_HEARTBEAT_INTERVAL", "1.0")),
-        person_model_path=_resolve_model_path(
-            os.getenv("EDGE_PERSON_MODEL_PATH", ""),
-            "edge/models/yolov8n.pt",
+        object_model_path=_resolve_model_path(
+            os.getenv("EDGE_OBJECT_MODEL_PATH", ""),
+            "edge/models/el_object_detection.pt",
         ),
-        fall_model_path=_resolve_model_path(
-            os.getenv("EDGE_FALL_MODEL_PATH", ""),
-            "edge/models/fall_det_1.pt",
+        keypoint_model_path=_resolve_model_path(
+            os.getenv("EDGE_KEYPOINT_MODEL_PATH", ""),
+            "edge/models/el_keypoints.pt",
+        ),
+        action_model_path=_resolve_model_path(
+            os.getenv("EDGE_ACTION_MODEL_PATH", ""),
+            "edge/models/el_action_recognition.pt",
         ),
         inference_device_request=os.getenv("EDGE_INFERENCE_DEVICE", "auto").strip() or "auto",
-        person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
-        fall_conf_threshold=float(os.getenv("EDGE_FALL_CONF", "0.4")),
+        object_conf_threshold=float(os.getenv("EDGE_OBJECT_CONF", "0.4")),
+        keypoint_conf_threshold=float(os.getenv("EDGE_KEYPOINT_CONF", "0.3")),
+        action_conf_threshold=float(os.getenv("EDGE_ACTION_CONF", "0.5")),
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
         draw_zone_polygons=_env_bool("EDGE_DRAW_ZONE_POLYGONS", True),
         draw_label_confidence=_env_bool("EDGE_DRAW_LABEL_CONFIDENCE", False),

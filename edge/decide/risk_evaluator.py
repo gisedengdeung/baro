@@ -19,18 +19,31 @@ class RiskEvaluator:
     ) -> Dict[str, List[Dict[str, Any]]]:
         risk_factors: List[Dict[str, Any]] = []
 
-        persons = detection_result.get("persons", [])
-        for idx, person in enumerate(persons):
-            analysis = person.get("pose_analysis", {})
-            if analysis.get("is_falling"):
-                risk_factors.append({"type": "POSTURE_FALLING", "person_id": idx})
-            elif analysis.get("is_crouching"):
-                risk_factors.append({"type": "POSTURE_CROUCHING", "person_id": idx})
+        # 행동 인식: 사고 유형 감지
+        action_result = detection_result.get("action_result")
+        if action_result and action_result.get("is_accident"):
+            risk_factors.append({
+                "type": "ACTION_ACCIDENT",
+                "class_name": action_result.get("class_name", "unknown"),
+                "confidence": action_result.get("confidence", 0.0),
+            })
 
+        # 안전 장비 미착용 감지
+        violations = detection_result.get("violations", [])
+        for v in violations:
+            if v.get("is_violation"):
+                risk_factors.append({
+                    "type": "SAFETY_EQUIPMENT_VIOLATION",
+                    "class_name": v.get("class_name", "unknown"),
+                    "bbox": v.get("bbox"),
+                })
+
+        # 구역 침입 감지
         zone_alerts = detection_result.get("danger_zone_alerts", [])
         if zone_alerts:
             risk_factors.append({"type": "ZONE_INTRUSION", "details": zone_alerts})
 
+        # 하드웨어 센서 경보
         for sensor_type, sensor_info in sensor_data.get("sensors", {}).items():
             if sensor_info.get("is_alert"):
                 risk_factors.append({"type": "SENSOR_ALERT", "sensor_type": sensor_type})

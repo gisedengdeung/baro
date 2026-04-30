@@ -14,8 +14,9 @@ from edge.control.buzzer import BuzzerController
 from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
-from edge.detect.fall_detector import FallDetector
-from edge.detect.person_detector import PersonDetector
+from edge.detect.action_recognizer import ActionRecognizer
+from edge.detect.keypoint_detector import KeypointDetector
+from edge.detect.object_detector import ObjectDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.state import SystemStateManager
 from edge.visualize.overlay_renderer import OverlayRenderer
@@ -29,8 +30,9 @@ class SafetyPipeline:
     def __init__(
         self,
         camera: Any,
-        person_detector: PersonDetector,
-        fall_detector: FallDetector,
+        object_detector: ObjectDetector,
+        keypoint_detector: KeypointDetector,
+        action_recognizer: ActionRecognizer,
         zone_checker: ZoneChecker,
         risk_evaluator: RiskEvaluator,
         rule_engine: RuleEngine,
@@ -43,8 +45,9 @@ class SafetyPipeline:
         clip_recorder: EdgeClipRecorder | None = None,
     ) -> None:
         self.camera = camera
-        self.person_detector = person_detector
-        self.fall_detector = fall_detector
+        self.object_detector = object_detector
+        self.keypoint_detector = keypoint_detector
+        self.action_recognizer = action_recognizer
         self.zone_checker = zone_checker
         self.risk_evaluator = risk_evaluator
         self.rule_engine = rule_engine
@@ -113,13 +116,13 @@ class SafetyPipeline:
 
     @staticmethod
     def _compute_risk_level(risk_factors: List[Dict[str, Any]], mode: OperationMode) -> str:
-        if any(f["type"] in {"POSTURE_FALLING", "SENSOR_ALERT"} for f in risk_factors):
+        if any(f["type"] in {"ACTION_ACCIDENT", "SENSOR_ALERT"} for f in risk_factors):
             return RiskLevel.CRITICAL.value
         if mode == OperationMode.MAINTENANCE and any(f["type"] == "ZONE_INTRUSION" for f in risk_factors):
             return RiskLevel.LOTO_RISK_DETECTED.value
         if any(f["type"] == "ZONE_INTRUSION" for f in risk_factors):
             return RiskLevel.WARNING.value
-        if any(f["type"] == "POSTURE_CROUCHING" for f in risk_factors):
+        if any(f["type"] == "SAFETY_EQUIPMENT_VIOLATION" for f in risk_factors):
             return RiskLevel.NOTICE.value
         return RiskLevel.SAFE.value
 
@@ -140,17 +143,19 @@ class SafetyPipeline:
             log_risk_level = "CRITICAL"
             sensor_type = next((f.get("sensor_type") for f in risk_factors if f["type"] == "SENSOR_ALERT"), "unknown")
             description = f"An emergency signal from sensor '{sensor_type}' has been detected."
-        elif any(f["type"] == "POSTURE_FALLING" for f in risk_factors):
+        elif any(f["type"] == "ACTION_ACCIDENT" for f in risk_factors):
             log_risk_level = "CRITICAL"
-            description = "A person falling has been detected."
+            accident_f = next(f for f in risk_factors if f["type"] == "ACTION_ACCIDENT")
+            description = f"Accident detected: {accident_f.get('class_name', 'unknown')}."
         elif any(f["type"] == "ZONE_INTRUSION" for f in risk_factors):
             log_risk_level = "WARNING"
             details = next((f.get("details", []) for f in risk_factors if f["type"] == "ZONE_INTRUSION"), [])
             zone_names = ", ".join(sorted({item.get("zone_name", "unknown") for item in details}))
             description = f"Person detected in danger zone(s): {zone_names}."
-        elif any(f["type"] == "POSTURE_CROUCHING" for f in risk_factors):
+        elif any(f["type"] == "SAFETY_EQUIPMENT_VIOLATION" for f in risk_factors):
             log_risk_level = "NOTICE"
-            description = "A person in a crouching pose has been detected."
+            names = ", ".join(f.get("class_name", "unknown") for f in risk_factors if f["type"] == "SAFETY_EQUIPMENT_VIOLATION")
+            description = f"Safety equipment violation detected: {names}."
 
         event_time = datetime.now(KST)
         event_uid: str | None = None
@@ -293,13 +298,16 @@ class SafetyPipeline:
                     await asyncio.sleep(max(0.0, frame_interval - _elapsed))
                     continue
 
-                persons = await loop.run_in_executor(None, self.person_detector.detect, frame)
-                persons = await loop.run_in_executor(None, self.fall_detector.analyze, frame, persons)
+                persons = await loop.run_in_executor(None, self.keypoint_detector.detect, frame)
+                violations = await loop.run_in_executor(None, self.object_detector.detect, frame)
+                action_result = self.action_recognizer.update(persons)
                 zone_alerts = self.zone_checker.check(persons, self.state.zones)
 
                 detection_result = {
                     "persons": persons,
                     "danger_zone_alerts": zone_alerts,
+                    "violations": violations,
+                    "action_result": action_result,
                 }
 
                 conveyor_status = self.conveyor.get_status()
@@ -337,6 +345,8 @@ class SafetyPipeline:
                             zones=self.state.zones,
                             zone_alerts=zone_alerts,
                             risk_level=risk_level,
+                            violations=violations,
+                            action_result=action_result,
                         )
                     except Exception as exc:
                         logger.warning(f"오버레이 렌더 실패(원본 전송): {exc}")

@@ -16,8 +16,9 @@ from edge.control.buzzer import BuzzerController
 from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
-from edge.detect.fall_detector import FallDetector
-from edge.detect.person_detector import PersonDetector
+from edge.detect.action_recognizer import ActionRecognizer
+from edge.detect.keypoint_detector import KeypointDetector
+from edge.detect.object_detector import ObjectDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.pipeline import SafetyPipeline
 from edge.state import SystemStateManager
@@ -131,14 +132,19 @@ async def main() -> None:
     serial.set_is_locked_checker(state.is_locked_status)
     serial.start_listening()
 
-    person_detector = PersonDetector(
-        model_path=cfg.person_model_path,
-        conf_threshold=cfg.person_conf_threshold,
+    object_detector = ObjectDetector(
+        model_path=cfg.object_model_path,
+        conf_threshold=cfg.object_conf_threshold,
         inference_device_request=cfg.inference_device_request,
     )
-    fall_detector = FallDetector(
-        model_path=cfg.fall_model_path,
-        conf_threshold=cfg.fall_conf_threshold,
+    keypoint_detector = KeypointDetector(
+        model_path=cfg.keypoint_model_path,
+        conf_threshold=cfg.keypoint_conf_threshold,
+        inference_device_request=cfg.inference_device_request,
+    )
+    action_recognizer = ActionRecognizer(
+        model_path=cfg.action_model_path,
+        conf_threshold=cfg.action_conf_threshold,
         inference_device_request=cfg.inference_device_request,
     )
     zone_checker = ZoneChecker()
@@ -158,8 +164,9 @@ async def main() -> None:
 
     pipeline = SafetyPipeline(
         camera=camera,
-        person_detector=person_detector,
-        fall_detector=fall_detector,
+        object_detector=object_detector,
+        keypoint_detector=keypoint_detector,
+        action_recognizer=action_recognizer,
         zone_checker=zone_checker,
         risk_evaluator=risk_evaluator,
         rule_engine=rule_engine,
