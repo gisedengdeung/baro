@@ -26,12 +26,20 @@ class ObjectDetector:
     ) -> None:
         self.inference_device = resolve_inference_device(inference_device_request)
         self.model = YOLO(model_path)
+        self._patch_head()
         self.model.to(self.inference_device.resolved)
         self.conf_threshold = conf_threshold
         logger.info(
             f"ObjectDetector 초기화 완료: model={model_path}, "
             f"device={self.inference_device.resolved}"
         )
+
+    def _patch_head(self) -> None:
+        from ultralytics.nn.modules.head import Detect
+        for module in self.model.model.modules():
+            if hasattr(module, "detect") and callable(getattr(module, "detect", None)):
+                module.detect = Detect.forward
+                logger.info("ObjectDetector: head.detect 패치 완료")
 
     def detect(self, frame: np.ndarray) -> List[Dict[str, Any]]:
         """프레임에서 안전장비 착용 여부 및 작업자를 감지."""
@@ -48,14 +56,18 @@ class ObjectDetector:
 
         detections: List[Dict[str, Any]] = []
         if results and results[0].boxes is not None:
-            for box in results[0].boxes:
-                cls_id = int(box.cls[0].item())
-                x1, y1, x2, y2 = map(int, box.xyxy[0].tolist())
+            boxes = results[0].boxes
+            xyxy = boxes.xyxy.cpu().numpy()   # (N, 4)
+            confs = boxes.conf.cpu().numpy()  # (N,)
+            cls_ids = boxes.cls.cpu().numpy() # (N,)
+            for i in range(len(xyxy)):
+                cls_id = int(cls_ids[i])
+                x1, y1, x2, y2 = map(int, xyxy[i])
                 detections.append({
                     "class_id": cls_id,
                     "class_name": self.model.names[cls_id],
                     "bbox": [x1, y1, x2, y2],
-                    "confidence": float(box.conf[0].item()),
+                    "confidence": float(confs[i]),
                     "is_violation": cls_id in VIOLATION_CLASSES,
                     "violation_type": VIOLATION_CLASSES.get(cls_id),
                 })
