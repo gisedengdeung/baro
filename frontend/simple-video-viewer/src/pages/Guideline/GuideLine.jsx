@@ -1,9 +1,19 @@
 // src/pages/GuideLine/GuideLine.jsx
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
+import { safetyAPI } from "../../services/api";
 import "./GuideLine.css";
 
 const SECTIONS = [
+  {
+    id: "safety",
+    icon: "🛡️",
+    label: "안전점수",
+    title: "오늘의 안전점수",
+    color: "ok",
+    isSafety: true,
+    items: [],
+  },
   {
     id: "system",
     icon: "⏻",
@@ -139,16 +149,240 @@ const SECTIONS = [
   },
 ];
 
+function scoreColor(score) {
+  if (score >= 80) return "ok";
+  if (score >= 60) return "warning";
+  return "danger";
+}
+
+function SafetyContent({ data, history, loading }) {
+  if (loading) {
+    return <div className="gl-safety-loading">데이터 불러오는 중...</div>;
+  }
+  if (!data) {
+    return (
+      <div className="gl-safety-loading">안전점수를 불러올 수 없습니다.</div>
+    );
+  }
+
+  const color = scoreColor(data.score);
+  const difficulty = data.difficulty || {};
+  const eventDeduction = data.event_deduction || {};
+  const eventDetails = eventDeduction.events || data.deductions?.events || [];
+  const hasDeductions = eventDetails.length > 0;
+  const difficultyColor = difficulty.color || "ok";
+  const difficultyFactors = difficulty.factors || {};
+  const weatherDetails = difficultyFactors.weather?.details || [];
+  const weatherObservation = weatherDetails.find(
+    (item) => item.key === "weather_observation" || item.key === "weather_api_error",
+  );
+  const weatherAlerts = weatherDetails.filter(
+    (item) => item.key !== "weather_observation" && item.key !== "weather_api_error",
+  );
+  const weatherValues = weatherObservation?.values || {};
+
+  return (
+    <div className="gl-safety-grid">
+      {/* 점수 + 무사고 스트릭 */}
+      <div className="gl-score-hero">
+        <div className={`gl-score-ring gl-ring-${color}`}>
+          <span className={`gl-score-number gl-score-${color}`}>
+            {data.score}
+          </span>
+          <span className="gl-score-label">/ 100점</span>
+        </div>
+        <div className="gl-score-info">
+          <div className="gl-streak">
+            <span className="gl-streak-icon">🏆</span>
+            <div>
+              <div className="gl-streak-num">
+                {data.accident_free_streak}일째
+              </div>
+              <div className="gl-streak-sub">무사고 연속</div>
+            </div>
+          </div>
+          <div className={`gl-status-badge gl-status-${color}`}>
+            {color === "ok" && "안전 유지 중"}
+            {color === "warning" && "주의 필요"}
+            {color === "danger" && "위험 수준"}
+          </div>
+          <div className="gl-score-note">
+            작업 난이도는 직접 감점하지 않고, 이벤트 감점 배율로만 반영됩니다.
+          </div>
+        </div>
+        <div className="gl-weather-box">
+          <div className="gl-weather-head">
+            <span>기상 API 상태</span>
+            <strong
+              className={
+                weatherObservation?.status === "error"
+                  ? "gl-weather-error"
+                  : "gl-weather-ok"
+              }
+            >
+              {weatherObservation?.status === "error" ? "오류" : "연결됨"}
+            </strong>
+          </div>
+          {weatherObservation?.status === "error" ? (
+            <div className="gl-weather-message">
+              {weatherObservation.message || "기상 정보를 불러오지 못했습니다."}
+            </div>
+          ) : weatherObservation ? (
+            <>
+              <div className="gl-weather-meta">
+                관측소 {weatherObservation.station_no}
+                {weatherObservation.observed_at
+                  ? ` · ${weatherObservation.observed_at}`
+                  : ""}
+              </div>
+              <div className="gl-weather-values">
+                <span>기온 {weatherValues.temp_c ?? "-"}도</span>
+                <span>습도 {weatherValues.humidity_pct ?? "-"}%</span>
+                <span>풍속 {weatherValues.wind_mps ?? "-"}m/s</span>
+                <span>강수 {weatherValues.rain_mm ?? "-"}mm</span>
+              </div>
+              <div className="gl-weather-message">
+                {weatherAlerts.length > 0
+                  ? weatherAlerts.map((item) => item.label).join(" · ")
+                  : "위험 기상 조건 없음"}
+              </div>
+            </>
+          ) : (
+            <div className="gl-weather-message">
+              아직 기상 관측값이 갱신되지 않았습니다.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 작업 난이도 */}
+      <div className="gl-difficulty-panel">
+        <div className="gl-panel-title">작업 난이도</div>
+        <div className="gl-difficulty-summary">
+          <div>
+            <span className={`gl-difficulty-score gl-score-${difficultyColor}`}>
+              {difficulty.score ?? "-"}
+            </span>
+            <span className="gl-difficulty-unit">점</span>
+          </div>
+          <div className={`gl-status-badge gl-status-${difficultyColor}`}>
+            {difficulty.level || "계산 대기"} · x{difficulty.multiplier || 1}
+          </div>
+        </div>
+        <div className="gl-factor-list">
+          <div className="gl-factor-row">
+            <span>업종 위험도</span>
+            <strong>+{difficultyFactors.industry?.risk ?? 0}</strong>
+          </div>
+          <div className="gl-factor-row">
+            <span>
+              규모 위험도
+              {difficultyFactors.size?.scale
+                ? ` · ${difficultyFactors.size.scale}`
+                : ""}
+            </span>
+            <strong>+{difficultyFactors.size?.risk ?? 0}</strong>
+          </div>
+          <div className="gl-factor-row">
+            <span>기상 위험도</span>
+            <strong>+{difficultyFactors.weather?.risk ?? 0}</strong>
+          </div>
+        </div>
+      </div>
+
+      {/* 감점 내역 */}
+      <div className="gl-deductions-panel">
+        <div className="gl-panel-title">AI 이벤트 감점</div>
+        {!hasDeductions ? (
+          <div className="gl-no-deductions">
+            감점 없음 — 오늘 하루 무사고입니다!
+          </div>
+        ) : (
+          <>
+            {eventDetails.map((e) => {
+              const applied = Math.min(e.count, e.daily_cap);
+              const pts = applied * e.points_per;
+              return (
+                <div key={e.event_type} className="gl-deduction-row">
+                  <span className="gl-ded-label">{e.label}</span>
+                  <span className="gl-ded-meta">
+                    {e.count}회 발생 · 최대 {e.daily_cap}회 반영
+                  </span>
+                  <span className="gl-ded-pts gl-ded-danger">-{pts}점</span>
+                </div>
+              );
+            })}
+            <div className="gl-deduction-total">
+              기본 이벤트 감점 -{eventDeduction.base ?? 0}점 × 난이도 배율 x
+              {difficulty.multiplier || 1} = 최종 감점 -
+              {eventDeduction.adjusted ?? 0}점
+            </div>
+          </>
+        )}
+      </div>
+
+      {/* 최근 7일 히스토리 */}
+      {history.length > 0 && (
+        <div className="gl-history-panel">
+          <div className="gl-panel-title">최근 {history.length}일 기록</div>
+          <div className="gl-history-bars">
+            {[...history].reverse().map((h) => {
+              const c = scoreColor(h.score);
+              return (
+                <div key={h.date} className="gl-bar-col">
+                  <div className="gl-bar-score-top">{h.score}</div>
+                  <div className="gl-bar-track">
+                    <div
+                      className={`gl-bar-fill gl-bar-${c}`}
+                      style={{ height: `${h.score}%` }}
+                    />
+                  </div>
+                  <div className="gl-bar-date">{h.date.slice(5)}</div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function GuideLine() {
   const navigate = useNavigate();
-  const [activeSection, setActiveSection] = useState("system");
+  const [activeSection, setActiveSection] = useState("safety");
   const [checked, setChecked] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [safetyData, setSafetyData] = useState(null);
+  const [safetyHistory, setSafetyHistory] = useState([]);
+  const [safetyLoading, setSafetyLoading] = useState(false);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  const fetchSafety = useCallback(async () => {
+    setSafetyLoading(true);
+    try {
+      const [score, history] = await Promise.all([
+        safetyAPI.getScore(),
+        safetyAPI.getHistory(7),
+      ]);
+      setSafetyData(score);
+      setSafetyHistory(history);
+    } catch {
+      setSafetyData(null);
+    } finally {
+      setSafetyLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (activeSection === "safety") {
+      fetchSafety();
+    }
+  }, [activeSection, fetchSafety]);
 
   const current = SECTIONS.find((s) => s.id === activeSection);
 
@@ -198,32 +432,40 @@ export default function GuideLine() {
             {current.title}
           </h2>
 
-          <div className="gl-cards">
-            {current.items.map((item, i) => (
-              <div
-                key={i}
-                className={`gl-card gl-card-delay-${i}${item.highlight ? " gl-card-highlight" : ""}`}
-              >
-                {item.step && (
-                  <div className={`gl-step-badge gl-badge-${current.color}`}>
-                    STEP {item.step}
+          {current.isSafety ? (
+            <SafetyContent
+              data={safetyData}
+              history={safetyHistory}
+              loading={safetyLoading}
+            />
+          ) : (
+            <div className="gl-cards">
+              {current.items.map((item, i) => (
+                <div
+                  key={i}
+                  className={`gl-card gl-card-delay-${i}${item.highlight ? " gl-card-highlight" : ""}`}
+                >
+                  {item.step && (
+                    <div className={`gl-step-badge gl-badge-${current.color}`}>
+                      STEP {item.step}
+                    </div>
+                  )}
+                  {item.dotColor && (
+                    <div className="gl-card-dot-row">
+                      <span className={`gl-dot gl-dot-${item.dotColor}`} />
+                    </div>
+                  )}
+                  {item.icon && !item.step && !item.dotColor && (
+                    <div className="gl-card-icon">{item.icon}</div>
+                  )}
+                  <div className="gl-card-body">
+                    <div className="gl-card-name">{item.name}</div>
+                    <div className="gl-card-desc">{item.desc}</div>
                   </div>
-                )}
-                {item.dotColor && (
-                  <div className="gl-card-dot-row">
-                    <span className={`gl-dot gl-dot-${item.dotColor}`} />
-                  </div>
-                )}
-                {item.icon && !item.step && !item.dotColor && (
-                  <div className="gl-card-icon">{item.icon}</div>
-                )}
-                <div className="gl-card-body">
-                  <div className="gl-card-name">{item.name}</div>
-                  <div className="gl-card-desc">{item.desc}</div>
                 </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
 
         {/* 하단 확인 영역 */}

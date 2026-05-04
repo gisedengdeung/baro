@@ -8,8 +8,10 @@ from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
+from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
+from cloud.services.weather_service import WeatherService
 from cloud.services.websocket_manager import WebSocketManager
 from cloud.services.zone_service import ZoneService
 
@@ -51,6 +53,20 @@ def get_auth_service(request: Request) -> AuthService:
 
 def get_clip_service(request: Request) -> ClipService:
     return _get_state_attr(request, "clip_service")
+
+
+def get_safety_service(request: Request) -> SafetyService:
+    return _get_state_attr(request, "safety_service")
+
+
+def get_weather_service(request: Request) -> WeatherService:
+    svc = getattr(request.app.state, "weather_service", None)
+    if svc is None:
+        raise HTTPException(
+            status_code=503,
+            detail="날씨 서비스 비활성화 (KMA_API_KEY 미설정)",
+        )
+    return svc
 
 
 def get_edge_auth_service(request: Request) -> EdgeAuthService:

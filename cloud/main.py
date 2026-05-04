@@ -2,11 +2,14 @@ from __future__ import annotations
 
 from contextlib import asynccontextmanager
 import asyncio
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from loguru import logger
 
-from cloud.api import auth, control, edge, edges, logs, signaling, status, streaming, zones
+from cloud.api import auth, control, edge, edges, logs, safety, signaling, status, streaming, zones
 from cloud.config import load_config
 from cloud.dependencies import require_browser_auth
 from cloud.db import init_db
@@ -15,11 +18,35 @@ from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
+from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
+from cloud.services.weather_service import WeatherService
 from cloud.services.websocket_manager import WebSocketManager
 from cloud.services.zone_service import ZoneService
 from cloud.ws import alert_stream, log_stream
+
+KST = ZoneInfo("Asia/Seoul")
+
+
+async def _weather_loop(weather_service: WeatherService) -> None:
+    """서버 시작 시 즉시 1회 실행, 이후 1시간마다 반복"""
+    await weather_service.refresh()
+    while True:
+        await asyncio.sleep(3600)
+        await weather_service.refresh()
+
+
+async def _midnight_close_loop(safety_service: SafetyService) -> None:
+    """매일 자정 KST에 당일 점수 확정 + 무사고 스트릭 업데이트"""
+    while True:
+        now = datetime.now(KST)
+        next_midnight = (
+            datetime(now.year, now.month, now.day, tzinfo=KST) + timedelta(days=1)
+        )
+        await asyncio.sleep((next_midnight - now).total_seconds())
+        safety_service.close_day()
+        logger.info("자정 마감 완료")
 
 cfg = load_config()
 
@@ -55,6 +82,19 @@ async def lifespan(app: FastAPI):
     )
     app.state.status_store = StatusStore()
     app.state.zone_service = ZoneService(db_path=cfg.local_db_path)
+
+    safety_service = SafetyService(db_path=cfg.local_db_path)
+    app.state.safety_service = safety_service
+
+    weather_service: WeatherService | None = None
+    if cfg.kma_api_key:
+        weather_service = WeatherService(
+            api_key=cfg.kma_api_key,
+            station_no=cfg.kma_asos_station_no,
+            safety_service=safety_service,
+        )
+    app.state.weather_service = weather_service
+
     app.state.db_service = DBService(
         websocket_manager=websocket_manager,
         db_path=cfg.local_db_path,
@@ -67,7 +107,21 @@ async def lifespan(app: FastAPI):
     )
     app.state.auth_service = auth_service
 
+    # 백그라운드 태스크
+    bg_tasks = [asyncio.create_task(_midnight_close_loop(safety_service))]
+    if weather_service:
+        bg_tasks.append(asyncio.create_task(_weather_loop(weather_service)))
+    else:
+        logger.warning("KMA_API_KEY 미설정 - 기상 감점 비활성화")
+
     yield
+
+    for task in bg_tasks:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -114,6 +168,12 @@ app.include_router(
     edges.router,
     prefix="/api/edges",
     tags=["Edges"],
+    dependencies=[Depends(require_browser_auth)],
+)
+app.include_router(
+    safety.router,
+    prefix="/api/safety",
+    tags=["Safety"],
     dependencies=[Depends(require_browser_auth)],
 )
 app.include_router(signaling.router, prefix="/api/signaling", tags=["Signaling"])

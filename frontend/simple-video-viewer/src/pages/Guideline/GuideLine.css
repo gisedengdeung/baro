@@ -391,6 +391,332 @@
   transform: translateX(4px);
 }
 
+/* ── 안전점수 탭 ── */
+.gl-safety-loading {
+  text-align: center;
+  color: var(--gl-text-sub);
+  padding: 48px 0;
+  font-size: 14px;
+}
+
+.gl-safety-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+/* 점수 히어로 */
+.gl-score-hero {
+  display: flex;
+  align-items: center;
+  gap: 40px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius);
+  padding: 32px 36px;
+}
+
+.gl-score-ring {
+  width: 140px;
+  height: 140px;
+  border-radius: 50%;
+  border: 6px solid;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  gap: 2px;
+}
+.gl-ring-ok      { border-color: var(--gl-ok);      box-shadow: 0 0 28px rgba(16,185,129,0.2); }
+.gl-ring-warning { border-color: var(--gl-warning);  box-shadow: 0 0 28px rgba(245,158,11,0.2); }
+.gl-ring-danger  { border-color: var(--gl-danger);   box-shadow: 0 0 28px rgba(239,68,68,0.2); }
+
+.gl-score-number {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 64px;
+  line-height: 1;
+}
+.gl-score-ok      { color: var(--gl-ok); }
+.gl-score-warning { color: var(--gl-warning); }
+.gl-score-danger  { color: var(--gl-danger); }
+
+.gl-score-label {
+  font-size: 12px;
+  color: var(--gl-text-sub);
+}
+
+.gl-score-info {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.gl-score-note {
+  max-width: 420px;
+  font-size: 12px;
+  color: var(--gl-text-sub);
+  line-height: 1.7;
+}
+
+/* 무사고 스트릭 */
+.gl-streak {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.gl-streak-icon {
+  font-size: 32px;
+  line-height: 1;
+}
+.gl-streak-num {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 36px;
+  color: var(--gl-accent);
+  line-height: 1;
+}
+.gl-streak-sub {
+  font-size: 13px;
+  color: var(--gl-text-sub);
+  margin-top: 2px;
+}
+
+/* 상태 뱃지 */
+.gl-status-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  width: fit-content;
+}
+.gl-status-ok      { background: var(--gl-ok-dim);      color: var(--gl-ok);      border: 1px solid var(--gl-ok); }
+.gl-status-warning { background: var(--gl-warning-dim);  color: var(--gl-warning);  border: 1px solid var(--gl-warning); }
+.gl-status-danger  { background: var(--gl-danger-dim);   color: var(--gl-danger);   border: 1px solid var(--gl-danger); }
+
+/* 감점 내역 패널 */
+.gl-difficulty-panel,
+.gl-deductions-panel,
+.gl-history-panel {
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: var(--gl-radius);
+  padding: 24px 28px;
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+.gl-panel-title {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gl-text-sub);
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  margin-bottom: 16px;
+}
+
+.gl-difficulty-summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 18px;
+}
+
+.gl-difficulty-score {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 44px;
+  line-height: 1;
+}
+
+.gl-difficulty-unit {
+  margin-left: 4px;
+  font-size: 13px;
+  color: var(--gl-text-sub);
+}
+
+.gl-factor-list {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+}
+
+.gl-factor-row {
+  background: var(--gl-surface2);
+  border: 1px solid var(--gl-border);
+  border-radius: 8px;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gl-factor-row span {
+  font-size: 12px;
+  color: var(--gl-text-sub);
+}
+
+.gl-factor-row strong {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 26px;
+  color: var(--gl-text);
+  font-weight: 400;
+  line-height: 1;
+}
+
+.gl-weather-box {
+  margin-top: 14px;
+  padding: 14px;
+  background: var(--gl-surface2);
+  border: 1px solid var(--gl-border);
+  border-radius: 8px;
+}
+
+.gl-weather-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 12px;
+  color: var(--gl-text-sub);
+  margin-bottom: 10px;
+}
+
+.gl-weather-head strong {
+  font-size: 12px;
+}
+
+.gl-weather-ok {
+  color: var(--gl-ok);
+}
+
+.gl-weather-error {
+  color: var(--gl-danger);
+}
+
+.gl-weather-meta {
+  font-size: 12px;
+  color: var(--gl-text-sub);
+  margin-bottom: 10px;
+}
+
+.gl-weather-values {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.gl-weather-values span {
+  padding: 8px 10px;
+  background: var(--gl-surface);
+  border: 1px solid var(--gl-border);
+  border-radius: 6px;
+  font-size: 12px;
+  color: var(--gl-text);
+}
+
+.gl-weather-message {
+  font-size: 12px;
+  color: var(--gl-text-sub);
+  line-height: 1.6;
+}
+
+.gl-no-deductions {
+  color: var(--gl-ok);
+  font-size: 14px;
+  padding: 8px 0;
+}
+
+.gl-deduction-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid var(--gl-border);
+}
+.gl-deduction-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.gl-ded-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--gl-text);
+  flex: 1;
+}
+.gl-ded-meta {
+  font-size: 12px;
+  color: var(--gl-text-sub);
+}
+.gl-ded-pts {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 20px;
+  min-width: 52px;
+  text-align: right;
+}
+.gl-ded-danger  { color: var(--gl-danger); }
+.gl-ded-warning { color: var(--gl-warning); }
+
+.gl-deduction-total {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 1px solid var(--gl-border);
+  font-size: 13px;
+  color: var(--gl-text-sub);
+  line-height: 1.7;
+}
+
+/* 히스토리 바 */
+.gl-history-bars {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  height: 130px;
+  padding-top: 24px;
+}
+.gl-bar-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  height: 100%;
+  gap: 4px;
+}
+.gl-bar-score-top {
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--gl-text);
+  height: 16px;
+  line-height: 16px;
+}
+.gl-bar-track {
+  flex: 1;
+  width: 100%;
+  background: var(--gl-surface2);
+  border-radius: 4px;
+  display: flex;
+  align-items: flex-end;
+  overflow: hidden;
+}
+.gl-bar-fill {
+  width: 100%;
+  border-radius: 4px;
+  transition: height 0.6s ease;
+}
+.gl-bar-ok      { background: var(--gl-ok); }
+.gl-bar-warning { background: var(--gl-warning); }
+.gl-bar-danger  { background: var(--gl-danger); }
+.gl-bar-date {
+  font-size: 10px;
+  color: var(--gl-text-sub);
+  white-space: nowrap;
+}
+
 /* ── 반응형 ── */
 @media (max-width: 600px) {
   .gl-container {
@@ -406,5 +732,28 @@
   }
   .gl-cards {
     grid-template-columns: 1fr;
+  }
+  .gl-score-hero {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    padding: 24px 20px;
+    gap: 24px;
+  }
+  .gl-score-info {
+    align-items: center;
+  }
+  .gl-factor-list {
+    grid-template-columns: 1fr;
+  }
+  .gl-difficulty-summary {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+  .gl-weather-values {
+    grid-template-columns: 1fr 1fr;
+  }
+  .gl-history-bars {
+    gap: 4px;
   }
 }

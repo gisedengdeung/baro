@@ -200,6 +200,10 @@ function Dashboard() {
             ))}
           </div>
           <div className="sidebar-bottom-nav">
+            <button className="sidebar-item" onClick={() => navigate("/guideline")}>
+              <span className="sidebar-icon">🛡️</span>
+              <span className="sidebar-label">가이드라인</span>
+            </button>
             <button className="sidebar-item" onClick={handleLogout}>
               <span className="sidebar-icon">🚪</span>
               <span className="sidebar-label">로그아웃</span>

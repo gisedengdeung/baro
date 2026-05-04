@@ -138,6 +138,31 @@ def init_db(db_path: str) -> None:
         conn.execute("CREATE INDEX IF NOT EXISTS idx_auth_refresh_sessions_token_jti ON auth_refresh_sessions(token_jti);")
         conn.execute("CREATE INDEX IF NOT EXISTS idx_auth_refresh_sessions_user_id ON auth_refresh_sessions(user_id);")
 
+        # 6. 안전점수 일별 기록 테이블
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS safety_score_daily (
+                date TEXT PRIMARY KEY,
+                final_score INTEGER NOT NULL DEFAULT 100,
+                deductions_json TEXT NOT NULL DEFAULT '[]',
+                weather_deduction INTEGER NOT NULL DEFAULT 0,
+                accident_free_streak INTEGER NOT NULL DEFAULT 0,
+                created_at TEXT NOT NULL
+            );
+            """
+        )
+
+        # 7. 공장 설정값 테이블
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS factory_config (
+                key TEXT PRIMARY KEY,
+                value TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
         # 초기 엣지 디바이스 데이터 삽입
         conn.execute(
             """
@@ -145,6 +170,21 @@ def init_db(db_path: str) -> None:
             VALUES ('edge-default', '메인 컨베이어 카메라', 1, datetime('now', 'utc'));
             """
         )
+
+        # 초기 공장 설정값 (더미 데이터 - 실제 값으로 교체 필요)
+        for key, value in [
+            ("industry_type", "식료품제조업"),
+            ("worker_count", "80"),    # 총 근무자 수
+            ("location_nx", "60"),     # 기상청 격자 X (경기 수원 기준 더미)
+            ("location_ny", "121"),    # 기상청 격자 Y (경기 수원 기준 더미)
+        ]:
+            conn.execute(
+                """
+                INSERT OR IGNORE INTO factory_config (key, value, updated_at)
+                VALUES (?, ?, datetime('now', 'utc'));
+                """,
+                (key, value),
+            )
 
         conn.commit()
 
