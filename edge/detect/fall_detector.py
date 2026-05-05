@@ -69,7 +69,7 @@ class FallDetector:
         if fall_results and fall_results[0].boxes:
             for box in fall_results[0].boxes:
                 class_name = self.model.names[int(box.cls)]
-                if class_name == "Fall-Detected":
+                if class_name == "fallen":
                     fall_boxes.append(box.xyxy[0].cpu().numpy().astype(int))
 
         for person in persons:
@@ -81,21 +81,13 @@ class FallDetector:
                 "description": "Normal",
             }
 
-            x1, y1, x2, y2 = person_bbox
-            width = x2 - x1
-            height = y2 - y1
-            if height <= 0:
-                person["pose_analysis"] = analysis
-                continue
-
-            is_model_falling = any(self._calculate_iou(person_bbox, fb) > 0.5 for fb in fall_boxes)
-            is_ratio_falling = width > height * 1.4
-            if is_model_falling and is_ratio_falling:
+            is_falling = any(self._calculate_iou(person_bbox, fb) > 0.5 for fb in fall_boxes)
+            if is_falling:
                 analysis = {
                     "is_falling": True,
                     "is_crouching": False,
                     "risk_level": "critical",
-                    "description": "Falling Detected (Verified by BBox Ratio)",
+                    "description": "Falling Detected",
                 }
 
             person["pose_analysis"] = analysis

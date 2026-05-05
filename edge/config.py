@@ -97,7 +97,7 @@ def load_config() -> EdgeConfig:
         ),
         fall_model_path=_resolve_model_path(
             os.getenv("EDGE_FALL_MODEL_PATH", ""),
-            "edge/models/fall_det_1.pt",
+            "edge/models/best.pt",
         ),
         inference_device_request=os.getenv("EDGE_INFERENCE_DEVICE", "auto").strip() or "auto",
         person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
