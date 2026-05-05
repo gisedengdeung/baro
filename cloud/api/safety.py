@@ -5,7 +5,8 @@ from typing import Any
 from fastapi import APIRouter, Depends, HTTPException
 from pydantic import BaseModel
 
-from cloud.dependencies import get_safety_service, get_weather_service
+from cloud.dependencies import get_llm_service, get_safety_service, get_weather_service
+from cloud.services.llm_service import LLMService
 from cloud.services.safety_service import SafetyService
 from cloud.services.weather_service import WeatherService
 
@@ -57,3 +58,11 @@ async def refresh_weather(
     """기상 데이터 수동 새로고침 (평소엔 자동으로 1시간마다 실행됨)"""
     await weather.refresh()
     return {"status": "ok"}
+
+
+@router.post("/explain")
+async def explain_safety(
+    llm: LLMService = Depends(get_llm_service),
+) -> dict[str, Any]:
+    """오늘의 안전 데이터를 AI가 분석해 한국어 안전 진단 + 유의 문구를 반환합니다."""
+    return await llm.explain()

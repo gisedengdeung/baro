@@ -8,6 +8,7 @@ from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
+from cloud.services.llm_service import LLMService
 from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
@@ -57,6 +58,16 @@ def get_clip_service(request: Request) -> ClipService:
 
 def get_safety_service(request: Request) -> SafetyService:
     return _get_state_attr(request, "safety_service")
+
+
+def get_llm_service(request: Request) -> LLMService:
+    svc = getattr(request.app.state, "llm_service", None)
+    if svc is None:
+        raise HTTPException(
+            status_code=503,
+            detail="AI 분석 서비스 비활성화 (OPENAI_API_KEY 미설정)",
+        )
+    return svc
 
 
 def get_weather_service(request: Request) -> WeatherService:

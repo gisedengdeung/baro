@@ -18,6 +18,7 @@ from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
+from cloud.services.llm_service import LLMService
 from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
@@ -94,6 +95,17 @@ async def lifespan(app: FastAPI):
             safety_service=safety_service,
         )
     app.state.weather_service = weather_service
+
+    llm_service: LLMService | None = None
+    if cfg.openai_api_key:
+        llm_service = LLMService(
+            api_key=cfg.openai_api_key,
+            db_path=cfg.local_db_path,
+            safety_service=safety_service,
+        )
+    else:
+        logger.warning("OPENAI_API_KEY 미설정 - AI 분석 기능 비활성화")
+    app.state.llm_service = llm_service
 
     app.state.db_service = DBService(
         websocket_manager=websocket_manager,

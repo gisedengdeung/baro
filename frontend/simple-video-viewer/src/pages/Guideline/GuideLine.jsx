@@ -155,7 +155,81 @@ function scoreColor(score) {
   return "danger";
 }
 
-function SafetyContent({ data, history, loading }) {
+function AiAnalysisPanel({ analysis, loading, error, onRequest }) {
+  if (loading) {
+    return (
+      <div className="gl-ai-panel gl-ai-loading">
+        <span className="gl-ai-spinner" />
+        <span>AI가 오늘 안전 데이터를 분석하고 있습니다...</span>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="gl-ai-panel gl-ai-error">
+        <div className="gl-ai-error-msg">{error}</div>
+        <button className="gl-ai-retry-btn" onClick={onRequest}>다시 시도</button>
+      </div>
+    );
+  }
+
+  if (!analysis) {
+    return (
+      <div className="gl-ai-panel gl-ai-idle">
+        <div className="gl-ai-idle-icon">✦</div>
+        <div className="gl-ai-idle-text">AI가 오늘의 이벤트 로그와 안전점수를 종합 분석합니다.</div>
+        <button className="gl-ai-btn" onClick={onRequest}>AI 안전 분석 시작</button>
+      </div>
+    );
+  }
+
+  const { summary, warnings = [], recommendations = [] } = analysis;
+  return (
+    <div className="gl-ai-panel gl-ai-result">
+      <div className="gl-ai-result-head">
+        <span className="gl-ai-badge">AI 분석</span>
+        <button className="gl-ai-refresh-btn" onClick={onRequest}>새로고침</button>
+      </div>
+
+      <div className="gl-ai-summary">{summary}</div>
+
+      {warnings.length > 0 && (
+        <div className="gl-ai-warnings">
+          <div className="gl-ai-section-title">주의 필요 항목</div>
+          {warnings.map((w, i) => (
+            <div key={i} className="gl-ai-warning-card">
+              <div className="gl-ai-warning-head">
+                <span className="gl-ai-warning-label">{w.event_label}</span>
+                <span className="gl-ai-warning-count">
+                  {w.count}회 발생 · AI 기준 {w.threshold}회 이상
+                </span>
+              </div>
+              <div className="gl-ai-warning-msg">{w.message}</div>
+            </div>
+          ))}
+        </div>
+      )}
+
+      {warnings.length === 0 && (
+        <div className="gl-ai-no-warning">주의 필요 항목 없음 — 오늘 이벤트는 정상 범위입니다.</div>
+      )}
+
+      {recommendations.length > 0 && (
+        <div className="gl-ai-recs">
+          <div className="gl-ai-section-title">오늘의 안전 권고</div>
+          <ul className="gl-ai-rec-list">
+            {recommendations.map((r, i) => (
+              <li key={i} className="gl-ai-rec-item">{r}</li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError, onAiRequest }) {
   if (loading) {
     return <div className="gl-safety-loading">데이터 불러오는 중...</div>;
   }
@@ -207,7 +281,7 @@ function SafetyContent({ data, history, loading }) {
             {color === "danger" && "위험 수준"}
           </div>
           <div className="gl-score-note">
-            작업 난이도는 직접 감점하지 않고, 이벤트 감점 배율로만 반영됩니다.
+            금일 위험도는 직접 감점하지 않고, 이벤트 감점 배율로만 반영됩니다.
           </div>
         </div>
         <div className="gl-weather-box">
@@ -255,9 +329,9 @@ function SafetyContent({ data, history, loading }) {
         </div>
       </div>
 
-      {/* 작업 난이도 */}
+      {/* 금일 위험도 */}
       <div className="gl-difficulty-panel">
-        <div className="gl-panel-title">작업 난이도</div>
+        <div className="gl-panel-title">금일 위험도</div>
         <div className="gl-difficulty-summary">
           <div>
             <span className={`gl-difficulty-score gl-score-${difficultyColor}`}>
@@ -344,6 +418,16 @@ function SafetyContent({ data, history, loading }) {
           </div>
         </div>
       )}
+
+      {/* AI 안전 분석 */}
+      <div className="gl-ai-wrap">
+        <AiAnalysisPanel
+          analysis={aiAnalysis}
+          loading={aiLoading}
+          error={aiError}
+          onRequest={onAiRequest}
+        />
+      </div>
     </div>
   );
 }
@@ -356,6 +440,9 @@ export default function GuideLine() {
   const [safetyData, setSafetyData] = useState(null);
   const [safetyHistory, setSafetyHistory] = useState([]);
   const [safetyLoading, setSafetyLoading] = useState(false);
+  const [aiAnalysis, setAiAnalysis] = useState(null);
+  const [aiLoading, setAiLoading] = useState(false);
+  const [aiError, setAiError] = useState(null);
 
   useEffect(() => {
     const t = setTimeout(() => setVisible(true), 50);
@@ -383,6 +470,20 @@ export default function GuideLine() {
       fetchSafety();
     }
   }, [activeSection, fetchSafety]);
+
+  const fetchAiAnalysis = useCallback(async () => {
+    setAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await safetyAPI.explain();
+      setAiAnalysis(result.analysis);
+    } catch (e) {
+      const msg = e?.response?.data?.detail || "AI 분석 요청에 실패했습니다.";
+      setAiError(msg);
+    } finally {
+      setAiLoading(false);
+    }
+  }, []);
 
   const current = SECTIONS.find((s) => s.id === activeSection);
 
@@ -437,6 +538,10 @@ export default function GuideLine() {
               data={safetyData}
               history={safetyHistory}
               loading={safetyLoading}
+              aiAnalysis={aiAnalysis}
+              aiLoading={aiLoading}
+              aiError={aiError}
+              onAiRequest={fetchAiAnalysis}
             />
           ) : (
             <div className="gl-cards">

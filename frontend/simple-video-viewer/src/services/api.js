@@ -233,6 +233,10 @@ export const safetyAPI = {
     const response = await apiClient.get('/api/safety/history', { params: { days } });
     return response.data;
   },
+  explain: async () => {
+    const response = await apiClient.post('/api/safety/explain');
+    return response.data;
+  },
 };
 
 export const signalingAPI = {
