@@ -51,9 +51,6 @@ class FallDetector:
         return inter / denom
 
     def analyze(self, frame: np.ndarray, persons: List[Dict[str, Any]]) -> List[Dict[str, Any]]:
-        if not persons:
-            return []
-
         try:
             fall_results = self.model.predict(
                 source=frame,
@@ -66,30 +63,55 @@ class FallDetector:
             return persons
 
         fall_boxes: List[np.ndarray] = []
-        if fall_results and fall_results[0].boxes:
+        if fall_results and fall_results[0].boxes and len(fall_results[0].boxes):
+            raw_confs = [(self.model.names[int(b.cls)], float(b.conf[0])) for b in fall_results[0].boxes]
+            logger.info(f"[FallDetector] 원시 감지: {raw_confs}")
             for box in fall_results[0].boxes:
                 class_name = self.model.names[int(box.cls)]
-                if class_name == "fallen":
+                if class_name == "Fallen":
                     fall_boxes.append(box.xyxy[0].cpu().numpy().astype(int))
+        else:
+            logger.info("[FallDetector] 감지 결과 없음 (conf 임계값 미만 또는 미탐지)")
 
+        if not fall_boxes:
+            for person in persons:
+                person["pose_analysis"] = {
+                    "is_falling": False,
+                    "is_crouching": False,
+                    "risk_level": "low",
+                    "description": "Normal",
+                }
+            return persons
+
+        # fall 감지된 경우: 기존 person bbox와 IoU 매칭 시도
+        # 매칭 안 되면 fall_box를 person으로 직접 추가 (누운 상태라 PersonDetector가 놓친 경우)
+        matched_fall_indices: set[int] = set()
         for person in persons:
             person_bbox = np.array(person["bbox"])
-            analysis = {
-                "is_falling": False,
+            is_falling = False
+            for fi, fb in enumerate(fall_boxes):
+                if self._calculate_iou(person_bbox, fb) > 0.3:
+                    is_falling = True
+                    matched_fall_indices.add(fi)
+            person["pose_analysis"] = {
+                "is_falling": is_falling,
                 "is_crouching": False,
-                "risk_level": "low",
-                "description": "Normal",
+                "risk_level": "critical" if is_falling else "low",
+                "description": "Falling Detected" if is_falling else "Normal",
             }
 
-            is_falling = any(self._calculate_iou(person_bbox, fb) > 0.5 for fb in fall_boxes)
-            if is_falling:
-                analysis = {
-                    "is_falling": True,
-                    "is_crouching": False,
-                    "risk_level": "critical",
-                    "description": "Falling Detected",
-                }
-
-            person["pose_analysis"] = analysis
+        for fi, fb in enumerate(fall_boxes):
+            if fi not in matched_fall_indices:
+                x1, y1, x2, y2 = fb
+                persons.append({
+                    "bbox": [int(x1), int(y1), int(x2), int(y2)],
+                    "confidence": float(fall_results[0].boxes[fi].conf[0].item()),
+                    "pose_analysis": {
+                        "is_falling": True,
+                        "is_crouching": False,
+                        "risk_level": "critical",
+                        "description": "Falling Detected (unmatched)",
+                    },
+                })
 
         return persons
