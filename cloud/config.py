@@ -27,6 +27,9 @@ class CloudConfig:
     clip_presigned_url_ttl_sec: int
     aws_s3_bucket: str | None
     aws_region: str
+    kma_api_key: str | None
+    kma_asos_station_no: str
+    openai_api_key: str | None
 
 
 def _parse_bool(value: str, default: bool = False) -> bool:
@@ -40,6 +43,12 @@ def _require_env(name: str) -> str:
     if not value:
         raise RuntimeError(f"Missing required environment variable: {name}")
     return value
+
+
+def _parse_env_value(value: str | None, default: str) -> str:
+    if value is None:
+        return default
+    return value.split("#", 1)[0].strip() or default
 
 
 def load_config() -> CloudConfig:
@@ -83,4 +92,7 @@ def load_config() -> CloudConfig:
         clip_presigned_url_ttl_sec=int(os.getenv("CLIP_PRESIGNED_URL_TTL_SEC", "300")),
         aws_s3_bucket=aws_s3_bucket,
         aws_region=os.getenv("AWS_REGION", "ap-northeast-2").strip() or "ap-northeast-2",
+        kma_api_key=(os.getenv("KMA_API_KEY") or "").strip() or None,
+        kma_asos_station_no=_parse_env_value(os.getenv("KMA_ASOS_STATION_NO"), "119"),  # 기본: 경기 수원
+        openai_api_key=(os.getenv("OPENAI_API_KEY") or "").strip() or None,
     )

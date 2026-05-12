@@ -1,0 +1,3073 @@
+{
+  "description": "중업종별 사업장 규모 위험도. 사고재해자 규모별 비중 40% + 사망자 규모별 비중 60%를 합성하고, 업종 내 최대 구간을 10점으로 정규화했다.",
+  "source_files": [
+    "사고재해자규모중업종.xlsx",
+    "사망자규모중업종.xlsx"
+  ],
+  "formula": {
+    "composite_share_pct": "accident_share_pct * 0.4 + fatality_share_pct * 0.6",
+    "risk": "composite_share_pct / max(composite_share_pct within same industry) * 10"
+  },
+  "size_weights": {
+    "건설업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 8277,
+        "fatality_count": 212,
+        "accident_share_pct": 38.45,
+        "fatality_share_pct": 37.26,
+        "composite_share_pct": 37.74
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 3.19,
+        "accident_count": 2280,
+        "fatality_count": 74,
+        "accident_share_pct": 10.59,
+        "fatality_share_pct": 13.01,
+        "composite_share_pct": 12.04
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.59,
+        "accident_count": 2812,
+        "fatality_count": 79,
+        "accident_share_pct": 13.06,
+        "fatality_share_pct": 13.88,
+        "composite_share_pct": 13.56
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.48,
+        "accident_count": 1421,
+        "fatality_count": 28,
+        "accident_share_pct": 6.6,
+        "fatality_share_pct": 4.92,
+        "composite_share_pct": 5.59
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 1.52,
+        "accident_count": 1156,
+        "fatality_count": 34,
+        "accident_share_pct": 5.37,
+        "fatality_share_pct": 5.98,
+        "composite_share_pct": 5.73
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.32,
+        "accident_count": 1314,
+        "fatality_count": 24,
+        "accident_share_pct": 6.1,
+        "fatality_share_pct": 4.22,
+        "composite_share_pct": 4.97
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 3.24,
+        "accident_count": 2266,
+        "fatality_count": 76,
+        "accident_share_pct": 10.53,
+        "fatality_share_pct": 13.36,
+        "composite_share_pct": 12.23
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.88,
+        "accident_count": 983,
+        "fatality_count": 14,
+        "accident_share_pct": 4.57,
+        "fatality_share_pct": 2.46,
+        "composite_share_pct": 3.3
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.71,
+        "accident_count": 543,
+        "fatality_count": 16,
+        "accident_share_pct": 2.52,
+        "fatality_share_pct": 2.81,
+        "composite_share_pct": 2.7
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.57,
+        "accident_count": 472,
+        "fatality_count": 12,
+        "accident_share_pct": 2.19,
+        "fatality_share_pct": 2.11,
+        "composite_share_pct": 2.14
+      }
+    },
+    "국가및지방자치단체의사업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 5.37,
+        "accident_count": 461,
+        "fatality_count": 3,
+        "accident_share_pct": 8.59,
+        "fatality_share_pct": 12.5,
+        "composite_share_pct": 10.94
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 3.7,
+        "accident_count": 340,
+        "fatality_count": 2,
+        "accident_share_pct": 6.34,
+        "fatality_share_pct": 8.33,
+        "composite_share_pct": 7.53
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 5.05,
+        "accident_count": 707,
+        "fatality_count": 2,
+        "accident_share_pct": 13.18,
+        "fatality_share_pct": 8.33,
+        "composite_share_pct": 10.27
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 8.19,
+        "accident_count": 896,
+        "fatality_count": 4,
+        "accident_share_pct": 16.7,
+        "fatality_share_pct": 16.67,
+        "composite_share_pct": 16.68
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 10.0,
+        "accident_count": 1054,
+        "fatality_count": 5,
+        "accident_share_pct": 19.64,
+        "fatality_share_pct": 20.83,
+        "composite_share_pct": 20.36
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 3.08,
+        "accident_count": 506,
+        "fatality_count": 1,
+        "accident_share_pct": 9.43,
+        "fatality_share_pct": 4.17,
+        "composite_share_pct": 6.27
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 4.3,
+        "accident_count": 504,
+        "fatality_count": 2,
+        "accident_share_pct": 9.39,
+        "fatality_share_pct": 8.33,
+        "composite_share_pct": 8.76
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 2.11,
+        "accident_count": 241,
+        "fatality_count": 1,
+        "accident_share_pct": 4.49,
+        "fatality_share_pct": 4.17,
+        "composite_share_pct": 4.3
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 6.74,
+        "accident_count": 498,
+        "fatality_count": 4,
+        "accident_share_pct": 9.28,
+        "fatality_share_pct": 16.67,
+        "composite_share_pct": 13.71
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.58,
+        "accident_count": 159,
+        "fatality_count": 0,
+        "accident_share_pct": 2.96,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.19
+      }
+    },
+    "금속제련업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.07,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 0.65,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.26
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.27,
+        "accident_count": 4,
+        "fatality_count": 0,
+        "accident_share_pct": 2.61,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.05
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.14,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 1.31,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.52
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.41,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 3.92,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.57
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.0,
+        "accident_count": 4,
+        "fatality_count": 1,
+        "accident_share_pct": 2.61,
+        "fatality_share_pct": 11.11,
+        "composite_share_pct": 7.71
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 10.0,
+        "accident_count": 20,
+        "fatality_count": 5,
+        "accident_share_pct": 13.07,
+        "fatality_share_pct": 55.56,
+        "composite_share_pct": 38.56
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.34,
+        "accident_count": 5,
+        "fatality_count": 0,
+        "accident_share_pct": 3.27,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.31
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 3.08,
+        "accident_count": 20,
+        "fatality_count": 1,
+        "accident_share_pct": 13.07,
+        "fatality_share_pct": 11.11,
+        "composite_share_pct": 11.9
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 9.63,
+        "accident_count": 91,
+        "fatality_count": 2,
+        "accident_share_pct": 59.48,
+        "fatality_share_pct": 22.22,
+        "composite_share_pct": 37.12
+      }
+    },
+    "금융및보험업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 62,
+        "fatality_count": 5,
+        "accident_share_pct": 10.49,
+        "fatality_share_pct": 23.81,
+        "composite_share_pct": 18.48
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 8.12,
+        "accident_count": 53,
+        "fatality_count": 4,
+        "accident_share_pct": 8.97,
+        "fatality_share_pct": 19.05,
+        "composite_share_pct": 15.02
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 9.11,
+        "accident_count": 80,
+        "fatality_count": 4,
+        "accident_share_pct": 13.54,
+        "fatality_share_pct": 19.05,
+        "composite_share_pct": 16.84
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 6.62,
+        "accident_count": 54,
+        "fatality_count": 3,
+        "accident_share_pct": 9.14,
+        "fatality_share_pct": 14.29,
+        "composite_share_pct": 12.23
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 3.22,
+        "accident_count": 88,
+        "fatality_count": 0,
+        "accident_share_pct": 14.89,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 5.96
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 4.4,
+        "accident_count": 78,
+        "fatality_count": 1,
+        "accident_share_pct": 13.2,
+        "fatality_share_pct": 4.76,
+        "composite_share_pct": 8.14
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 3.3,
+        "accident_count": 48,
+        "fatality_count": 1,
+        "accident_share_pct": 8.12,
+        "fatality_share_pct": 4.76,
+        "composite_share_pct": 6.11
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 2.06,
+        "accident_count": 14,
+        "fatality_count": 1,
+        "accident_share_pct": 2.37,
+        "fatality_share_pct": 4.76,
+        "composite_share_pct": 3.8
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.66,
+        "accident_count": 18,
+        "fatality_count": 0,
+        "accident_share_pct": 3.05,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.22
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 6.61,
+        "accident_count": 96,
+        "fatality_count": 2,
+        "accident_share_pct": 16.24,
+        "fatality_share_pct": 9.52,
+        "composite_share_pct": 12.21
+      }
+    },
+    "기계기구·금속·비금속광물제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 2636,
+        "fatality_count": 80,
+        "accident_share_pct": 24.68,
+        "fatality_share_pct": 26.76,
+        "composite_share_pct": 25.93
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 5.18,
+        "accident_count": 1553,
+        "fatality_count": 38,
+        "accident_share_pct": 14.54,
+        "fatality_share_pct": 12.71,
+        "composite_share_pct": 13.44
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 5.62,
+        "accident_count": 1696,
+        "fatality_count": 41,
+        "accident_share_pct": 15.88,
+        "fatality_share_pct": 13.71,
+        "composite_share_pct": 14.58
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 3.8,
+        "accident_count": 970,
+        "fatality_count": 31,
+        "accident_share_pct": 9.08,
+        "fatality_share_pct": 10.37,
+        "composite_share_pct": 9.85
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 3.93,
+        "accident_count": 900,
+        "fatality_count": 34,
+        "accident_share_pct": 8.43,
+        "fatality_share_pct": 11.37,
+        "composite_share_pct": 10.19
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 3.35,
+        "accident_count": 712,
+        "fatality_count": 30,
+        "accident_share_pct": 6.67,
+        "fatality_share_pct": 10.03,
+        "composite_share_pct": 8.69
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 3.08,
+        "accident_count": 848,
+        "fatality_count": 24,
+        "accident_share_pct": 7.94,
+        "fatality_share_pct": 8.03,
+        "composite_share_pct": 7.99
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 1.09,
+        "accident_count": 273,
+        "fatality_count": 9,
+        "accident_share_pct": 2.56,
+        "fatality_share_pct": 3.01,
+        "composite_share_pct": 2.83
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.51,
+        "accident_count": 244,
+        "fatality_count": 2,
+        "accident_share_pct": 2.28,
+        "fatality_share_pct": 0.67,
+        "composite_share_pct": 1.32
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 2.0,
+        "accident_count": 847,
+        "fatality_count": 10,
+        "accident_share_pct": 7.93,
+        "fatality_share_pct": 3.34,
+        "composite_share_pct": 5.18
+      }
+    },
+    "기타의각종사업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 766,
+        "fatality_count": 18,
+        "accident_share_pct": 46.62,
+        "fatality_share_pct": 51.43,
+        "composite_share_pct": 49.51
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 2.99,
+        "accident_count": 256,
+        "fatality_count": 5,
+        "accident_share_pct": 15.58,
+        "fatality_share_pct": 14.29,
+        "composite_share_pct": 14.8
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 2.11,
+        "accident_count": 217,
+        "fatality_count": 3,
+        "accident_share_pct": 13.21,
+        "fatality_share_pct": 8.57,
+        "composite_share_pct": 10.43
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.14,
+        "accident_count": 91,
+        "fatality_count": 2,
+        "accident_share_pct": 5.54,
+        "fatality_share_pct": 5.71,
+        "composite_share_pct": 5.64
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 1.11,
+        "accident_count": 84,
+        "fatality_count": 2,
+        "accident_share_pct": 5.11,
+        "fatality_share_pct": 5.71,
+        "composite_share_pct": 5.47
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.75,
+        "accident_count": 82,
+        "fatality_count": 1,
+        "accident_share_pct": 4.99,
+        "fatality_share_pct": 2.86,
+        "composite_share_pct": 3.71
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.72,
+        "accident_count": 75,
+        "fatality_count": 1,
+        "accident_share_pct": 4.56,
+        "fatality_share_pct": 2.86,
+        "composite_share_pct": 3.54
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.44,
+        "accident_count": 20,
+        "fatality_count": 1,
+        "accident_share_pct": 1.22,
+        "fatality_share_pct": 2.86,
+        "composite_share_pct": 2.2
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.43,
+        "accident_count": 17,
+        "fatality_count": 1,
+        "accident_share_pct": 1.03,
+        "fatality_share_pct": 2.86,
+        "composite_share_pct": 2.13
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.52,
+        "accident_count": 35,
+        "fatality_count": 1,
+        "accident_share_pct": 2.13,
+        "fatality_share_pct": 2.86,
+        "composite_share_pct": 2.57
+      }
+    },
+    "농업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 346,
+        "fatality_count": 5,
+        "accident_share_pct": 48.66,
+        "fatality_share_pct": 50.0,
+        "composite_share_pct": 49.47
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 4.02,
+        "accident_count": 140,
+        "fatality_count": 2,
+        "accident_share_pct": 19.69,
+        "fatality_share_pct": 20.0,
+        "composite_share_pct": 19.88
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.62,
+        "accident_count": 105,
+        "fatality_count": 2,
+        "accident_share_pct": 14.77,
+        "fatality_share_pct": 20.0,
+        "composite_share_pct": 17.91
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.88,
+        "accident_count": 59,
+        "fatality_count": 1,
+        "accident_share_pct": 8.3,
+        "fatality_share_pct": 10.0,
+        "composite_share_pct": 9.32
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.5,
+        "accident_count": 44,
+        "fatality_count": 0,
+        "accident_share_pct": 6.19,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.48
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.15,
+        "accident_count": 13,
+        "fatality_count": 0,
+        "accident_share_pct": 1.83,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.73
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.05,
+        "accident_count": 4,
+        "fatality_count": 0,
+        "accident_share_pct": 0.56,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.23
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "도소매·음식·숙박업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 8406,
+        "fatality_count": 42,
+        "accident_share_pct": 42.01,
+        "fatality_share_pct": 47.19,
+        "composite_share_pct": 45.12
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 5.38,
+        "accident_count": 3722,
+        "fatality_count": 25,
+        "accident_share_pct": 18.6,
+        "fatality_share_pct": 28.09,
+        "composite_share_pct": 24.29
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 2.86,
+        "accident_count": 3074,
+        "fatality_count": 10,
+        "accident_share_pct": 15.36,
+        "fatality_share_pct": 11.24,
+        "composite_share_pct": 12.89
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.73,
+        "accident_count": 1316,
+        "fatality_count": 1,
+        "accident_share_pct": 6.58,
+        "fatality_share_pct": 1.12,
+        "composite_share_pct": 3.31
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 1.11,
+        "accident_count": 1151,
+        "fatality_count": 4,
+        "accident_share_pct": 5.75,
+        "fatality_share_pct": 4.49,
+        "composite_share_pct": 5.0
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.63,
+        "accident_count": 755,
+        "fatality_count": 2,
+        "accident_share_pct": 3.77,
+        "fatality_share_pct": 2.25,
+        "composite_share_pct": 2.86
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.64,
+        "accident_count": 759,
+        "fatality_count": 2,
+        "accident_share_pct": 3.79,
+        "fatality_share_pct": 2.25,
+        "composite_share_pct": 2.87
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.33,
+        "accident_count": 402,
+        "fatality_count": 1,
+        "accident_share_pct": 2.01,
+        "fatality_share_pct": 1.12,
+        "composite_share_pct": 1.48
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.25,
+        "accident_count": 217,
+        "fatality_count": 1,
+        "accident_share_pct": 1.08,
+        "fatality_share_pct": 1.12,
+        "composite_share_pct": 1.11
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.24,
+        "accident_count": 206,
+        "fatality_count": 1,
+        "accident_share_pct": 1.03,
+        "fatality_share_pct": 1.12,
+        "composite_share_pct": 1.09
+      }
+    },
+    "목재및종이제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 8.74,
+        "accident_count": 368,
+        "fatality_count": 2,
+        "accident_share_pct": 29.92,
+        "fatality_share_pct": 11.76,
+        "composite_share_pct": 19.03
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 8.24,
+        "accident_count": 226,
+        "fatality_count": 3,
+        "accident_share_pct": 18.37,
+        "fatality_share_pct": 17.65,
+        "composite_share_pct": 17.94
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 10.0,
+        "accident_count": 235,
+        "fatality_count": 4,
+        "accident_share_pct": 19.11,
+        "fatality_share_pct": 23.53,
+        "composite_share_pct": 21.76
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 3.34,
+        "accident_count": 115,
+        "fatality_count": 1,
+        "accident_share_pct": 9.35,
+        "fatality_share_pct": 5.88,
+        "composite_share_pct": 7.27
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 4.57,
+        "accident_count": 89,
+        "fatality_count": 2,
+        "accident_share_pct": 7.24,
+        "fatality_share_pct": 11.76,
+        "composite_share_pct": 9.95
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.64,
+        "accident_count": 68,
+        "fatality_count": 1,
+        "accident_share_pct": 5.53,
+        "fatality_share_pct": 5.88,
+        "composite_share_pct": 5.74
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 8.03,
+        "accident_count": 103,
+        "fatality_count": 4,
+        "accident_share_pct": 8.37,
+        "fatality_share_pct": 23.53,
+        "composite_share_pct": 17.47
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.34,
+        "accident_count": 23,
+        "fatality_count": 0,
+        "accident_share_pct": 1.87,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.75
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.04,
+        "accident_count": 3,
+        "fatality_count": 0,
+        "accident_share_pct": 0.24,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.1
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "부동산업및임대업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 138,
+        "fatality_count": 1,
+        "accident_share_pct": 53.28,
+        "fatality_share_pct": 100.0,
+        "composite_share_pct": 81.31
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.72,
+        "accident_count": 38,
+        "fatality_count": 0,
+        "accident_share_pct": 14.67,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 5.87
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.59,
+        "accident_count": 31,
+        "fatality_count": 0,
+        "accident_share_pct": 11.97,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.79
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.28,
+        "accident_count": 15,
+        "fatality_count": 0,
+        "accident_share_pct": 5.79,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.32
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.11,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 2.32,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.93
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.21,
+        "accident_count": 11,
+        "fatality_count": 0,
+        "accident_share_pct": 4.25,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.7
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.09,
+        "accident_count": 5,
+        "fatality_count": 0,
+        "accident_share_pct": 1.93,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.77
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.11,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 2.32,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.93
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.15,
+        "accident_count": 8,
+        "fatality_count": 0,
+        "accident_share_pct": 3.09,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.24
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.02,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 0.39,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.15
+      }
+    },
+    "석탄광업및채석업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 2.87,
+        "accident_count": 2,
+        "fatality_count": 12,
+        "accident_share_pct": 14.29,
+        "fatality_share_pct": 3.18,
+        "composite_share_pct": 7.62
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.6,
+        "accident_count": 0,
+        "fatality_count": 10,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 2.65,
+        "composite_share_pct": 1.59
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 4.84,
+        "accident_count": 4,
+        "fatality_count": 9,
+        "accident_share_pct": 28.57,
+        "fatality_share_pct": 2.39,
+        "composite_share_pct": 12.86
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 2.81,
+        "accident_count": 2,
+        "fatality_count": 11,
+        "accident_share_pct": 14.29,
+        "fatality_share_pct": 2.92,
+        "composite_share_pct": 7.46
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 2.27,
+        "accident_count": 1,
+        "fatality_count": 20,
+        "accident_share_pct": 7.14,
+        "fatality_share_pct": 5.31,
+        "composite_share_pct": 6.04
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 3.77,
+        "accident_count": 1,
+        "fatality_count": 45,
+        "accident_share_pct": 7.14,
+        "fatality_share_pct": 11.94,
+        "composite_share_pct": 10.02
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 6.71,
+        "accident_count": 0,
+        "fatality_count": 112,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 29.71,
+        "composite_share_pct": 17.82
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 1.74,
+        "accident_count": 0,
+        "fatality_count": 29,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 7.69,
+        "composite_share_pct": 4.62
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 10.0,
+        "accident_count": 3,
+        "fatality_count": 113,
+        "accident_share_pct": 21.43,
+        "fatality_share_pct": 29.97,
+        "composite_share_pct": 26.56
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 2.03,
+        "accident_count": 1,
+        "fatality_count": 16,
+        "accident_share_pct": 7.14,
+        "fatality_share_pct": 4.24,
+        "composite_share_pct": 5.4
+      }
+    },
+    "석회석·금속·비금속광업및기타광업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 26,
+        "fatality_count": 10,
+        "accident_share_pct": 26.26,
+        "fatality_share_pct": 32.26,
+        "composite_share_pct": 29.86
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 4.08,
+        "accident_count": 11,
+        "fatality_count": 4,
+        "accident_share_pct": 11.11,
+        "fatality_share_pct": 12.9,
+        "composite_share_pct": 12.19
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.73,
+        "accident_count": 18,
+        "fatality_count": 2,
+        "accident_share_pct": 18.18,
+        "fatality_share_pct": 6.45,
+        "composite_share_pct": 11.14
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 4.0,
+        "accident_count": 20,
+        "fatality_count": 2,
+        "accident_share_pct": 20.2,
+        "fatality_share_pct": 6.45,
+        "composite_share_pct": 11.95
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 3.33,
+        "accident_count": 15,
+        "fatality_count": 2,
+        "accident_share_pct": 15.15,
+        "fatality_share_pct": 6.45,
+        "composite_share_pct": 9.93
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 4.43,
+        "accident_count": 4,
+        "fatality_count": 6,
+        "accident_share_pct": 4.04,
+        "fatality_share_pct": 19.35,
+        "composite_share_pct": 13.23
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 2.62,
+        "accident_count": 5,
+        "fatality_count": 3,
+        "accident_share_pct": 5.05,
+        "fatality_share_pct": 9.68,
+        "composite_share_pct": 7.83
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 1.3,
+        "accident_count": 0,
+        "fatality_count": 2,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 6.45,
+        "composite_share_pct": 3.87
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "선박건조및수리업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 4.32,
+        "accident_count": 240,
+        "fatality_count": 12,
+        "accident_share_pct": 14.71,
+        "fatality_share_pct": 19.35,
+        "composite_share_pct": 17.5
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 1.32,
+        "accident_count": 139,
+        "fatality_count": 2,
+        "accident_share_pct": 8.52,
+        "fatality_share_pct": 3.23,
+        "composite_share_pct": 5.34
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 1.19,
+        "accident_count": 117,
+        "fatality_count": 2,
+        "accident_share_pct": 7.17,
+        "fatality_share_pct": 3.23,
+        "composite_share_pct": 4.8
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.86,
+        "accident_count": 70,
+        "fatality_count": 6,
+        "accident_share_pct": 4.29,
+        "fatality_share_pct": 9.68,
+        "composite_share_pct": 7.52
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 1.6,
+        "accident_count": 67,
+        "fatality_count": 5,
+        "accident_share_pct": 4.11,
+        "fatality_share_pct": 8.06,
+        "composite_share_pct": 6.48
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.25,
+        "accident_count": 135,
+        "fatality_count": 6,
+        "accident_share_pct": 8.27,
+        "fatality_share_pct": 9.68,
+        "composite_share_pct": 9.12
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 1.85,
+        "accident_count": 148,
+        "fatality_count": 4,
+        "accident_share_pct": 9.07,
+        "fatality_share_pct": 6.45,
+        "composite_share_pct": 7.5
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.07,
+        "accident_count": 12,
+        "fatality_count": 0,
+        "accident_share_pct": 0.74,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.29
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.24,
+        "accident_count": 39,
+        "fatality_count": 0,
+        "accident_share_pct": 2.39,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.96
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 10.0,
+        "accident_count": 665,
+        "fatality_count": 25,
+        "accident_share_pct": 40.75,
+        "fatality_share_pct": 40.32,
+        "composite_share_pct": 40.49
+      }
+    },
+    "섬유및섬유제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 194,
+        "fatality_count": 6,
+        "accident_share_pct": 26.29,
+        "fatality_share_pct": 24.0,
+        "composite_share_pct": 24.91
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 5.5,
+        "accident_count": 120,
+        "fatality_count": 3,
+        "accident_share_pct": 16.26,
+        "fatality_share_pct": 12.0,
+        "composite_share_pct": 13.7
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 6.59,
+        "accident_count": 126,
+        "fatality_count": 4,
+        "accident_share_pct": 17.07,
+        "fatality_share_pct": 16.0,
+        "composite_share_pct": 16.43
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 4.65,
+        "accident_count": 81,
+        "fatality_count": 3,
+        "accident_share_pct": 10.98,
+        "fatality_share_pct": 12.0,
+        "composite_share_pct": 11.59
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 2.68,
+        "accident_count": 79,
+        "fatality_count": 1,
+        "accident_share_pct": 10.7,
+        "fatality_share_pct": 4.0,
+        "composite_share_pct": 6.68
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.46,
+        "accident_count": 67,
+        "fatality_count": 0,
+        "accident_share_pct": 9.08,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 3.63
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 2.12,
+        "accident_count": 53,
+        "fatality_count": 1,
+        "accident_share_pct": 7.18,
+        "fatality_share_pct": 4.0,
+        "composite_share_pct": 5.27
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.24,
+        "accident_count": 11,
+        "fatality_count": 0,
+        "accident_share_pct": 1.49,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.6
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.15,
+        "accident_count": 7,
+        "fatality_count": 0,
+        "accident_share_pct": 0.95,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.38
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 6.74,
+        "accident_count": 0,
+        "fatality_count": 7,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 28.0,
+        "composite_share_pct": 16.8
+      }
+    },
+    "수제품및기타제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 282,
+        "fatality_count": 7,
+        "accident_share_pct": 28.2,
+        "fatality_share_pct": 46.67,
+        "composite_share_pct": 39.28
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 1.78,
+        "accident_count": 175,
+        "fatality_count": 0,
+        "accident_share_pct": 17.5,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 7.0
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 5.97,
+        "accident_count": 186,
+        "fatality_count": 4,
+        "accident_share_pct": 18.6,
+        "fatality_share_pct": 26.67,
+        "composite_share_pct": 23.44
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 2.24,
+        "accident_count": 120,
+        "fatality_count": 1,
+        "accident_share_pct": 12.0,
+        "fatality_share_pct": 6.67,
+        "composite_share_pct": 8.8
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 1.18,
+        "accident_count": 116,
+        "fatality_count": 0,
+        "accident_share_pct": 11.6,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.64
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.86,
+        "accident_count": 83,
+        "fatality_count": 1,
+        "accident_share_pct": 8.3,
+        "fatality_share_pct": 6.67,
+        "composite_share_pct": 7.32
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 2.31,
+        "accident_count": 27,
+        "fatality_count": 2,
+        "accident_share_pct": 2.7,
+        "fatality_share_pct": 13.33,
+        "composite_share_pct": 9.08
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.06,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 0.6,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.24
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.05,
+        "accident_count": 5,
+        "fatality_count": 0,
+        "accident_share_pct": 0.5,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.2
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "시설관리및사업지원서비스업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 2645,
+        "fatality_count": 50,
+        "accident_share_pct": 26.01,
+        "fatality_share_pct": 30.3,
+        "composite_share_pct": 28.58
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 8.05,
+        "accident_count": 2152,
+        "fatality_count": 40,
+        "accident_share_pct": 21.16,
+        "fatality_share_pct": 24.24,
+        "composite_share_pct": 23.01
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 6.64,
+        "accident_count": 1869,
+        "fatality_count": 32,
+        "accident_share_pct": 18.38,
+        "fatality_share_pct": 19.39,
+        "composite_share_pct": 18.99
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 3.41,
+        "accident_count": 907,
+        "fatality_count": 17,
+        "accident_share_pct": 8.92,
+        "fatality_share_pct": 10.3,
+        "composite_share_pct": 9.75
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 2.66,
+        "accident_count": 1012,
+        "fatality_count": 10,
+        "accident_share_pct": 9.95,
+        "fatality_share_pct": 6.06,
+        "composite_share_pct": 7.62
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.37,
+        "accident_count": 893,
+        "fatality_count": 9,
+        "accident_share_pct": 8.78,
+        "fatality_share_pct": 5.45,
+        "composite_share_pct": 6.78
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 1.2,
+        "accident_count": 499,
+        "fatality_count": 4,
+        "accident_share_pct": 4.91,
+        "fatality_share_pct": 2.42,
+        "composite_share_pct": 3.42
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.25,
+        "accident_count": 92,
+        "fatality_count": 1,
+        "accident_share_pct": 0.9,
+        "fatality_share_pct": 0.61,
+        "composite_share_pct": 0.73
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.21,
+        "accident_count": 59,
+        "fatality_count": 1,
+        "accident_share_pct": 0.58,
+        "fatality_share_pct": 0.61,
+        "composite_share_pct": 0.6
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.19,
+        "accident_count": 43,
+        "fatality_count": 1,
+        "accident_share_pct": 0.42,
+        "fatality_share_pct": 0.61,
+        "composite_share_pct": 0.53
+      }
+    },
+    "식료품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 444,
+        "fatality_count": 8,
+        "accident_share_pct": 13.88,
+        "fatality_share_pct": 36.36,
+        "composite_share_pct": 27.37
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 3.85,
+        "accident_count": 406,
+        "fatality_count": 2,
+        "accident_share_pct": 12.69,
+        "fatality_share_pct": 9.09,
+        "composite_share_pct": 10.53
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 4.78,
+        "accident_count": 610,
+        "fatality_count": 2,
+        "accident_share_pct": 19.07,
+        "fatality_share_pct": 9.09,
+        "composite_share_pct": 13.08
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 2.37,
+        "accident_count": 301,
+        "fatality_count": 1,
+        "accident_share_pct": 9.41,
+        "fatality_share_pct": 4.55,
+        "composite_share_pct": 6.49
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 4.81,
+        "accident_count": 399,
+        "fatality_count": 3,
+        "accident_share_pct": 12.47,
+        "fatality_share_pct": 13.64,
+        "composite_share_pct": 13.17
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.91,
+        "accident_count": 418,
+        "fatality_count": 1,
+        "accident_share_pct": 13.07,
+        "fatality_share_pct": 4.55,
+        "composite_share_pct": 7.95
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 4.93,
+        "accident_count": 425,
+        "fatality_count": 3,
+        "accident_share_pct": 13.29,
+        "fatality_share_pct": 13.64,
+        "composite_share_pct": 13.5
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.5,
+        "accident_count": 110,
+        "fatality_count": 0,
+        "accident_share_pct": 3.44,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.38
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.27,
+        "accident_count": 59,
+        "fatality_count": 0,
+        "accident_share_pct": 1.84,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.74
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 2.12,
+        "accident_count": 27,
+        "fatality_count": 2,
+        "accident_share_pct": 0.84,
+        "fatality_share_pct": 9.09,
+        "composite_share_pct": 5.79
+      }
+    },
+    "어업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 16,
+        "fatality_count": 0,
+        "accident_share_pct": 43.24,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 17.3
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 9.38,
+        "accident_count": 15,
+        "fatality_count": 0,
+        "accident_share_pct": 40.54,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 16.22
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.75,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 16.22,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 6.49
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "육상및수상운수업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 6592,
+        "fatality_count": 95,
+        "accident_share_pct": 52.98,
+        "fatality_share_pct": 45.89,
+        "composite_share_pct": 48.73
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.81,
+        "accident_count": 328,
+        "fatality_count": 10,
+        "accident_share_pct": 2.64,
+        "fatality_share_pct": 4.83,
+        "composite_share_pct": 3.95
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.99,
+        "accident_count": 423,
+        "fatality_count": 12,
+        "accident_share_pct": 3.4,
+        "fatality_share_pct": 5.8,
+        "composite_share_pct": 4.84
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.0,
+        "accident_count": 260,
+        "fatality_count": 14,
+        "accident_share_pct": 2.09,
+        "fatality_share_pct": 6.76,
+        "composite_share_pct": 4.89
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.87,
+        "accident_count": 320,
+        "fatality_count": 11,
+        "accident_share_pct": 2.57,
+        "fatality_share_pct": 5.31,
+        "composite_share_pct": 4.22
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.59,
+        "accident_count": 519,
+        "fatality_count": 21,
+        "accident_share_pct": 4.17,
+        "fatality_share_pct": 10.14,
+        "composite_share_pct": 7.76
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 1.53,
+        "accident_count": 691,
+        "fatality_count": 18,
+        "accident_share_pct": 5.55,
+        "fatality_share_pct": 8.7,
+        "composite_share_pct": 7.44
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.44,
+        "accident_count": 220,
+        "fatality_count": 5,
+        "accident_share_pct": 1.77,
+        "fatality_share_pct": 2.42,
+        "composite_share_pct": 2.16
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.3,
+        "accident_count": 101,
+        "fatality_count": 4,
+        "accident_share_pct": 0.81,
+        "fatality_share_pct": 1.93,
+        "composite_share_pct": 1.48
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 2.98,
+        "accident_count": 2989,
+        "fatality_count": 17,
+        "accident_share_pct": 24.02,
+        "fatality_share_pct": 8.21,
+        "composite_share_pct": 14.54
+      }
+    },
+    "의약품·화장품·연탄·석유제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 7.98,
+        "accident_count": 27,
+        "fatality_count": 3,
+        "accident_share_pct": 7.3,
+        "fatality_share_pct": 33.33,
+        "composite_share_pct": 22.92
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 10.0,
+        "accident_count": 19,
+        "fatality_count": 4,
+        "accident_share_pct": 5.14,
+        "fatality_share_pct": 44.44,
+        "composite_share_pct": 28.72
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.49,
+        "accident_count": 31,
+        "fatality_count": 1,
+        "accident_share_pct": 8.38,
+        "fatality_share_pct": 11.11,
+        "composite_share_pct": 10.02
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.02,
+        "accident_count": 27,
+        "fatality_count": 0,
+        "accident_share_pct": 7.3,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.92
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.87,
+        "accident_count": 23,
+        "fatality_count": 0,
+        "accident_share_pct": 6.22,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.49
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.45,
+        "accident_count": 65,
+        "fatality_count": 0,
+        "accident_share_pct": 17.57,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 7.03
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 6.24,
+        "accident_count": 104,
+        "fatality_count": 1,
+        "accident_share_pct": 28.11,
+        "fatality_share_pct": 11.11,
+        "composite_share_pct": 17.91
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.98,
+        "accident_count": 26,
+        "fatality_count": 0,
+        "accident_share_pct": 7.03,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.81
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 1.02,
+        "accident_count": 27,
+        "fatality_count": 0,
+        "accident_share_pct": 7.3,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.92
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.79,
+        "accident_count": 21,
+        "fatality_count": 0,
+        "accident_share_pct": 5.68,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.27
+      }
+    },
+    "임업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 441,
+        "fatality_count": 13,
+        "accident_share_pct": 51.82,
+        "fatality_share_pct": 61.9,
+        "composite_share_pct": 57.87
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 5.61,
+        "accident_count": 204,
+        "fatality_count": 8,
+        "accident_share_pct": 23.97,
+        "fatality_share_pct": 38.1,
+        "composite_share_pct": 32.45
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 1.1,
+        "accident_count": 135,
+        "fatality_count": 0,
+        "accident_share_pct": 15.86,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 6.35
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.32,
+        "accident_count": 39,
+        "fatality_count": 0,
+        "accident_share_pct": 4.58,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.83
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.19,
+        "accident_count": 24,
+        "fatality_count": 0,
+        "accident_share_pct": 2.82,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.13
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.05,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 0.71,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.28
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.02,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 0.24,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.09
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "전기·가스·증기·수도사업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 0.83,
+        "accident_count": 7,
+        "fatality_count": 0,
+        "accident_share_pct": 7.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 3.11
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.83,
+        "accident_count": 7,
+        "fatality_count": 0,
+        "accident_share_pct": 7.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 3.11
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.83,
+        "accident_count": 7,
+        "fatality_count": 0,
+        "accident_share_pct": 7.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 3.11
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.18,
+        "accident_count": 10,
+        "fatality_count": 0,
+        "accident_share_pct": 11.11,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.44
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 5.65,
+        "accident_count": 14,
+        "fatality_count": 1,
+        "accident_share_pct": 15.56,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 21.22
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 10.0,
+        "accident_count": 17,
+        "fatality_count": 2,
+        "accident_share_pct": 18.89,
+        "fatality_share_pct": 50.0,
+        "composite_share_pct": 37.56
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 5.41,
+        "accident_count": 12,
+        "fatality_count": 1,
+        "accident_share_pct": 13.33,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 20.33
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.47,
+        "accident_count": 4,
+        "fatality_count": 0,
+        "accident_share_pct": 4.44,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.78
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.36,
+        "accident_count": 3,
+        "fatality_count": 0,
+        "accident_share_pct": 3.33,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.33
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 1.07,
+        "accident_count": 9,
+        "fatality_count": 0,
+        "accident_share_pct": 10.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.0
+      }
+    },
+    "전기기계기구·정밀기구·전자제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 8.2,
+        "accident_count": 208,
+        "fatality_count": 6,
+        "accident_share_pct": 12.62,
+        "fatality_share_pct": 20.69,
+        "composite_share_pct": 17.46
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 3.71,
+        "accident_count": 155,
+        "fatality_count": 2,
+        "accident_share_pct": 9.41,
+        "fatality_share_pct": 6.9,
+        "composite_share_pct": 7.9
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 3.99,
+        "accident_count": 179,
+        "fatality_count": 2,
+        "accident_share_pct": 10.86,
+        "fatality_share_pct": 6.9,
+        "composite_share_pct": 8.48
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.28,
+        "accident_count": 112,
+        "fatality_count": 0,
+        "accident_share_pct": 6.8,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.72
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 3.38,
+        "accident_count": 126,
+        "fatality_count": 2,
+        "accident_share_pct": 7.65,
+        "fatality_share_pct": 6.9,
+        "composite_share_pct": 7.2
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 3.18,
+        "accident_count": 194,
+        "fatality_count": 1,
+        "accident_share_pct": 11.77,
+        "fatality_share_pct": 3.45,
+        "composite_share_pct": 6.78
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 6.74,
+        "accident_count": 250,
+        "fatality_count": 4,
+        "accident_share_pct": 15.17,
+        "fatality_share_pct": 13.79,
+        "composite_share_pct": 14.34
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 4.63,
+        "accident_count": 150,
+        "fatality_count": 3,
+        "accident_share_pct": 9.1,
+        "fatality_share_pct": 10.34,
+        "composite_share_pct": 9.85
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 1.87,
+        "accident_count": 79,
+        "fatality_count": 1,
+        "accident_share_pct": 4.79,
+        "fatality_share_pct": 3.45,
+        "composite_share_pct": 3.99
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 10.0,
+        "accident_count": 195,
+        "fatality_count": 8,
+        "accident_share_pct": 11.83,
+        "fatality_share_pct": 27.59,
+        "composite_share_pct": 21.28
+      }
+    },
+    "전문·보건·교육·여가관련서비스업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 9.29,
+        "accident_count": 1837,
+        "fatality_count": 15,
+        "accident_share_pct": 15.35,
+        "fatality_share_pct": 15.96,
+        "composite_share_pct": 15.71
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 4.6,
+        "accident_count": 992,
+        "fatality_count": 7,
+        "accident_share_pct": 8.29,
+        "fatality_share_pct": 7.45,
+        "composite_share_pct": 7.78
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 9.23,
+        "accident_count": 1423,
+        "fatality_count": 17,
+        "accident_share_pct": 11.89,
+        "fatality_share_pct": 18.09,
+        "composite_share_pct": 15.61
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 4.68,
+        "accident_count": 1032,
+        "fatality_count": 7,
+        "accident_share_pct": 8.62,
+        "fatality_share_pct": 7.45,
+        "composite_share_pct": 7.92
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 7.43,
+        "accident_count": 1659,
+        "fatality_count": 11,
+        "accident_share_pct": 13.86,
+        "fatality_share_pct": 11.7,
+        "composite_share_pct": 12.57
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 10.0,
+        "accident_count": 2196,
+        "fatality_count": 15,
+        "accident_share_pct": 18.35,
+        "fatality_share_pct": 15.96,
+        "composite_share_pct": 16.91
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 8.11,
+        "accident_count": 1810,
+        "fatality_count": 12,
+        "accident_share_pct": 15.12,
+        "fatality_share_pct": 12.77,
+        "composite_share_pct": 13.71
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 1.57,
+        "accident_count": 414,
+        "fatality_count": 2,
+        "accident_share_pct": 3.46,
+        "fatality_share_pct": 2.13,
+        "composite_share_pct": 2.66
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.56,
+        "accident_count": 285,
+        "fatality_count": 0,
+        "accident_share_pct": 2.38,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.95
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 3.65,
+        "accident_count": 319,
+        "fatality_count": 8,
+        "accident_share_pct": 2.67,
+        "fatality_share_pct": 8.51,
+        "composite_share_pct": 6.17
+      }
+    },
+    "주한미군": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.15,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 2.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.11
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.3,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 5.56,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.22
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.3,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 5.56,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.22
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 0.15,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 2.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.11
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 10.0,
+        "accident_count": 12,
+        "fatality_count": 1,
+        "accident_share_pct": 33.33,
+        "fatality_share_pct": 100.0,
+        "composite_share_pct": 73.33
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.3,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 5.56,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.22
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.15,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 2.78,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.11
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 2.27,
+        "accident_count": 15,
+        "fatality_count": 0,
+        "accident_share_pct": 41.67,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 16.67
+      }
+    },
+    "철도·항공·창고·운수관련서비스업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 1108,
+        "fatality_count": 13,
+        "accident_share_pct": 28.55,
+        "fatality_share_pct": 23.21,
+        "composite_share_pct": 25.35
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 2.53,
+        "accident_count": 206,
+        "fatality_count": 4,
+        "accident_share_pct": 5.31,
+        "fatality_share_pct": 7.14,
+        "composite_share_pct": 6.41
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 2.72,
+        "accident_count": 254,
+        "fatality_count": 4,
+        "accident_share_pct": 6.54,
+        "fatality_share_pct": 7.14,
+        "composite_share_pct": 6.9
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.97,
+        "accident_count": 172,
+        "fatality_count": 3,
+        "accident_share_pct": 4.43,
+        "fatality_share_pct": 5.36,
+        "composite_share_pct": 4.99
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 5.08,
+        "accident_count": 211,
+        "fatality_count": 10,
+        "accident_share_pct": 5.44,
+        "fatality_share_pct": 17.86,
+        "composite_share_pct": 12.89
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 2.74,
+        "accident_count": 258,
+        "fatality_count": 4,
+        "accident_share_pct": 6.65,
+        "fatality_share_pct": 7.14,
+        "composite_share_pct": 6.94
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 3.33,
+        "accident_count": 403,
+        "fatality_count": 4,
+        "accident_share_pct": 10.38,
+        "fatality_share_pct": 7.14,
+        "composite_share_pct": 8.44
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.79,
+        "accident_count": 194,
+        "fatality_count": 0,
+        "accident_share_pct": 5.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 2.0
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 4.07,
+        "accident_count": 274,
+        "fatality_count": 7,
+        "accident_share_pct": 7.06,
+        "fatality_share_pct": 12.5,
+        "composite_share_pct": 10.32
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 6.22,
+        "accident_count": 801,
+        "fatality_count": 7,
+        "accident_share_pct": 20.64,
+        "fatality_share_pct": 12.5,
+        "composite_share_pct": 15.76
+      }
+    },
+    "출판·인쇄·제본업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 10.0,
+        "accident_count": 80,
+        "fatality_count": 2,
+        "accident_share_pct": 22.66,
+        "fatality_share_pct": 50.0,
+        "composite_share_pct": 39.07
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 1.62,
+        "accident_count": 56,
+        "fatality_count": 0,
+        "accident_share_pct": 15.86,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 6.35
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 2.09,
+        "accident_count": 72,
+        "fatality_count": 0,
+        "accident_share_pct": 20.4,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 8.16
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.42,
+        "accident_count": 49,
+        "fatality_count": 0,
+        "accident_share_pct": 13.88,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 5.55
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 4.65,
+        "accident_count": 28,
+        "fatality_count": 1,
+        "accident_share_pct": 7.93,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 18.17
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.28,
+        "accident_count": 44,
+        "fatality_count": 0,
+        "accident_share_pct": 12.46,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.99
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 4.33,
+        "accident_count": 17,
+        "fatality_count": 1,
+        "accident_share_pct": 4.82,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 16.93
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.17,
+        "accident_count": 6,
+        "fatality_count": 0,
+        "accident_share_pct": 1.7,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.68
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.03,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 0.28,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.11
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "통신업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 1.06,
+        "accident_count": 29,
+        "fatality_count": 0,
+        "accident_share_pct": 16.02,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 6.41
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 0.8,
+        "accident_count": 22,
+        "fatality_count": 0,
+        "accident_share_pct": 12.15,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.86
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 0.73,
+        "accident_count": 20,
+        "fatality_count": 0,
+        "accident_share_pct": 11.05,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 4.42
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 1.13,
+        "accident_count": 31,
+        "fatality_count": 0,
+        "accident_share_pct": 17.13,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 6.85
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 0.99,
+        "accident_count": 27,
+        "fatality_count": 0,
+        "accident_share_pct": 14.92,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 5.97
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 1.61,
+        "accident_count": 44,
+        "fatality_count": 0,
+        "accident_share_pct": 24.31,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 9.72
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 0.18,
+        "accident_count": 5,
+        "fatality_count": 0,
+        "accident_share_pct": 2.76,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.1
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.04,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 0.55,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.22
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 10.0,
+        "accident_count": 2,
+        "fatality_count": 1,
+        "accident_share_pct": 1.1,
+        "fatality_share_pct": 100.0,
+        "composite_share_pct": 60.44
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      }
+    },
+    "해외파견자": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 1.52,
+        "accident_count": 3,
+        "fatality_count": 0,
+        "accident_share_pct": 14.29,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 5.71
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 10.0,
+        "accident_count": 4,
+        "fatality_count": 2,
+        "accident_share_pct": 19.05,
+        "fatality_share_pct": 50.0,
+        "composite_share_pct": 37.62
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 1.01,
+        "accident_count": 2,
+        "fatality_count": 0,
+        "accident_share_pct": 9.52,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 3.81
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 2.03,
+        "accident_count": 4,
+        "fatality_count": 0,
+        "accident_share_pct": 19.05,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 7.62
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 6.01,
+        "accident_count": 4,
+        "fatality_count": 1,
+        "accident_share_pct": 19.05,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 22.62
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 5.0,
+        "accident_count": 2,
+        "fatality_count": 1,
+        "accident_share_pct": 9.52,
+        "fatality_share_pct": 25.0,
+        "composite_share_pct": 18.81
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 0.0,
+        "accident_count": 0,
+        "fatality_count": 0,
+        "accident_share_pct": 0.0,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.0
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.51,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 4.76,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.9
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 0.51,
+        "accident_count": 1,
+        "fatality_count": 0,
+        "accident_share_pct": 4.76,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 1.9
+      }
+    },
+    "화학및고무제품제조업": {
+      "5인 미만": {
+        "min": 0,
+        "max": 4,
+        "risk": 6.69,
+        "accident_count": 393,
+        "fatality_count": 7,
+        "accident_share_pct": 16.31,
+        "fatality_share_pct": 14.89,
+        "composite_share_pct": 15.46
+      },
+      "5~9인": {
+        "min": 5,
+        "max": 9,
+        "risk": 3.03,
+        "accident_count": 345,
+        "fatality_count": 1,
+        "accident_share_pct": 14.32,
+        "fatality_share_pct": 2.13,
+        "composite_share_pct": 7.0
+      },
+      "10~19인": {
+        "min": 10,
+        "max": 19,
+        "risk": 10.0,
+        "accident_count": 392,
+        "fatality_count": 13,
+        "accident_share_pct": 16.27,
+        "fatality_share_pct": 27.66,
+        "composite_share_pct": 23.1
+      },
+      "20~29인": {
+        "min": 20,
+        "max": 29,
+        "risk": 5.03,
+        "accident_count": 239,
+        "fatality_count": 6,
+        "accident_share_pct": 9.92,
+        "fatality_share_pct": 12.77,
+        "composite_share_pct": 11.63
+      },
+      "30~49인": {
+        "min": 30,
+        "max": 49,
+        "risk": 4.41,
+        "accident_count": 229,
+        "fatality_count": 5,
+        "accident_share_pct": 9.5,
+        "fatality_share_pct": 10.64,
+        "composite_share_pct": 10.18
+      },
+      "50~99인": {
+        "min": 50,
+        "max": 99,
+        "risk": 3.86,
+        "accident_count": 229,
+        "fatality_count": 4,
+        "accident_share_pct": 9.5,
+        "fatality_share_pct": 8.51,
+        "composite_share_pct": 8.91
+      },
+      "100~299인": {
+        "min": 100,
+        "max": 299,
+        "risk": 4.69,
+        "accident_count": 268,
+        "fatality_count": 5,
+        "accident_share_pct": 11.12,
+        "fatality_share_pct": 10.64,
+        "composite_share_pct": 10.83
+      },
+      "300~499인": {
+        "min": 300,
+        "max": 499,
+        "risk": 1.55,
+        "accident_count": 62,
+        "fatality_count": 2,
+        "accident_share_pct": 2.57,
+        "fatality_share_pct": 4.26,
+        "composite_share_pct": 3.58
+      },
+      "500~999인": {
+        "min": 500,
+        "max": 999,
+        "risk": 0.29,
+        "accident_count": 40,
+        "fatality_count": 0,
+        "accident_share_pct": 1.66,
+        "fatality_share_pct": 0.0,
+        "composite_share_pct": 0.66
+      },
+      "1,000인 이상": {
+        "min": 1000,
+        "max": null,
+        "risk": 3.74,
+        "accident_count": 213,
+        "fatality_count": 4,
+        "accident_share_pct": 8.84,
+        "fatality_share_pct": 8.51,
+        "composite_share_pct": 8.64
+      }
+    }
+  }
+}

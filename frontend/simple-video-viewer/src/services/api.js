@@ -224,6 +224,21 @@ export const controlAPI = {
   },
 };
 
+export const safetyAPI = {
+  getScore: async () => {
+    const response = await apiClient.get('/api/safety/score');
+    return response.data;
+  },
+  getHistory: async (days = 7) => {
+    const response = await apiClient.get('/api/safety/history', { params: { days } });
+    return response.data;
+  },
+  explain: async () => {
+    const response = await apiClient.post('/api/safety/explain');
+    return response.data;
+  },
+};
+
 export const signalingAPI = {
   getOffer: async () => {
     const response = await apiClient.get('/api/signaling/offer', {

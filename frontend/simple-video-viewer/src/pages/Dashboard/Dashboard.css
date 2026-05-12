@@ -411,6 +411,7 @@ CSS 변수 (디자인 토큰)
   gap: 16px;
   overflow: hidden;
   min-width: 0;
+  min-height: 0;
 }
 
 .stream-panel {
@@ -421,12 +422,35 @@ CSS 변수 (디자인 토큰)
 .control-panel {
   flex: 1 1 0%;
   min-width: 0;
+  min-height: 0;
   max-width: none;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+.control-top-section {
+  flex: 1 1 0%;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   gap: 10px;
   overflow-y: auto;
   overflow-x: hidden;
+  padding-bottom: 4px;
+  scrollbar-width: thin;
+  scrollbar-color: #f59e0b var(--primary-bg);
+}
+.control-top-section::-webkit-scrollbar {
+  width: 6px;
+}
+.control-top-section::-webkit-scrollbar-track {
+  background: var(--primary-bg);
+}
+.control-top-section::-webkit-scrollbar-thumb {
+  background-color: #f59e0b;
+  border-radius: 3px;
 }
 
 /* 중형 화면 (태블릿 가로, 작은 모니터) */
@@ -479,16 +503,6 @@ CSS 변수 (디자인 토큰)
   .sidebar-label {
     font-size: 9px;
   }
-}
-.control-panel::-webkit-scrollbar {
-  width: 6px;
-}
-.control-panel::-webkit-scrollbar-track {
-  background: var(--primary-bg);
-}
-.control-panel::-webkit-scrollbar-thumb {
-  background-color: #f59e0b;
-  border-radius: 3px;
 }
 
 /* 시스템 정보 섹션 (System Infos)
@@ -1252,8 +1266,8 @@ CSS 변수 (디자인 토큰)
 
 /* 남은 높이를 모두 차지하는 flex 아이템 */
 .log-board {
-  flex: 1;
-  min-height: 0;
+  flex: 0.3 0 80px;
+  min-height: 80px;
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -2313,4 +2327,212 @@ translateX로 슬라이드하여 탭 전환 효과 구현
 .camera-switch-desc--hint {
   color: var(--accent-color);
   font-weight: 500;
+}
+
+/* ── SafetyWidget ── */
+.safety-widget {
+  background: var(--secondary-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 12px;
+}
+
+.safety-widget h3 {
+  margin: 0 0 4px;
+  font-size: 18px;
+  color: var(--accent-color);
+  border-bottom: 1px solid var(--border-color);
+  padding-bottom: 8px;
+}
+
+/* 점수 행 */
+.sw-score-row {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+.sw-score-num {
+  font-size: 40px;
+  font-weight: 800;
+  line-height: 1;
+  min-width: 52px;
+  text-align: center;
+}
+.sw-score-unit {
+  font-size: 18px;
+  font-weight: 600;
+  margin-left: 2px;
+  vertical-align: baseline;
+}
+.sw-score-num.sw-ok {
+  color: var(--status-ok);
+}
+.sw-score-num.sw-warning {
+  color: var(--status-warning);
+}
+.sw-score-num.sw-danger {
+  color: var(--status-danger);
+}
+
+.sw-score-info {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  flex: 1;
+}
+.sw-badge {
+  display: inline-block;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 10px;
+  border-radius: 4px;
+  width: fit-content;
+}
+.sw-badge.sw-ok {
+  background: rgba(16, 185, 129, 0.12);
+  color: var(--status-ok);
+  border: 1px solid rgba(16, 185, 129, 0.25);
+}
+.sw-badge.sw-warning {
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--status-warning);
+  border: 1px solid rgba(245, 158, 11, 0.25);
+}
+.sw-badge.sw-danger {
+  background: rgba(239, 68, 68, 0.12);
+  color: var(--status-danger);
+  border: 1px solid rgba(239, 68, 68, 0.25);
+}
+
+.sw-streak {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+
+.sw-difficulty {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3px;
+}
+.sw-diff-label {
+  font-size: 10px;
+  color: var(--text-secondary);
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.sw-diff-level {
+  font-size: 12px;
+  font-weight: 700;
+}
+.sw-diff-level.sw-diff-ok {
+  color: var(--status-ok);
+}
+.sw-diff-level.sw-diff-warning {
+  color: var(--status-warning);
+}
+.sw-diff-level.sw-diff-danger {
+  color: var(--status-danger);
+}
+.sw-diff-mult {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+
+/* AI 분석 행 */
+.sw-ai-row {
+  border-top: 1px solid var(--border-color);
+  padding-top: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.sw-ai-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.sw-ai-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--accent-color);
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+.sw-ai-time {
+  font-size: 11px;
+  color: var(--text-secondary);
+}
+.sw-ai-btn {
+  background: rgba(245, 158, 11, 0.12);
+  border: 1px solid rgba(245, 158, 11, 0.3);
+  border-radius: 5px;
+  color: var(--accent-color);
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.sw-ai-btn:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.22);
+}
+.sw-ai-btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.sw-ai-empty,
+.sw-ai-safe {
+  font-size: 12px;
+  color: var(--text-secondary);
+}
+.sw-ai-safe {
+  color: var(--status-ok);
+}
+
+.sw-ai-warnings {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.sw-ai-warn-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 12px;
+  color: var(--text-primary);
+  line-height: 1.5;
+}
+.sw-warn-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--status-danger);
+  flex-shrink: 0;
+  margin-top: 5px;
+}
+.sw-warn-text strong {
+  color: var(--status-danger);
+}
+.sw-warn-msg {
+  color: var(--text-secondary);
+}
+
+.sw-ai-more {
+  font-size: 11px;
+  color: var(--text-secondary);
+  padding-left: 14px;
+}
+
+.sw-ai-summary {
+  font-size: 12px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  border-left: 2px solid var(--border-color);
+  padding-left: 10px;
 }

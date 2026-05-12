@@ -7,6 +7,7 @@ import useAuthStore from "../../store/useAuthStore";
 import useDashboardStore from "../../store/useDashboardStore";
 
 import LiveStreamContent from "../../components/dashboard/LiveStreamContent";
+import SafetyWidget from "../../components/dashboard/SafetyWidget";
 import DangerZoneSelector from "../../components/dashboard/DangerZoneSelector";
 import ZoneConfigPanel from "../../components/dashboard/ZoneConfigPanel";
 import ZoneOverlay from "../../components/dashboard/ZoneOverlay";
@@ -200,6 +201,10 @@ function Dashboard() {
             ))}
           </div>
           <div className="sidebar-bottom-nav">
+            <button className="sidebar-item" onClick={() => navigate("/guideline")}>
+              <span className="sidebar-icon">🛡️</span>
+              <span className="sidebar-label">가이드라인</span>
+            </button>
             <button className="sidebar-item" onClick={handleLogout}>
               <span className="sidebar-icon">🚪</span>
               <span className="sidebar-label">로그아웃</span>
@@ -340,6 +345,7 @@ function Dashboard() {
           </section>
 
           <aside className="control-panel" style={{ position: "relative" }}>
+            <div className="control-top-section">
             <div className="system-infos">
               <h3>시스템 정보</h3>
               <div className="time-card">
@@ -415,6 +421,8 @@ function Dashboard() {
                 </div>
               </div>
             </div>
+
+            <SafetyWidget />
 
             <div className="system-power-card">
               <div className="system-power-buttons">
@@ -515,6 +523,7 @@ function Dashboard() {
                 🛑 긴급 정지
               </button>
             </div>
+            </div>{/* control-top-section */}
 
             <div className="log-board panel-card">
               <div className="log-board-header">
