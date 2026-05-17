@@ -6,6 +6,8 @@ import { useShallow } from "zustand/react/shallow";
 import useAuthStore from "../../store/useAuthStore";
 import useDashboardStore from "../../store/useDashboardStore";
 
+import { edgesAPI } from "../../services/api";
+import { useTheme } from "../../hooks/useTheme";
 import LiveStreamContent from "../../components/dashboard/LiveStreamContent";
 import SafetyWidget from "../../components/dashboard/SafetyWidget";
 import DangerZoneSelector from "../../components/dashboard/DangerZoneSelector";
@@ -15,23 +17,6 @@ import VideoLogTable from "../../components/dashboard/VideoLogTable";
 import StatsPage from "../../components/dashboard/StatsPage";
 import "./Dashboard.css";
 
-// 카메라 목록 — 실제 API 연결 시 이 배열을 교체하거나 상태로 관리하세요
-const CAMERA_LIST = [
-  {
-    id: 1,
-    name: "카메라 · 도시/라팅",
-    location: "공장 1구역",
-    status: "online",
-    risk: "warning",
-  },
-  {
-    id: 2,
-    name: "카메라 안전 관리",
-    location: "공장 2구역",
-    status: "online",
-    risk: "safe",
-  },
-];
 
 function Dashboard() {
   const navigate = useNavigate();
@@ -81,6 +66,11 @@ function Dashboard() {
   );
 
   // ✅ 액션은 개별 selector로 안정적으로 참조
+  const { theme, toggleTheme } = useTheme();
+
+  const activeEdgeId = useDashboardStore((s) => s.activeEdgeId);
+  const storeSetActiveEdgeId = useDashboardStore((s) => s.setActiveEdgeId);
+
   const handleControl = useDashboardStore((s) => s.handleControl);
   const resetSystem = useDashboardStore((s) => s.resetSystem);
   const setTestSpeedInput = useDashboardStore((s) => s.setTestSpeedInput);
@@ -106,12 +96,20 @@ function Dashboard() {
   const [showTestRun, setShowTestRun] = useState(false);
   const [showMaintenanceBlock, setShowMaintenanceBlock] = useState(false);
 
-  // 선택된 카메라 — null이면 아직 미선택 (카메라 탭에서 선택)
-  const [selectedCamera, setSelectedCamera] = useState(null);
+  const [edges, setEdges] = useState([]);
+  const [edgesLoading, setEdgesLoading] = useState(false);
 
   useEffect(() => {
     if (operationMode !== "STOPPED") setIsEmergencyStopped(false);
   }, [operationMode]);
+
+  useEffect(() => {
+    setEdgesLoading(true);
+    edgesAPI.getEdges()
+      .then(setEdges)
+      .catch(() => {})
+      .finally(() => setEdgesLoading(false));
+  }, []);
 
   // ✅ deps 빈 배열 + getState() → 마운트/언마운트 1회만 실행
   useEffect(() => {
@@ -177,10 +175,13 @@ function Dashboard() {
             <span></span>
             <span></span>
           </button>
-          <div className="logo">STOP</div>
-          <div className="factory-label">Subtitle</div>
+          <div className="logo">BARO</div>
         </div>
         <div className="right-info">
+          <button className="header-theme-btn" onClick={toggleTheme}>
+            <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+            <span className="header-theme-label">모드 변경</span>
+          </button>
           <div className="date-time">{currentTime.split(" / ")[0]}</div>
         </div>
       </header>
@@ -213,10 +214,6 @@ function Dashboard() {
               <span className="sidebar-icon">👤</span>
               <span className="sidebar-label">{user?.role || "user"}</span>
             </button>
-            <button className="sidebar-item">
-              <span className="sidebar-icon">⚙</span>
-              <span className="sidebar-label">설정</span>
-            </button>
           </div>
         </nav>
 
@@ -236,9 +233,12 @@ function Dashboard() {
           <main className="camera-switch-page">
             <h2 className="stats-page-title">카메라 선택</h2>
             <p className="camera-switch-desc">
-              {selectedCamera ? (
+              {activeEdgeId ? (
                 <>
-                  현재 보고 있는 카메라: <strong>{selectedCamera.name}</strong>
+                  현재 보고 있는 카메라:{" "}
+                  <strong>
+                    {edges.find((e) => e.id === activeEdgeId)?.name ?? activeEdgeId}
+                  </strong>
                 </>
               ) : (
                 <span className="camera-switch-desc--hint">
@@ -247,64 +247,66 @@ function Dashboard() {
               )}
             </p>
             <div className="camera-switch-grid">
-              {CAMERA_LIST.map((cam) => (
-                <div
-                  key={cam.id}
-                  className={`camera-switch-card ${selectedCamera?.id === cam.id ? "camera-switch-card--active" : ""} ${cam.status === "offline" ? "camera-switch-card--offline" : ""}`}
-                  onClick={() => {
-                    if (cam.status !== "offline") {
-                      setSelectedCamera(cam);
-                      setSidebarSection("dashboard");
-                    }
-                  }}
-                >
-                  <div className="camera-switch-card__thumb">
-                    {cam.status === "offline" ? (
-                      <div className="camera-switch-card__offline">
-                        <span>📷</span>
-                        <span>오프라인</span>
-                      </div>
-                    ) : (
-                      <div className="camera-switch-card__live">
-                        <span className="camera-switch-card__live-dot"></span>
-                        <span>LIVE</span>
-                      </div>
-                    )}
-                    {cam.risk && (
-                      <span
-                        className={`camera-switch-card__badge camera-switch-card__badge--${cam.risk}`}
-                      >
-                        {cam.risk === "warning" ? "WARNING" : "SAFE"}
-                      </span>
-                    )}
-                    {selectedCamera?.id === cam.id && (
-                      <div className="camera-switch-card__active-label">
-                        현재 선택
-                      </div>
-                    )}
-                  </div>
-                  <div className="camera-switch-card__info">
-                    <span
-                      className="camera-switch-card__dot"
-                      data-status={cam.status}
-                    ></span>
-                    <div className="camera-switch-card__text">
-                      <span className="camera-switch-card__name">
-                        {cam.name}
-                      </span>
-                      <span className="camera-switch-card__location">
-                        {cam.location}
-                      </span>
+              {edgesLoading && (
+                <p className="camera-switch-desc--hint">카메라 목록 불러오는 중...</p>
+              )}
+              {!edgesLoading && edges.length === 0 && (
+                <p className="camera-switch-desc--hint">등록된 카메라가 없습니다.</p>
+              )}
+              {edges.map((edge) => {
+                const status = edge.is_active ? "online" : "offline";
+                const isActive = edge.id === activeEdgeId;
+                return (
+                  <div
+                    key={edge.id}
+                    className={`camera-switch-card ${isActive ? "camera-switch-card--active" : ""} ${status === "offline" ? "camera-switch-card--offline" : ""}`}
+                    onClick={() => {
+                      if (status !== "offline") {
+                        storeSetActiveEdgeId(edge.id);
+                        setSidebarSection("dashboard");
+                      }
+                    }}
+                  >
+                    <div className="camera-switch-card__thumb">
+                      {status === "offline" ? (
+                        <div className="camera-switch-card__offline">
+                          <span>📷</span>
+                          <span>오프라인</span>
+                        </div>
+                      ) : (
+                        <div className="camera-switch-card__live">
+                          <span className="camera-switch-card__live-dot"></span>
+                          <span>LIVE</span>
+                        </div>
+                      )}
+                      {isActive && (
+                        <div className="camera-switch-card__active-label">
+                          현재 선택
+                        </div>
+                      )}
                     </div>
-                    {selectedCamera?.id !== cam.id &&
-                      cam.status !== "offline" && (
+                    <div className="camera-switch-card__info">
+                      <span
+                        className="camera-switch-card__dot"
+                        data-status={status}
+                      ></span>
+                      <div className="camera-switch-card__text">
+                        <span className="camera-switch-card__name">
+                          {edge.name}
+                        </span>
+                        <span className="camera-switch-card__location">
+                          {edge.id}
+                        </span>
+                      </div>
+                      {!isActive && status !== "offline" && (
                         <button className="camera-switch-card__select-btn">
                           전환 →
                         </button>
                       )}
+                    </div>
                   </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           </main>
         )}

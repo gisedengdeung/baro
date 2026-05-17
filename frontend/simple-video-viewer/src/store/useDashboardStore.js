@@ -4,6 +4,7 @@ import {
   getWsUrl,
   logAPI,
   runtimeConfig,
+  setActiveEdgeId as setApiEdgeId,
   zoneAPI,
 } from "../services/api";
 
@@ -78,6 +79,8 @@ const useDashboardStore = create((set, get) => ({
   newZoneName: "",
   imageSize: null,
 
+  activeEdgeId: runtimeConfig.edgeId,
+
   wsStatus: "closed",
   videoStatus: "idle",
   currentTime: "",
@@ -111,16 +114,20 @@ const useDashboardStore = create((set, get) => ({
 
     shouldReconnect = true;
     set({ wsStatus: "connecting" });
-    socketInstance = new WebSocket(getWsUrl("/ws/logs"));
 
-    socketInstance.onopen = () => {
+    const edgeId = get().activeEdgeId;
+    const wsPath = edgeId ? `/ws/logs?edge_id=${encodeURIComponent(edgeId)}` : "/ws/logs";
+    const ws = new WebSocket(getWsUrl(wsPath));
+    socketInstance = ws;
+
+    ws.onopen = () => {
       set({ wsStatus: "open" });
       // 재연결 성공 시 최신 데이터 동기화
       get().fetchSystemStatus();
       get().fetchLogs(false);
     };
 
-    socketInstance.onmessage = (event) => {
+    ws.onmessage = (event) => {
       try {
         const message = JSON.parse(event.data);
 
@@ -187,11 +194,13 @@ const useDashboardStore = create((set, get) => ({
       }
     };
 
-    socketInstance.onerror = () => {
+    ws.onerror = () => {
       set({ wsStatus: "error" });
     };
 
-    socketInstance.onclose = () => {
+    ws.onclose = () => {
+      // 이미 다른 소켓으로 교체된 경우 무시 (edge 전환 시 race condition 방지)
+      if (socketInstance !== ws) return;
       socketInstance = null;
       set({ wsStatus: "closed" });
 
@@ -236,6 +245,19 @@ const useDashboardStore = create((set, get) => ({
   },
 
   setVideoStatus: (status) => set({ videoStatus: status }),
+
+  setActiveEdgeId: (id) => {
+    setApiEdgeId(id);
+    // 기존 소켓을 즉시 교체 — onclose guard가 이전 소켓의 재연결을 막음
+    const old = socketInstance;
+    socketInstance = null;
+    if (old) old.close(4000, "Edge switch");
+    set({ activeEdgeId: id });
+    get().connect();
+    get().fetchSystemStatus();
+    get().fetchLogs(false);
+    get().fetchZones();
+  },
 
   fetchSystemStatus: async () => {
     try {

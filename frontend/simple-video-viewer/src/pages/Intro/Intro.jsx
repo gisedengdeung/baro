@@ -52,7 +52,7 @@ function Intro() {
               onClick={scrollToTop}
               style={{ textDecoration: "none", color: "inherit" }}
             >
-              STOP
+              BARO
             </Link>
           </div>
           <nav className="intro-nav">
@@ -96,7 +96,7 @@ function Intro() {
             가장 스마트하게 지키는 방법
           </h2>
           <p>
-            STOP은 최첨단 AI 기술로 중대재해를 예방하고
+            BARO는 최첨단 AI 기술로 중대재해를 예방하고
             <br />
             모두가 안심하고 일할 수 있는 작업 환경을 만듭니다.
           </p>
@@ -243,7 +243,7 @@ function Intro() {
       <section className="intro-cta">
         <div className="cta-content">
           <h2>지금 바로 시작하세요</h2>
-          <p>더 안전한 산업 현장, STOP이 함께합니다.</p>
+          <p>더 안전한 산업 현장, BARO가 함께합니다.</p>
           <button className="cta-button" onClick={() => navigate("/signup")}>
             지금 시작하기
           </button>

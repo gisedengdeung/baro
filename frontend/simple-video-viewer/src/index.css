@@ -7,6 +7,47 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
+/* ── 공통 테마 토글 스위치 ── */
+.theme-toggle {
+  display: inline-flex;
+  align-items: center;
+  cursor: pointer;
+  user-select: none;
+  flex-shrink: 0;
+}
+.theme-toggle input {
+  display: none;
+}
+.theme-toggle-track {
+  width: 44px;
+  height: 24px;
+  background: #1f2937;
+  border-radius: 9999px;
+  border: 2px solid #374151;
+  position: relative;
+  transition: background 0.25s, border-color 0.25s;
+  flex-shrink: 0;
+}
+.theme-toggle input:checked + .theme-toggle-track {
+  background: #d1d5db;
+  border-color: #9ca3af;
+}
+.theme-toggle-thumb {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: #ffffff;
+  border-radius: 50%;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  transition: transform 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.theme-toggle input:checked + .theme-toggle-track .theme-toggle-thumb {
+  transform: translateX(20px);
+  background: #374151;
+}
+
 code {
   font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
     monospace;

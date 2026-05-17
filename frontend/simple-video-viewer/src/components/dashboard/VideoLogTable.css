@@ -332,3 +332,25 @@
   background: #3b82f6;
   color: #fff;
 }
+
+/* ── 라이트 모드 ── */
+[data-theme="light"] .modern-table thead,
+[data-theme="light"] .vlt-player-header {
+  background: #e2e8f0;
+}
+[data-theme="light"] .modern-table {
+  color: #0f172a;
+}
+[data-theme="light"] .modern-table tbody tr:hover {
+  background-color: rgba(27, 86, 138, 0.05);
+}
+[data-theme="light"] .modern-table tbody tr.active {
+  background-color: rgba(27, 86, 138, 0.1) !important;
+}
+[data-theme="light"] .table-wrapper::-webkit-scrollbar-thumb {
+  background: #94a3b8;
+}
+[data-theme="light"] .mode-badge {
+  background: #e2e8f0;
+  color: #334155;
+}

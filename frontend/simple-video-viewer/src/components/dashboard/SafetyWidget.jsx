@@ -89,30 +89,28 @@ export default function SafetyWidget() {
         </div>
 
         {!aiCache ? (
-          <div className="sw-ai-empty">분석 결과 없음</div>
+          <div className="sw-ai-empty">분석 결과 없음 — 새 분석을 실행하세요</div>
         ) : (
           <>
             {hasWarnings ? (
               <div className="sw-ai-warnings">
-                {warnings.slice(0, 2).map((w, i) => (
-                  <div key={i} className="sw-ai-warn-item">
-                    <span className="sw-warn-dot" />
-                    <span className="sw-warn-text">
-                      <strong>{w.event_label}</strong> {w.count}회
-                      <span className="sw-warn-msg"> — {w.message.slice(0, 30)}{w.message.length > 30 ? "…" : ""}</span>
-                    </span>
+                {warnings.map((w, i) => (
+                  <div key={i} className="sw-ai-warn-card">
+                    <div className="sw-warn-card-header">
+                      <span className="sw-warn-card-label">{w.event_label}</span>
+                      <span className="sw-warn-card-count">{w.count}회</span>
+                    </div>
+                    <div className="sw-warn-card-msg">{w.message}</div>
                   </div>
                 ))}
-                {warnings.length > 2 && (
-                  <div className="sw-ai-more">+{warnings.length - 2}건 더</div>
-                )}
               </div>
             ) : (
-              <div className="sw-ai-safe">경고 없음 — 정상 범위</div>
+              <div className="sw-ai-safe">✓ 경고 없음 — 정상 범위</div>
             )}
             {aiCache.summary && (
               <div className="sw-ai-summary">
-                {aiCache.summary.slice(0, 60)}{aiCache.summary.length > 60 ? "…" : ""}
+                <span className="sw-ai-summary-icon">💬</span>
+                {aiCache.summary}
               </div>
             )}
           </>

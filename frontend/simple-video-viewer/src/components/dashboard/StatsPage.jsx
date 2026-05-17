@@ -9,9 +9,9 @@ const ALL_EVENT_IDS = [
 ];
 
 const EVENT_TYPES = [
-  { id: "LOG_CRITICAL_FALLING", label: "넘어짐 감지", color: "#ef4444" },
-  { id: "LOG_INTRUSION_SLOWDOWN", label: "위험구역 접근", color: "#f59e0b" },
-  { id: "LOG_CRITICAL_SENSOR", label: "화재 감지", color: "#3b82f6" },
+  { id: "LOG_CRITICAL_FALLING", label: "넘어짐 감지", color: "#8b5cf6" },
+  { id: "LOG_INTRUSION_SLOWDOWN", label: "위험구역 접근", color: "#ef4444" },
+  { id: "LOG_CRITICAL_SENSOR", label: "화재 감지", color: "#f59e0b" },
 ];
 
 const ZONE_PALETTE = [
@@ -137,6 +137,66 @@ function Heatmap({ logs }) {
         ))}
         <span className="sp2-hm-leg-t">높음</span>
       </div>
+    </div>
+  );
+}
+
+/* ── 시간대별 집중도 히트맵 ── */
+function HourHeatmap({ logs }) {
+  const counts = useMemo(() => {
+    const arr = Array(24).fill(0);
+    logs.forEach((l) => {
+      if (!ALL_EVENT_IDS.includes(l.event_type)) return;
+      arr[new Date(l.timestamp).getHours()] += 1;
+    });
+    return arr;
+  }, [logs]);
+
+  const maxV = Math.max(1, ...counts);
+  const peakHour = counts.some((v) => v > 0) ? counts.indexOf(Math.max(...counts)) : null;
+  const alpha = (v) => (v === 0 ? 0 : 0.15 + (v / maxV) * 0.85);
+  const am = counts.slice(0, 12);
+  const pm = counts.slice(12);
+
+  return (
+    <div className="sp2-hour-hm">
+      <div className="sp2-hour-cols">
+        {[
+          { label: "AM", data: am, offset: 0 },
+          { label: "PM", data: pm, offset: 12 },
+        ].map(({ label, data, offset }) => (
+          <div key={label} className="sp2-hour-col">
+            <div className="sp2-hour-col-label">{label}</div>
+            {data.map((v, i) => {
+              const h = i + offset;
+              return (
+                <div
+                  key={h}
+                  className={`sp2-hour-row${h === peakHour && v > 0 ? " sp2-hour-row--peak" : ""}`}
+                  title={`${h}시 ${v}건`}
+                >
+                  <span className="sp2-hour-lbl">{h}시</span>
+                  <div className="sp2-hour-track">
+                    <div
+                      className="sp2-hour-fill"
+                      style={{
+                        width: `${(v / maxV) * 100}%`,
+                        background: `rgba(245,158,11,${alpha(v)})`,
+                      }}
+                    />
+                  </div>
+                  <span className="sp2-hour-cnt">{v > 0 ? v : ""}</span>
+                </div>
+              );
+            })}
+          </div>
+        ))}
+      </div>
+      {peakHour !== null && (
+        <p className="sp2-hour-peak">
+          피크: {String(peakHour).padStart(2, "0")}:00 — {counts[peakHour]}건
+        </p>
+      )}
     </div>
   );
 }
@@ -406,19 +466,19 @@ export default function StatsPage({ logs = [] }) {
               label="넘어짐 감지"
               value={summary.falling}
               total={Math.max(summary.total, 1)}
-              color="#ef4444"
+              color="#8b5cf6"
             />
             <SemiGauge
               label="위험구역 접근"
               value={summary.intrusion}
               total={Math.max(summary.total, 1)}
-              color="#f59e0b"
+              color="#ef4444"
             />
             <SemiGauge
               label="화재 감지"
               value={summary.sensor}
               total={Math.max(summary.total, 1)}
-              color="#3b82f6"
+              color="#f59e0b"
             />
           </div>
         </div>
@@ -492,7 +552,7 @@ export default function StatsPage({ logs = [] }) {
                             className="sp2-bar"
                             style={{
                               height: `${Math.round((item.falling / 50) * chartHeight)}px`,
-                              background: "#ef4444",
+                              background: "#8b5cf6",
                             }}
                           />
                         </div>
@@ -515,7 +575,7 @@ export default function StatsPage({ logs = [] }) {
                             className="sp2-bar"
                             style={{
                               height: `${Math.round((item.intrusion / 50) * chartHeight)}px`,
-                              background: "#f59e0b",
+                              background: "#ef4444",
                             }}
                           />
                         </div>
@@ -536,7 +596,7 @@ export default function StatsPage({ logs = [] }) {
                             className="sp2-bar"
                             style={{
                               height: `${Math.round((item.sensor / 50) * chartHeight)}px`,
-                              background: "#3b82f6",
+                              background: "#f59e0b",
                             }}
                           />
                         </div>
@@ -557,11 +617,18 @@ export default function StatsPage({ logs = [] }) {
           </div>
         </div>
 
-        {/* 하단: 히트맵 전체 너비 */}
-        <div className="sp2-card sp2-col-heat">
-          <h3 className="sp2-card-title">시간대별 발생 히트맵</h3>
-          <p className="sp2-card-sub">요일 × 시간 · 색이 진할수록 빈도 높음</p>
-          <Heatmap logs={filteredLogs} />
+        {/* 하단: 히트맵 2개 나란히 */}
+        <div className="sp2-heat-row">
+          <div className="sp2-card sp2-col-heat">
+            <h3 className="sp2-card-title">시간대별 발생 히트맵</h3>
+            <p className="sp2-card-sub">요일 × 시간 · 색이 진할수록 빈도 높음</p>
+            <Heatmap logs={filteredLogs} />
+          </div>
+          <div className="sp2-card sp2-col-hour-heat">
+            <h3 className="sp2-card-title">시간대 집중도</h3>
+            <p className="sp2-card-sub">0~23시 중 사고가 많은 시간대</p>
+            <HourHeatmap logs={filteredLogs} />
+          </div>
         </div>
       </div>
     </main>
