@@ -322,6 +322,7 @@ function Dashboard() {
               style={{ position: "relative", width: "100%", height: "100%" }}
             >
               <LiveStreamContent
+                key={activeEdgeId}
                 onImageLoad={setImageSize}
                 onStatusChange={setVideoStatus}
               />

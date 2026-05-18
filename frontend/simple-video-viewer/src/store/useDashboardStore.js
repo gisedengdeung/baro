@@ -308,7 +308,8 @@ const useDashboardStore = create((set, get) => ({
     if (showLoading) set({ loading: true });
     set({ error: null });
     try {
-      const data = await logAPI.getLogs();
+      const { activeEdgeId } = get();
+      const data = await logAPI.getLogs(50, activeEdgeId);
       set({ logs: data });
     } catch (e) {
       console.error(e);

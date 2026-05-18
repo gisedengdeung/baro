@@ -138,8 +138,10 @@ export const authAPI = {
 };
 
 export const logAPI = {
-  getLogs: async (limit = 50) => {
-    const response = await apiClient.get('/api/logs', { params: { limit } });
+  getLogs: async (limit = 50, edgeId) => {
+    const params = { limit };
+    if (edgeId) params.edge_id = edgeId;
+    const response = await apiClient.get('/api/logs', { params });
     return response.data;
   },
   getClipBlob: async (logId) => {
