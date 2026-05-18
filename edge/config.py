@@ -98,7 +98,7 @@ def load_config() -> EdgeConfig:
         ),
         keypoint_model_path=_resolve_model_path(
             os.getenv("EDGE_KEYPOINT_MODEL_PATH", ""),
-            "edge/models/yolov8s-pose.pt",
+            "edge/models/yolov8n-pose.pt",
         ),
         ddnet_model_path=_resolve_model_path(
             os.getenv("EDGE_DDNET_MODEL_PATH", ""),

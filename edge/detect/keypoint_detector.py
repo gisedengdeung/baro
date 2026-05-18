@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional, Tuple
 
 import numpy as np
 from loguru import logger
@@ -14,7 +14,7 @@ JOINT_N = 17
 class KeypointDetector:
     def __init__(
         self,
-        model_path: str = "edge/models/yolov8s-pose.pt",
+        model_path: str = "edge/models/yolov8n-pose.pt",
         conf_threshold: float = 0.3,
         inference_device_request: str = "auto",
     ) -> None:
@@ -27,7 +27,7 @@ class KeypointDetector:
             f"device={self.inference_device.resolved}"
         )
 
-    def detect(self, frame: np.ndarray) -> List[Dict[str, Any]]:
+    def detect(self, frame: np.ndarray) -> Tuple[List[Dict[str, Any]], Optional[np.ndarray]]:
         try:
             results = self.model.predict(
                 source=frame,
@@ -37,13 +37,15 @@ class KeypointDetector:
             )
         except Exception as exc:
             logger.error(f"keypoint 감지 실패: {exc}")
-            return []
+            return [], None
+
+        annotated_frame: Optional[np.ndarray] = results[0].plot() if results else None
 
         persons: List[Dict[str, Any]] = []
         if results and results[0].keypoints is not None and results[0].boxes is not None:
             boxes = results[0].boxes
-            kpts_data = results[0].keypoints.data.cpu().numpy()       # (N, 17, 3) 픽셀 좌표
-            kpts_norm = results[0].keypoints.xyn.cpu().numpy()        # (N, 17, 2) 정규화 좌표
+            kpts_data = results[0].keypoints.data.cpu().numpy()
+            kpts_norm = results[0].keypoints.xyn.cpu().numpy()
             xyxy = boxes.xyxy.cpu().numpy()
             xywh = boxes.xywh.cpu().numpy()
             confs = boxes.conf.cpu().numpy()
@@ -61,4 +63,4 @@ class KeypointDetector:
                     "keypoints": keypoints,
                     "keypoints_normalized": keypoints_normalized,
                 })
-        return persons
+        return persons, annotated_frame

@@ -3,8 +3,11 @@ from __future__ import annotations
 import asyncio
 import time
 from datetime import datetime
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 from zoneinfo import ZoneInfo
+
+import cv2
+import numpy as np
 
 from loguru import logger
 
@@ -61,6 +64,27 @@ class SafetyPipeline:
 
         self._running = False
         self._was_locked = False
+
+    @staticmethod
+    def _draw_ddnet_banner(frame: np.ndarray, ddnet_result: Optional[Dict[str, Any]]) -> None:
+        if ddnet_result is None:
+            color = (128, 128, 128)
+            text = "Gathering Frames..."
+        else:
+            prob_fall = ddnet_result.get("prob_fall", 0.0)
+            is_falling = ddnet_result.get("is_falling", False)
+            if is_falling:
+                color = (0, 0, 255)
+                text = f"WARNING: Fall-Down! ({prob_fall * 100:.1f}%)"
+            elif prob_fall >= 0.8:
+                color = (0, 255, 255)
+                text = f"Bending / Working ({prob_fall * 100:.1f}%)"
+            else:
+                color = (0, 200, 0)
+                text = f"Normal ({(1 - prob_fall) * 100:.1f}%)"
+
+        cv2.rectangle(frame, (10, 10), (600, 60), color, -1)
+        cv2.putText(frame, text, (20, 45), cv2.FONT_HERSHEY_SIMPLEX, 1.0, (255, 255, 255), 2, cv2.LINE_AA)
 
     @staticmethod
     def _extract_speed_percent(command: Dict[str, Any], default: int = 30) -> int:
@@ -297,12 +321,13 @@ class SafetyPipeline:
                     continue
 
                 persons = await loop.run_in_executor(None, self.person_detector.detect, frame)
-                kp_persons = await loop.run_in_executor(None, self.keypoint_detector.detect, frame)
+                kp_persons, annotated_frame = await loop.run_in_executor(None, self.keypoint_detector.detect, frame)
                 kp_map = {i: kp["keypoints"] for i, kp in enumerate(kp_persons)}
                 for i, person in enumerate(persons):
                     if i in kp_map:
                         person["keypoints"] = kp_map[i]
 
+                ddnet_result: Optional[Dict[str, Any]] = None
                 if self.ddnet_fall_detector is not None:
                     ddnet_result = await loop.run_in_executor(
                         None, self.ddnet_fall_detector.update, kp_persons
@@ -347,19 +372,21 @@ class SafetyPipeline:
                 }
                 await self.cloud_client.report_heartbeat(heartbeat)
 
-                display_frame = frame
+                base_frame = annotated_frame if annotated_frame is not None else frame
+                self._draw_ddnet_banner(base_frame, ddnet_result)
+                display_frame = base_frame
                 if self.overlay_renderer is not None:
                     try:
                         display_frame = self.overlay_renderer.render(
-                            frame=frame,
-                            persons=persons,
+                            frame=base_frame,
+                            persons=[],
                             zones=self.state.zones,
                             zone_alerts=zone_alerts,
                             risk_level=risk_level,
                         )
                     except Exception as exc:
                         logger.warning(f"오버레이 렌더 실패(원본 전송): {exc}")
-                        display_frame = frame
+                        display_frame = base_frame
 
                 if self.clip_recorder is not None:
                     self.clip_recorder.ingest_frame(display_frame)
