@@ -86,7 +86,7 @@
 .gl-logo {
   font-family: "Bebas Neue", sans-serif;
   font-size: 28px;
-  color: var(--gl-accent);
+  color: #1b568a;
   letter-spacing: 0.1em;
   line-height: 1;
 }
@@ -998,4 +998,78 @@
 .gl-ai-btn:hover {
   background: #d48806;
   transform: translateY(-1px);
+}
+
+/* ── 테마 토글 버튼 ── */
+.gl-theme-btn {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  background: none;
+  border: 1px solid var(--gl-border);
+  font-size: 18px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 10px;
+  border-radius: 6px;
+  transition: background 0.18s, border-color 0.18s;
+  flex-shrink: 0;
+}
+.gl-theme-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  border-color: var(--gl-accent);
+}
+.gl-theme-label {
+  font-size: 11px;
+  color: var(--gl-text-sub);
+  white-space: nowrap;
+  line-height: 1;
+}
+[data-theme="light"] .gl-theme-btn:hover {
+  background: rgba(0, 0, 0, 0.06);
+}
+
+/* ── 라이트 모드 ── */
+[data-theme="light"] {
+  --gl-bg: #f1f5f9;
+  --gl-surface: #ffffff;
+  --gl-surface2: #f8fafc;
+  --gl-border: #e2e8f0;
+  --gl-text: #0f172a;
+  --gl-text-sub: #64748b;
+}
+
+[data-theme="light"] .guideline-root {
+  background: var(--gl-bg);
+  color: var(--gl-text);
+}
+
+[data-theme="light"] .gl-bg-grid {
+  background-image:
+    linear-gradient(rgba(27, 86, 138, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(27, 86, 138, 0.04) 1px, transparent 1px);
+}
+
+[data-theme="light"] .gl-bg-glow {
+  background: radial-gradient(circle, rgba(27, 86, 138, 0.06) 0%, transparent 70%);
+}
+
+[data-theme="light"] .gl-card:hover {
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.08);
+}
+
+[data-theme="light"] .gl-enter-btn {
+  background: var(--gl-surface2);
+  color: var(--gl-text-sub);
+  border-color: var(--gl-border);
+}
+
+[data-theme="light"] .gl-check-custom {
+  background: var(--gl-surface);
+  border-color: var(--gl-border);
+}
+
+[data-theme="light"] .gl-ai-warning-msg {
+  color: var(--gl-text);
 }

@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { safetyAPI } from "../../services/api";
+import { useTheme } from "../../hooks/useTheme";
 import "./GuideLine.css";
 
 const SECTIONS = [
@@ -434,6 +435,7 @@ function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError,
 
 export default function GuideLine() {
   const navigate = useNavigate();
+  const { theme, toggleTheme } = useTheme();
   const [activeSection, setActiveSection] = useState("safety");
   const [checked, setChecked] = useState(false);
   const [visible, setVisible] = useState(false);
@@ -497,8 +499,12 @@ export default function GuideLine() {
         {/* 헤더 */}
         <header className="gl-header">
           <div className="gl-logo-row">
-            <span className="gl-logo">STOP</span>
+            <span className="gl-logo">BARO</span>
             <span className="gl-logo-sub">Safety Total Operation Platform</span>
+            <button className="gl-theme-btn" onClick={toggleTheme}>
+              <span>{theme === "dark" ? "☀️" : "🌙"}</span>
+              <span className="gl-theme-label">모드 변경</span>
+            </button>
           </div>
           <h1 className="gl-title">
             시스템 운영<br />

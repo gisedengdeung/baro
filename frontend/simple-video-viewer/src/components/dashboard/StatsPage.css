@@ -275,7 +275,7 @@
   display: grid;
   grid-template-columns: 1fr 0.55fr;
   gap: 16px;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* ── 월별 차트 ── */
@@ -479,53 +479,39 @@
 }
 
 .sp2-hm-scroll {
-  overflow-x: auto;
-  scrollbar-width: thin;
-  scrollbar-color: #f59e0b #0f172a;
-}
-.sp2-hm-scroll::-webkit-scrollbar {
-  height: 4px;
-}
-.sp2-hm-scroll::-webkit-scrollbar-track {
-  background: #0f172a;
-}
-.sp2-hm-scroll::-webkit-scrollbar-thumb {
-  background: #f59e0b;
-  border-radius: 3px;
+  overflow-x: hidden;
 }
 
 .sp2-hm-grid {
   display: grid;
-  grid-template-columns: 20px repeat(24, 22px);
-  gap: 2px;
-  min-width: max-content;
+  grid-template-columns: 28px repeat(24, 1fr);
+  gap: 3px;
+  width: 100%;
 }
 
 .sp2-hm-corner {
-  width: 20px;
-  height: 18px;
+  height: 24px;
 }
 
 .sp2-hm-h {
-  font-size: 8px;
-  color: #475569;
+  font-size: 10px;
+  color: #64748b;
   text-align: center;
-  line-height: 18px;
+  line-height: 24px;
 }
 
 .sp2-hm-d {
-  font-size: 9px;
-  font-weight: 600;
-  color: #64748b;
+  font-size: 11px;
+  font-weight: 700;
+  color: #94a3b8;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .sp2-hm-cell {
-  width: 22px;
-  height: 18px;
-  border-radius: 3px;
+  height: 28px;
+  border-radius: 4px;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -533,13 +519,13 @@
   transition: transform 0.12s;
 }
 .sp2-hm-cell:hover {
-  transform: scale(1.2);
+  transform: scale(1.15);
   z-index: 2;
   position: relative;
 }
 
 .sp2-hm-n {
-  font-size: 7px;
+  font-size: 9px;
   font-weight: 800;
   color: #1e293b;
   pointer-events: none;
@@ -548,23 +534,25 @@
 .sp2-hm-leg {
   display: flex;
   align-items: center;
-  gap: 3px;
-  margin-top: 8px;
+  gap: 4px;
+  margin-top: 10px;
 }
 
 .sp2-hm-leg-t {
-  font-size: 10px;
-  color: #475569;
+  font-size: 11px;
+  color: #64748b;
 }
 
 .sp2-hm-leg-box {
-  width: 16px;
-  height: 10px;
-  border-radius: 2px;
+  width: 20px;
+  height: 12px;
+  border-radius: 3px;
 }
 
 /* ── 구역 순위 ── */
 .sp2-col-zone {
+  display: flex;
+  flex-direction: column;
 }
 
 .sp2-zone-list {
@@ -622,9 +610,203 @@
   text-align: right;
 }
 
+/* ── 히트맵 행 (기존 + 시간대) ── */
+.sp2-heat-row {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.sp2-col-heat {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.sp2-col-hour-heat {
+  width: 260px;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── 시간대 집중도 히트맵 ── */
+.sp2-hour-hm {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.sp2-hour-cols {
+  display: flex;
+  gap: 10px;
+}
+
+.sp2-hour-col {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.sp2-hour-col-label {
+  font-size: 10px;
+  font-weight: 700;
+  color: #475569;
+  text-align: center;
+  margin-bottom: 2px;
+  letter-spacing: 0.08em;
+}
+
+.sp2-hour-row {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  height: 14px;
+  border-radius: 3px;
+  padding: 0 2px;
+  transition: background 0.15s;
+}
+
+.sp2-hour-row--peak {
+  background: rgba(245, 158, 11, 0.08);
+  outline: 1px solid rgba(245, 158, 11, 0.35);
+}
+
+.sp2-hour-lbl {
+  font-size: 9px;
+  color: #64748b;
+  width: 22px;
+  flex-shrink: 0;
+  text-align: right;
+}
+
+.sp2-hour-row--peak .sp2-hour-lbl {
+  color: #f59e0b;
+  font-weight: 700;
+}
+
+.sp2-hour-track {
+  flex: 1;
+  height: 8px;
+  background: rgba(255, 255, 255, 0.04);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.sp2-hour-fill {
+  height: 100%;
+  border-radius: 4px;
+  transition: width 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+  min-width: 2px;
+}
+
+.sp2-hour-cnt {
+  font-size: 8px;
+  font-weight: 700;
+  color: #94a3b8;
+  width: 16px;
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.sp2-hour-peak {
+  font-size: 11px;
+  color: #f59e0b;
+  font-weight: 600;
+  text-align: center;
+  padding: 4px 0 0;
+  border-top: 1px solid #1e293b;
+  margin: 0;
+}
+
+/* ── 라이트 모드 ── */
+[data-theme="light"] .sp2-page {
+  background: #f1f5f9;
+  scrollbar-color: #1b568a #f1f5f9;
+}
+[data-theme="light"] .sp2-page::-webkit-scrollbar-thumb { background: #1b568a; }
+
+[data-theme="light"] .sp2-card,
+[data-theme="light"] .sp2-search-bar {
+  background: #ffffff;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .sp2-card-title,
+[data-theme="light"] .sp2-search-h {
+  color: #0f172a;
+}
+[data-theme="light"] .sp2-card-sub,
+[data-theme="light"] .sp2-search-sub,
+[data-theme="light"] .sp2-mom-title,
+[data-theme="light"] .sp2-mom-lbl,
+[data-theme="light"] .sp2-blabel,
+[data-theme="light"] .sp2-y-num,
+[data-theme="light"] .sp2-hm-h,
+[data-theme="light"] .sp2-hm-d,
+[data-theme="light"] .sp2-zone-cnt,
+[data-theme="light"] .sp2-bnum {
+  color: #64748b;
+}
+[data-theme="light"] .sp2-zone-name { color: #334155; }
+[data-theme="light"] .sp2-yr-lbl { color: #0f172a; }
+
+[data-theme="light"] .sp2-select,
+[data-theme="light"] .sp2-date-input {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+[data-theme="light"] .sp2-mom-item {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .sp2-yr-btn {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #0f172a;
+}
+[data-theme="light"] .sp2-yr-btn:hover:not(:disabled) {
+  background: #1b568a;
+  border-color: #1b568a;
+  color: #fff;
+}
+[data-theme="light"] .sp2-leg { border-color: #e2e8f0; color: #475569; }
+[data-theme="light"] .sp2-leg.on {
+  background: #f8fafc;
+  border-color: #1b568a;
+  color: #0f172a;
+}
+[data-theme="light"] .sp2-bar-chart {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .sp2-y-line { background: #e2e8f0; }
+[data-theme="light"] .sp2-zone-track { background: #e2e8f0; }
+[data-theme="light"] .sp2-hm-n { color: #fff; }
+[data-theme="light"] .sp2-hm-scroll {
+  scrollbar-color: #1b568a #f1f5f9;
+}
+[data-theme="light"] .sp2-hm-scroll::-webkit-scrollbar-thumb { background: #1b568a; }
+[data-theme="light"] .sp2-hour-track { background: #e2e8f0; }
+[data-theme="light"] .sp2-hour-lbl { color: #94a3b8; }
+[data-theme="light"] .sp2-hour-cnt { color: #64748b; }
+[data-theme="light"] .sp2-hour-col-label { color: #94a3b8; }
+[data-theme="light"] .sp2-hour-peak {
+  color: #1b568a;
+  border-top-color: #e2e8f0;
+}
+[data-theme="light"] .sp2-hm-leg-t { color: #94a3b8; }
+
 /* ── 반응형 ── */
 @media (max-width: 900px) {
   .sp2-bottom {
     grid-template-columns: 1fr;
+  }
+  .sp2-heat-row {
+    flex-direction: column;
+  }
+  .sp2-col-hour-heat {
+    width: 100%;
   }
 }
