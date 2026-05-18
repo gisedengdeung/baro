@@ -14,7 +14,8 @@ from edge.control.buzzer import BuzzerController
 from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
-from edge.detect.fall_detector import FallDetector
+from edge.detect.ddnet_fall_detector import DDNetFallDetector
+from edge.detect.keypoint_detector import KeypointDetector
 from edge.detect.person_detector import PersonDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.state import SystemStateManager
@@ -30,7 +31,7 @@ class SafetyPipeline:
         self,
         camera: Any,
         person_detector: PersonDetector,
-        fall_detector: FallDetector,
+        keypoint_detector: KeypointDetector,
         zone_checker: ZoneChecker,
         risk_evaluator: RiskEvaluator,
         rule_engine: RuleEngine,
@@ -39,12 +40,14 @@ class SafetyPipeline:
         state: SystemStateManager,
         cloud_client: CloudClient,
         webrtc_peer: WebRTCPeer,
+        ddnet_fall_detector: DDNetFallDetector | None = None,
         overlay_renderer: OverlayRenderer | None = None,
         clip_recorder: EdgeClipRecorder | None = None,
     ) -> None:
         self.camera = camera
         self.person_detector = person_detector
-        self.fall_detector = fall_detector
+        self.keypoint_detector = keypoint_detector
+        self.ddnet_fall_detector = ddnet_fall_detector
         self.zone_checker = zone_checker
         self.risk_evaluator = risk_evaluator
         self.rule_engine = rule_engine
@@ -294,7 +297,23 @@ class SafetyPipeline:
                     continue
 
                 persons = await loop.run_in_executor(None, self.person_detector.detect, frame)
-                persons = await loop.run_in_executor(None, self.fall_detector.analyze, frame, persons)
+                kp_persons = await loop.run_in_executor(None, self.keypoint_detector.detect, frame)
+                kp_map = {i: kp["keypoints"] for i, kp in enumerate(kp_persons)}
+                for i, person in enumerate(persons):
+                    if i in kp_map:
+                        person["keypoints"] = kp_map[i]
+
+                if self.ddnet_fall_detector is not None:
+                    ddnet_result = await loop.run_in_executor(
+                        None, self.ddnet_fall_detector.update, kp_persons
+                    )
+                    if ddnet_result and ddnet_result.get("is_falling"):
+                        if persons:
+                            persons[0]["pose_analysis"] = {"is_falling": True}
+                        logger.warning(
+                            f"[DDNet] 낙상 감지: prob_fall={ddnet_result['prob_fall']:.3f}"
+                        )
+
                 zone_alerts = self.zone_checker.check(persons, self.state.zones)
 
                 detection_result = {

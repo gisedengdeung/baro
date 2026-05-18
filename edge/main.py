@@ -16,7 +16,8 @@ from edge.control.buzzer import BuzzerController
 from edge.control.conveyor import ConveyorController
 from edge.decide.risk_evaluator import RiskEvaluator
 from edge.decide.rule_engine import RuleEngine
-from edge.detect.fall_detector import FallDetector
+from edge.detect.ddnet_fall_detector import DDNetFallDetector
+from edge.detect.keypoint_detector import KeypointDetector
 from edge.detect.person_detector import PersonDetector
 from edge.detect.zone_checker import ZoneChecker
 from edge.pipeline import SafetyPipeline
@@ -25,7 +26,6 @@ from edge.visualize.overlay_renderer import OverlayRenderer
 from edge.webrtc.peer import WebRTCPeer
 
 KST = ZoneInfo("Asia/Seoul")
-
 
 
 def _build_config_from_args() -> EdgeConfig:
@@ -51,10 +51,12 @@ def _build_config_from_args() -> EdgeConfig:
         zone_poll_interval=cfg.zone_poll_interval,
         heartbeat_interval=cfg.heartbeat_interval,
         person_model_path=cfg.person_model_path,
-        fall_model_path=cfg.fall_model_path,
+        keypoint_model_path=cfg.keypoint_model_path,
+        ddnet_model_path=cfg.ddnet_model_path,
         inference_device_request=cfg.inference_device_request,
         person_conf_threshold=cfg.person_conf_threshold,
-        fall_conf_threshold=cfg.fall_conf_threshold,
+        keypoint_conf_threshold=cfg.keypoint_conf_threshold,
+        ddnet_fall_prob_threshold=cfg.ddnet_fall_prob_threshold,
         visual_overlay_enabled=cfg.visual_overlay_enabled,
         draw_zone_polygons=cfg.draw_zone_polygons,
         draw_label_confidence=cfg.draw_label_confidence,
@@ -136,9 +138,14 @@ async def main() -> None:
         conf_threshold=cfg.person_conf_threshold,
         inference_device_request=cfg.inference_device_request,
     )
-    fall_detector = FallDetector(
-        model_path=cfg.fall_model_path,
-        conf_threshold=cfg.fall_conf_threshold,
+    keypoint_detector = KeypointDetector(
+        model_path=cfg.keypoint_model_path,
+        conf_threshold=cfg.keypoint_conf_threshold,
+        inference_device_request=cfg.inference_device_request,
+    )
+    ddnet_fall_detector = DDNetFallDetector(
+        model_path=cfg.ddnet_model_path,
+        fall_prob_threshold=cfg.ddnet_fall_prob_threshold,
         inference_device_request=cfg.inference_device_request,
     )
     zone_checker = ZoneChecker()
@@ -159,7 +166,8 @@ async def main() -> None:
     pipeline = SafetyPipeline(
         camera=camera,
         person_detector=person_detector,
-        fall_detector=fall_detector,
+        keypoint_detector=keypoint_detector,
+        ddnet_fall_detector=ddnet_fall_detector,
         zone_checker=zone_checker,
         risk_evaluator=risk_evaluator,
         rule_engine=rule_engine,

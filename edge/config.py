@@ -22,10 +22,12 @@ class EdgeConfig:
     heartbeat_interval: float
 
     person_model_path: str
-    fall_model_path: str
+    keypoint_model_path: str
+    ddnet_model_path: str
     inference_device_request: str
     person_conf_threshold: float
-    fall_conf_threshold: float
+    keypoint_conf_threshold: float
+    ddnet_fall_prob_threshold: float
     visual_overlay_enabled: bool
     draw_zone_polygons: bool
     draw_label_confidence: bool
@@ -76,7 +78,6 @@ def _resolve_model_path(raw_path: str, default_rel_path: str) -> str:
     return str(ROOT_DIR / path)
 
 
-
 def load_config() -> EdgeConfig:
     return EdgeConfig(
         edge_id=os.getenv("EDGE_ID", "edge-default"),
@@ -95,13 +96,18 @@ def load_config() -> EdgeConfig:
             os.getenv("EDGE_PERSON_MODEL_PATH", ""),
             "edge/models/yolov8n.pt",
         ),
-        fall_model_path=_resolve_model_path(
-            os.getenv("EDGE_FALL_MODEL_PATH", ""),
-            "edge/models/best.pt",
+        keypoint_model_path=_resolve_model_path(
+            os.getenv("EDGE_KEYPOINT_MODEL_PATH", ""),
+            "edge/models/yolov8s-pose.pt",
+        ),
+        ddnet_model_path=_resolve_model_path(
+            os.getenv("EDGE_DDNET_MODEL_PATH", ""),
+            "edge/models/ddnet_deploy_jetson.pt",
         ),
         inference_device_request=os.getenv("EDGE_INFERENCE_DEVICE", "auto").strip() or "auto",
         person_conf_threshold=float(os.getenv("EDGE_PERSON_CONF", "0.3")),
-        fall_conf_threshold=float(os.getenv("EDGE_FALL_CONF", "0.4")),
+        keypoint_conf_threshold=float(os.getenv("EDGE_KEYPOINT_CONF", "0.3")),
+        ddnet_fall_prob_threshold=float(os.getenv("EDGE_DDNET_FALL_PROB_THRESHOLD", "0.8")),
         visual_overlay_enabled=_env_bool("EDGE_VISUAL_OVERLAY_ENABLED", True),
         draw_zone_polygons=_env_bool("EDGE_DRAW_ZONE_POLYGONS", True),
         draw_label_confidence=_env_bool("EDGE_DRAW_LABEL_CONFIDENCE", False),
