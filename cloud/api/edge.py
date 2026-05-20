@@ -10,6 +10,7 @@ from cloud.dependencies import (
     get_clip_service,
     get_command_queue,
     get_db_service,
+    get_safety_service,
     get_status_store,
     require_edge_request_auth,
     get_zone_service,
@@ -19,6 +20,7 @@ from cloud.services.clip_service import ClipService
 from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import ensure_authenticated_edge_id
+from cloud.services.safety_service import DEDUCTION_RULES, SafetyService
 from cloud.services.status_store import StatusStore
 from cloud.services.zone_service import ZoneService
 
@@ -68,6 +70,7 @@ async def post_log(
     payload: Dict[str, Any],
     authenticated_edge_id: str = Depends(require_edge_request_auth),
     db_service: DBService = Depends(get_db_service),
+    safety: SafetyService = Depends(get_safety_service),
 ):
     payload = dict(payload)
     payload["edge_id"] = ensure_authenticated_edge_id(
@@ -75,6 +78,15 @@ async def post_log(
         payload.get("edge_id"),
     )
     message = await db_service.log_event(payload)
+
+    if message.event_type in DEDUCTION_RULES:
+        score_data = safety.get_today_score()
+        await db_service.websocket_manager.broadcast_to_edge(
+            "logs",
+            message.edge_id,
+            {"type": "SAFETY_SCORE_UPDATE", "data": score_data},
+        )
+
     return {"status": "ok", "event_type": message.event_type}
 
 

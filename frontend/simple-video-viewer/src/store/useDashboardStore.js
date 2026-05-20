@@ -84,6 +84,7 @@ const useDashboardStore = create((set, get) => ({
   wsStatus: "closed",
   videoStatus: "idle",
   currentTime: "",
+  safetyScoreData: null,
 
   initialize: async () => {
     get().connect();
@@ -186,6 +187,9 @@ const useDashboardStore = create((set, get) => ({
             });
             break;
           }
+          case "SAFETY_SCORE_UPDATE":
+            set({ safetyScoreData: message.data });
+            break;
           default:
             break;
         }
