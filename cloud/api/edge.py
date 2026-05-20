@@ -81,9 +81,8 @@ async def post_log(
 
     if message.event_type in DEDUCTION_RULES:
         score_data = safety.get_today_score()
-        await db_service.websocket_manager.broadcast_to_edge(
+        await db_service.websocket_manager.broadcast_to_channel_tree(
             "logs",
-            message.edge_id,
             {"type": "SAFETY_SCORE_UPDATE", "data": score_data},
         )
 

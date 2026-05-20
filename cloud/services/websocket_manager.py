@@ -31,5 +31,16 @@ class WebSocketManager:
         await self.broadcast(f"{channel}:{edge_id}", message)
         await self.broadcast(channel, message)
 
+    async def broadcast_to_channel_tree(self, channel: str, message: Dict[str, Any]) -> None:
+        """전체 채널과 edge별 하위 채널을 모두 포함해 전송."""
+        prefix = f"{channel}:"
+        target_channels = [
+            name
+            for name in list(self._connections.keys())
+            if name == channel or name.startswith(prefix)
+        ]
+        for target in target_channels:
+            await self.broadcast(target, message)
+
     def status(self) -> Dict[str, int]:
         return {channel: len(connections) for channel, connections in self._connections.items()}
