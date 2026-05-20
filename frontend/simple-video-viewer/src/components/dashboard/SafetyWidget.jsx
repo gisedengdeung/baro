@@ -1,8 +1,8 @@
 import { useState, useEffect, useCallback } from "react";
 import { safetyAPI } from "../../services/api";
+import useDashboardStore from "../../store/useDashboardStore";
 
 const STORAGE_KEY = "dashboard_ai_analysis";
-const SCORE_POLL_MS = 5 * 60 * 1000; // 5분마다 점수 갱신
 
 function scoreColor(score) {
   if (score >= 80) return "sw-ok";
@@ -11,24 +11,21 @@ function scoreColor(score) {
 }
 
 export default function SafetyWidget() {
-  const [scoreData, setScoreData] = useState(null);
+  // 실시간 WebSocket 업데이트 (이벤트 발생 시 즉시 반영)
+  const realtimeScoreData = useDashboardStore((s) => s.safetyScoreData);
+  const [polledScoreData, setPolledScoreData] = useState(null);
+  // 실시간 데이터가 있으면 우선 사용, 없으면 초기 폴링 데이터 사용
+  const scoreData = realtimeScoreData ?? polledScoreData;
+
   const [aiCache, setAiCache] = useState(() => {
     try { return JSON.parse(localStorage.getItem(STORAGE_KEY)); } catch { return null; }
   });
   const [aiLoading, setAiLoading] = useState(false);
 
-  const fetchScore = useCallback(async () => {
-    try {
-      const data = await safetyAPI.getScore();
-      setScoreData(data);
-    } catch {}
-  }, []);
-
+  // 마운트 시 1회만 점수 로드 (초기값용)
   useEffect(() => {
-    fetchScore();
-    const id = setInterval(fetchScore, SCORE_POLL_MS);
-    return () => clearInterval(id);
-  }, [fetchScore]);
+    safetyAPI.getScore().then(setPolledScoreData).catch(() => {});
+  }, []);
 
   const fetchAi = useCallback(async () => {
     setAiLoading(true);
