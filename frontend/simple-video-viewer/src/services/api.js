@@ -237,6 +237,18 @@ export const safetyAPI = {
     const response = await apiClient.get('/api/safety/history', { params: { days } });
     return response.data;
   },
+  getConfig: async () => {
+    const response = await apiClient.get('/api/safety/config');
+    return response.data;
+  },
+  updateConfig: async (key, value) => {
+    const response = await apiClient.patch('/api/safety/config', { key, value });
+    return response.data;
+  },
+  refreshWeather: async () => {
+    const response = await apiClient.post('/api/safety/weather/refresh');
+    return response.data;
+  },
   explain: async () => {
     const response = await apiClient.post('/api/safety/explain');
     return response.data;

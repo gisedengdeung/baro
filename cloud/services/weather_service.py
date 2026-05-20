@@ -11,6 +11,12 @@ from cloud.services.safety_service import WEATHER_MAX_DEDUCTION, SafetyService
 
 KST = ZoneInfo("Asia/Seoul")
 
+ASOS_STATION_NAMES: dict[str, str] = {
+    "108": "서울",
+    "112": "인천",
+    "119": "수원",
+}
+
 
 class WeatherService:
     """
@@ -42,19 +48,6 @@ class WeatherService:
             self.safety_service.update_weather_deduction(risk, details)
             logger.info(f"기상 위험도 업데이트: +{risk}점 (조건 {len(details)}개)")
         except Exception as exc:
-            self.safety_service.update_weather_deduction(
-                0,
-                [
-                    {
-                        "key": "weather_api_error",
-                        "label": "기상 API 호출 실패",
-                        "status": "error",
-                        "message": str(exc),
-                        "station_no": self.station_no,
-                        "updated_at": datetime.now(KST).isoformat(),
-                    }
-                ],
-            )
             logger.warning(f"기상 API 호출 실패, 기존 위험도 유지: {exc}")
 
     # ── API 호출 ───────────────────────────────────────────────────────────────
@@ -138,6 +131,7 @@ class WeatherService:
             "label": "ASOS 최근 관측값",
             "status": "ok",
             "station_no": self.station_no,
+            "station_name": ASOS_STATION_NAMES.get(self.station_no, f"관측소 {self.station_no}"),
             "observed_at": observed_at,
             "updated_at": datetime.now(KST).isoformat(),
             "values": {
