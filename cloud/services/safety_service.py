@@ -282,27 +282,26 @@ class SafetyService:
             },
         }
 
-    def get_today_score(self) -> dict[str, Any]:
-        today = datetime.now(KST).date().isoformat()
-        self._ensure_today_record(today)
+    def _get_score_for_date(self, date_str: str) -> dict[str, Any]:
+        self._ensure_today_record(date_str)
 
         with get_connection(self.db_path) as conn:
             row = conn.execute(
                 "SELECT weather_deduction, accident_free_streak FROM safety_score_daily WHERE date = ?",
-                (today,),
+                (date_str,),
             ).fetchone()
 
         weather_risk      = int(row["weather_deduction"])
         streak            = int(row["accident_free_streak"])
-        event_deduction, event_details = self._get_event_deductions(today)
-        weather_details = self._get_weather_details(today)
+        event_deduction, event_details = self._get_event_deductions(date_str)
+        weather_details = self._get_weather_details(date_str)
         difficulty = self._get_difficulty(weather_risk, weather_details)
         adjusted_event_deduction = event_deduction * difficulty["multiplier"]
 
         final_score = max(0, round(100 - adjusted_event_deduction, 1))
 
         return {
-            "date":  today,
+            "date":  date_str,
             "score": final_score,
             "difficulty": difficulty,
             "event_deduction": {
@@ -320,6 +319,10 @@ class SafetyService:
             "accident_free_threshold": ACCIDENT_FREE_THRESHOLD,
         }
 
+    def get_today_score(self) -> dict[str, Any]:
+        today = datetime.now(KST).date().isoformat()
+        return self._get_score_for_date(today)
+
     def update_weather_deduction(self, deduction: int, details: list[dict]) -> None:
         """기상 조건은 안전점수 직접 감점이 아니라 작업 난이도 위험도로 저장합니다."""
         today = datetime.now(KST).date().isoformat()
@@ -332,18 +335,19 @@ class SafetyService:
             conn.commit()
 
     def close_day(self) -> None:
-        """자정에 호출 - 당일 점수 확정 + 무사고 스트릭 업데이트"""
-        today = datetime.now(KST).date().isoformat()
-        self._ensure_today_record(today)
+        """자정에 호출 - 직전 날짜 점수 확정 + 무사고 스트릭 업데이트"""
+        target_day = datetime.now(KST).date() - timedelta(days=1)
+        target_date = target_day.isoformat()
+        previous_date = (target_day - timedelta(days=1)).isoformat()
+        self._ensure_today_record(target_date)
 
-        score_data  = self.get_today_score()
+        score_data  = self._get_score_for_date(target_date)
         final_score = score_data["score"]
 
-        yesterday = (datetime.now(KST).date() - timedelta(days=1)).isoformat()
         with get_connection(self.db_path) as conn:
             prev_row = conn.execute(
                 "SELECT accident_free_streak FROM safety_score_daily WHERE date = ?",
-                (yesterday,),
+                (previous_date,),
             ).fetchone()
         prev_streak = int(prev_row["accident_free_streak"]) if prev_row else 0
         new_streak  = prev_streak + 1 if final_score >= ACCIDENT_FREE_THRESHOLD else 0
@@ -351,7 +355,7 @@ class SafetyService:
         with get_connection(self.db_path) as conn:
             conn.execute(
                 "UPDATE safety_score_daily SET final_score = ?, accident_free_streak = ? WHERE date = ?",
-                (final_score, new_streak, today),
+                (final_score, new_streak, target_date),
             )
             conn.commit()
 

@@ -1,7 +1,7 @@
 // src/pages/GuideLine/GuideLine.jsx
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { safetyAPI } from "../../services/api";
+import { getWsUrl, runtimeConfig, safetyAPI } from "../../services/api";
 import { useTheme } from "../../hooks/useTheme";
 import "./GuideLine.css";
 
@@ -150,6 +150,71 @@ const SECTIONS = [
   },
 ];
 
+const ASOS_STATION_NAMES = {
+  108: "서울",
+  112: "인천",
+  119: "수원",
+};
+
+const INDUSTRY_OPTIONS = [
+  "제조업_전체",
+  "식료품제조업",
+  "섬유및섬유제품제조업",
+  "목재및종이제품제조업",
+  "출판·인쇄·제본업",
+  "화학및고무제품제조업",
+  "의약품·화장품·연탄·석유제품제조업",
+  "기계기구·금속·비금속광물제품제조업",
+  "금속제련업",
+  "전기기계기구·정밀기구·전자제품제조업",
+  "선박건조및수리업",
+  "수제품및기타제품제조업",
+];
+
+const LOCATION_OPTIONS = [
+  { label: "수원", stationNo: "119", nx: "60", ny: "121" },
+  { label: "서울", stationNo: "108", nx: "60", ny: "127" },
+  { label: "인천", stationNo: "112", nx: "55", ny: "124" },
+];
+
+const MAX_WORKER_COUNT = 999999;
+
+function formatWeatherTime(value) {
+  if (!value) return "관측시각 대기";
+  const normalized = value.includes("T") ? value : value.replace(" ", "T");
+  const date = new Date(normalized);
+  if (Number.isNaN(date.getTime())) return value;
+  return new Intl.DateTimeFormat("ko-KR", {
+    month: "numeric",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: false,
+  }).format(date);
+}
+
+function getWeatherSummary(values, alerts) {
+  const rain = Number(values.rain_mm ?? 0);
+  const wind = Number(values.wind_mps ?? 0);
+  const temp = Number(values.temp_c ?? 0);
+  const humidity = Number(values.humidity_pct ?? 0);
+
+  if (alerts.length > 0) {
+    return alerts.map((item) => item.label).join(" · ");
+  }
+  if (rain >= 5) return "비";
+  if (wind >= 14) return "강풍";
+  if (temp >= 33) return "고온";
+  if (humidity > 0 && humidity <= 30) return "건조";
+  return "위험 기상 조건 없음";
+}
+
+function normalizeWorkerCount(value) {
+  const digits = String(value ?? "").replace(/\D/g, "");
+  if (!digits) return "";
+  return String(Math.min(MAX_WORKER_COUNT, Number.parseInt(digits, 10)));
+}
+
 function scoreColor(score) {
   if (score >= 80) return "ok";
   if (score >= 60) return "warning";
@@ -230,7 +295,138 @@ function AiAnalysisPanel({ analysis, loading, error, onRequest }) {
   );
 }
 
-function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError, onAiRequest }) {
+function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSave }) {
+  const currentLocation =
+    LOCATION_OPTIONS.find((item) => item.label === config.factory_location_label) ||
+    LOCATION_OPTIONS.find((item) => item.stationNo === config.kma_asos_station_no) ||
+    LOCATION_OPTIONS[0];
+  const [form, setForm] = useState({
+    industry_type: config.industry_type || "제조업_전체",
+    worker_count: config.worker_count || "80",
+    location_label: currentLocation.label,
+  });
+  const [isDirty, setIsDirty] = useState(false);
+  const lastSaveVersionRef = useRef(saveVersion);
+
+  useEffect(() => {
+    if (isDirty) return;
+    const nextLocation =
+      LOCATION_OPTIONS.find((item) => item.label === config.factory_location_label) ||
+      LOCATION_OPTIONS.find((item) => item.stationNo === config.kma_asos_station_no) ||
+      LOCATION_OPTIONS[0];
+    setForm({
+      industry_type: config.industry_type || "제조업_전체",
+      worker_count: normalizeWorkerCount(config.worker_count || "80"),
+      location_label: nextLocation.label,
+    });
+  }, [config, isDirty]);
+
+  useEffect(() => {
+    if (saveVersion === lastSaveVersionRef.current) return;
+    lastSaveVersionRef.current = saveVersion;
+    setIsDirty(false);
+  }, [saveVersion]);
+
+  const handleSubmit = (event) => {
+    event.preventDefault();
+    const selectedLocation =
+      LOCATION_OPTIONS.find((item) => item.label === form.location_label) ||
+      LOCATION_OPTIONS[0];
+    onSave({
+      industry_type: form.industry_type,
+      worker_count: form.worker_count,
+      factory_location_label: selectedLocation.label,
+      kma_asos_station_no: selectedLocation.stationNo,
+      location_nx: selectedLocation.nx,
+      location_ny: selectedLocation.ny,
+    });
+  };
+
+  return (
+    <form className="gl-config-panel" onSubmit={handleSubmit}>
+      <div className="gl-config-head">
+        <div>
+          <div className="gl-panel-title">사업장 설정</div>
+          <div className="gl-config-summary">
+            {form.industry_type} · {form.worker_count || "-"}인 · {form.location_label}
+          </div>
+        </div>
+        <button className="gl-config-save" type="submit" disabled={saving}>
+          {saving ? "저장 중" : "저장"}
+        </button>
+      </div>
+      <div className="gl-config-grid">
+        <label className="gl-config-field">
+          <span>업종</span>
+          <select
+            value={form.industry_type}
+            onChange={(event) => {
+              setIsDirty(true);
+              setForm((prev) => ({ ...prev, industry_type: event.target.value }));
+            }}
+          >
+            {INDUSTRY_OPTIONS.map((industry) => (
+              <option key={industry} value={industry}>{industry}</option>
+            ))}
+          </select>
+        </label>
+        <label className="gl-config-field">
+          <span>근로자 수</span>
+          <input
+            type="number"
+            min="0"
+            max={MAX_WORKER_COUNT}
+            step="1"
+            value={form.worker_count}
+            onChange={(event) => {
+              setIsDirty(true);
+              setForm((prev) => ({
+                ...prev,
+                worker_count: normalizeWorkerCount(event.target.value),
+              }));
+            }}
+          />
+        </label>
+        <label className="gl-config-field">
+          <span>위치</span>
+          <select
+            value={form.location_label}
+            onChange={(event) => {
+              setIsDirty(true);
+              setForm((prev) => ({ ...prev, location_label: event.target.value }));
+            }}
+          >
+            {LOCATION_OPTIONS.map((location) => (
+              <option key={location.stationNo} value={location.label}>{location.label}</option>
+            ))}
+          </select>
+        </label>
+      </div>
+      {(message || error) && (
+        <div className={`gl-config-message${error ? " gl-config-error" : ""}`}>
+          {error || message}
+        </div>
+      )}
+    </form>
+  );
+}
+
+function SafetyContent({
+  data,
+  history,
+  loading,
+  liveStatus,
+  config,
+  configSaving,
+  configMessage,
+  configError,
+  configSaveVersion,
+  onConfigSave,
+  aiAnalysis,
+  aiLoading,
+  aiError,
+  onAiRequest,
+}) {
   if (loading) {
     return <div className="gl-safety-loading">데이터 불러오는 중...</div>;
   }
@@ -255,9 +451,24 @@ function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError,
     (item) => item.key !== "weather_observation" && item.key !== "weather_api_error",
   );
   const weatherValues = weatherObservation?.values || {};
+  const weatherStationName =
+    weatherObservation?.station_name ||
+    ASOS_STATION_NAMES[weatherObservation?.station_no] ||
+    (weatherObservation?.station_no ? `관측소 ${weatherObservation.station_no}` : "지역 대기");
+  const weatherObservedAt = formatWeatherTime(weatherObservation?.observed_at);
+  const weatherSummary = getWeatherSummary(weatherValues, weatherAlerts);
 
   return (
     <div className="gl-safety-grid">
+      <FactoryConfigPanel
+        config={config}
+        saving={configSaving}
+        message={configMessage}
+        error={configError}
+        saveVersion={configSaveVersion}
+        onSave={onConfigSave}
+      />
+
       {/* 점수 + 무사고 스트릭 */}
       <div className="gl-score-hero">
         <div className={`gl-score-ring gl-ring-${color}`}>
@@ -284,6 +495,9 @@ function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError,
           <div className="gl-score-note">
             금일 위험도는 직접 감점하지 않고, 이벤트 감점 배율로만 반영됩니다.
           </div>
+          <div className={`gl-live-badge gl-live-${liveStatus}`}>
+            {liveStatus === "open" ? "실시간 반영 중" : "자동 갱신 대기"}
+          </div>
         </div>
         <div className="gl-weather-box">
           <div className="gl-weather-head">
@@ -304,11 +518,12 @@ function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError,
             </div>
           ) : weatherObservation ? (
             <>
+              <div className="gl-weather-current">
+                <strong>{weatherSummary}</strong>
+                <span>{weatherStationName}</span>
+              </div>
               <div className="gl-weather-meta">
-                관측소 {weatherObservation.station_no}
-                {weatherObservation.observed_at
-                  ? ` · ${weatherObservation.observed_at}`
-                  : ""}
+                관측소 {weatherObservation.station_no} · {weatherObservedAt} 기준
               </div>
               <div className="gl-weather-values">
                 <span>기온 {weatherValues.temp_c ?? "-"}도</span>
@@ -317,9 +532,7 @@ function SafetyContent({ data, history, loading, aiAnalysis, aiLoading, aiError,
                 <span>강수 {weatherValues.rain_mm ?? "-"}mm</span>
               </div>
               <div className="gl-weather-message">
-                {weatherAlerts.length > 0
-                  ? weatherAlerts.map((item) => item.label).join(" · ")
-                  : "위험 기상 조건 없음"}
+                {weatherSummary}
               </div>
             </>
           ) : (
@@ -442,6 +655,12 @@ export default function GuideLine() {
   const [safetyData, setSafetyData] = useState(null);
   const [safetyHistory, setSafetyHistory] = useState([]);
   const [safetyLoading, setSafetyLoading] = useState(false);
+  const [factoryConfig, setFactoryConfig] = useState({});
+  const [configSaving, setConfigSaving] = useState(false);
+  const [configMessage, setConfigMessage] = useState("");
+  const [configError, setConfigError] = useState("");
+  const [configSaveVersion, setConfigSaveVersion] = useState(0);
+  const [safetyLiveStatus, setSafetyLiveStatus] = useState("connecting");
   const [aiAnalysis, setAiAnalysis] = useState(null);
   const [aiLoading, setAiLoading] = useState(false);
   const [aiError, setAiError] = useState(null);
@@ -451,26 +670,93 @@ export default function GuideLine() {
     return () => clearTimeout(t);
   }, []);
 
-  const fetchSafety = useCallback(async () => {
-    setSafetyLoading(true);
+  const fetchSafety = useCallback(async ({ showLoading = false } = {}) => {
+    if (showLoading) {
+      setSafetyLoading(true);
+    }
     try {
-      const [score, history] = await Promise.all([
+      const [score, history, config] = await Promise.all([
         safetyAPI.getScore(),
         safetyAPI.getHistory(7),
+        safetyAPI.getConfig(),
       ]);
       setSafetyData(score);
       setSafetyHistory(history);
+      setFactoryConfig(config);
     } catch {
-      setSafetyData(null);
+      if (showLoading) {
+        setSafetyData(null);
+      }
     } finally {
-      setSafetyLoading(false);
+      if (showLoading) {
+        setSafetyLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
     if (activeSection === "safety") {
-      fetchSafety();
+      fetchSafety({ showLoading: !safetyData });
     }
+  }, [activeSection, fetchSafety, safetyData]);
+
+  useEffect(() => {
+    if (activeSection !== "safety") {
+      return undefined;
+    }
+
+    let closedByEffect = false;
+    let refreshTimer = null;
+    const scheduleRefresh = () => {
+      if (refreshTimer) return;
+      refreshTimer = setTimeout(() => {
+        refreshTimer = null;
+        fetchSafety();
+      }, 300);
+    };
+
+    const edgeId = runtimeConfig.edgeId;
+    const wsPath = edgeId ? `/ws/logs?edge_id=${encodeURIComponent(edgeId)}` : "/ws/logs";
+    const ws = new WebSocket(getWsUrl(wsPath));
+    setSafetyLiveStatus("connecting");
+
+    ws.onopen = () => {
+      setSafetyLiveStatus("open");
+    };
+
+    ws.onmessage = (event) => {
+      try {
+        const message = JSON.parse(event.data);
+        if (["LOG", "LOG_UPDATE", "STATUS_UPDATE"].includes(message.type)) {
+          scheduleRefresh();
+        }
+      } catch {
+        scheduleRefresh();
+      }
+    };
+
+    ws.onerror = () => {
+      setSafetyLiveStatus("error");
+    };
+
+    ws.onclose = () => {
+      if (!closedByEffect) {
+        setSafetyLiveStatus("closed");
+      }
+    };
+
+    const pollingTimer = setInterval(() => {
+      fetchSafety();
+    }, 10000);
+
+    return () => {
+      closedByEffect = true;
+      if (refreshTimer) {
+        clearTimeout(refreshTimer);
+      }
+      clearInterval(pollingTimer);
+      ws.close(4000, "Guideline safety unmounted");
+    };
   }, [activeSection, fetchSafety]);
 
   const fetchAiAnalysis = useCallback(async () => {
@@ -486,6 +772,33 @@ export default function GuideLine() {
       setAiLoading(false);
     }
   }, []);
+
+  const saveFactoryConfig = useCallback(async (nextConfig) => {
+    const workerCount = Math.min(
+      MAX_WORKER_COUNT,
+      Math.max(0, Number.parseInt(nextConfig.worker_count, 10) || 0),
+    );
+    setConfigSaving(true);
+    setConfigMessage("");
+    setConfigError("");
+    try {
+      await Promise.all([
+        safetyAPI.updateConfig("industry_type", nextConfig.industry_type),
+        safetyAPI.updateConfig("worker_count", String(workerCount)),
+        safetyAPI.updateConfig("factory_location_label", nextConfig.factory_location_label),
+        safetyAPI.updateConfig("kma_asos_station_no", nextConfig.kma_asos_station_no),
+        safetyAPI.updateConfig("location_nx", nextConfig.location_nx),
+        safetyAPI.updateConfig("location_ny", nextConfig.location_ny),
+      ]);
+      setConfigMessage("설정이 저장되었습니다.");
+      await fetchSafety();
+      setConfigSaveVersion((version) => version + 1);
+    } catch (error) {
+      setConfigError(error?.response?.data?.detail || "설정 저장에 실패했습니다.");
+    } finally {
+      setConfigSaving(false);
+    }
+  }, [fetchSafety]);
 
   const current = SECTIONS.find((s) => s.id === activeSection);
 
@@ -544,6 +857,13 @@ export default function GuideLine() {
               data={safetyData}
               history={safetyHistory}
               loading={safetyLoading}
+              liveStatus={safetyLiveStatus}
+              config={factoryConfig}
+              configSaving={configSaving}
+              configMessage={configMessage}
+              configError={configError}
+              configSaveVersion={configSaveVersion}
+              onConfigSave={saveFactoryConfig}
               aiAnalysis={aiAnalysis}
               aiLoading={aiLoading}
               aiError={aiError}
