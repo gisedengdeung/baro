@@ -47,6 +47,116 @@
   margin: 0 0 14px;
 }
 
+.sp2-daily-list {
+  display: grid;
+  gap: 10px;
+}
+
+.sp2-daily-row {
+  display: grid;
+  grid-template-columns: minmax(280px, 0.9fr) minmax(320px, 1.1fr);
+  gap: 14px;
+  padding: 12px;
+  background: var(--primary-bg, #0f172a);
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.sp2-daily-main {
+  display: grid;
+  grid-template-columns: 96px 70px minmax(0, 1fr);
+  gap: 12px;
+  align-items: center;
+}
+
+.sp2-daily-date {
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--text-primary, #f1f5f9);
+}
+
+.sp2-daily-score {
+  font-family: "Bebas Neue", sans-serif;
+  font-size: 32px;
+  line-height: 1;
+  color: #10b981;
+}
+
+.sp2-daily-score span {
+  margin-left: 3px;
+  font-family: "Noto Sans KR", sans-serif;
+  font-size: 11px;
+  color: #64748b;
+}
+
+.sp2-daily-weather {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.sp2-daily-weather strong {
+  font-size: 12px;
+  color: var(--text-primary, #f1f5f9);
+}
+
+.sp2-daily-weather span {
+  font-size: 11px;
+  color: #94a3b8;
+  line-height: 1.45;
+  overflow-wrap: anywhere;
+}
+
+.sp2-daily-events {
+  display: grid;
+  gap: 6px;
+}
+
+.sp2-daily-event {
+  display: grid;
+  grid-template-columns: 54px minmax(0, 1fr) 68px;
+  align-items: center;
+  gap: 8px;
+  min-height: 28px;
+  padding: 4px 8px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 1px solid rgba(148, 163, 184, 0.16);
+  border-radius: 6px;
+}
+
+.sp2-event-time,
+.sp2-clip-missing,
+.sp2-daily-empty,
+.sp2-daily-more {
+  font-size: 11px;
+  color: #64748b;
+}
+
+.sp2-event-label {
+  min-width: 0;
+  font-size: 12px;
+  color: #cbd5e1;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp2-clip-link {
+  justify-self: end;
+  border: 1px solid #f59e0b;
+  border-radius: 6px;
+  color: #f59e0b;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 10px;
+  text-decoration: none;
+}
+
+.sp2-clip-link:hover {
+  background: rgba(245, 158, 11, 0.12);
+}
+
 /* ── 검색 바 ── */
 .sp2-search-bar {
   background: var(--secondary-bg, #1e293b);
@@ -761,6 +871,22 @@
   background: #f8fafc;
   border-color: #e2e8f0;
 }
+[data-theme="light"] .sp2-daily-row {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+[data-theme="light"] .sp2-daily-date,
+[data-theme="light"] .sp2-daily-weather strong {
+  color: #0f172a;
+}
+[data-theme="light"] .sp2-daily-weather span,
+[data-theme="light"] .sp2-event-label {
+  color: #475569;
+}
+[data-theme="light"] .sp2-daily-event {
+  background: #fff;
+  border-color: #e2e8f0;
+}
 [data-theme="light"] .sp2-yr-btn {
   background: #f8fafc;
   border-color: #e2e8f0;
@@ -800,6 +926,10 @@
 
 /* ── 반응형 ── */
 @media (max-width: 900px) {
+  .sp2-daily-row,
+  .sp2-daily-main {
+    grid-template-columns: 1fr;
+  }
   .sp2-bottom {
     grid-template-columns: 1fr;
   }

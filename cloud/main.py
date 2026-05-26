@@ -19,6 +19,7 @@ from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
 from cloud.services.llm_service import LLMService
+from cloud.services.location_service import LocationService
 from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
@@ -30,15 +31,18 @@ from cloud.ws import alert_stream, log_stream
 KST = ZoneInfo("Asia/Seoul")
 
 
-async def _weather_loop(weather_service: WeatherService) -> None:
-    """서버 시작 시 즉시 1회 실행, 이후 1시간마다 반복"""
+async def _weather_loop(weather_service: WeatherService, interval_sec: int) -> None:
+    """서버 시작 시 즉시 1회 실행, 이후 설정된 주기마다 반복"""
     await weather_service.refresh()
     while True:
-        await asyncio.sleep(3600)
+        await asyncio.sleep(interval_sec)
         await weather_service.refresh()
 
 
-async def _midnight_close_loop(safety_service: SafetyService) -> None:
+async def _midnight_close_loop(
+    safety_service: SafetyService,
+    weather_service: WeatherService | None = None,
+) -> None:
     """매일 자정 KST에 당일 점수 확정 + 무사고 스트릭 업데이트"""
     while True:
         now = datetime.now(KST)
@@ -47,6 +51,12 @@ async def _midnight_close_loop(safety_service: SafetyService) -> None:
         )
         await asyncio.sleep((next_midnight - now).total_seconds())
         safety_service.close_day()
+        if weather_service:
+            target_date = (datetime.now(KST).date() - timedelta(days=1)).isoformat()
+            try:
+                await weather_service.save_daily_asos_summary(target_date)
+            except Exception as exc:
+                logger.warning(f"일별 ASOS 기상 요약 저장 실패: {exc}")
         logger.info("자정 마감 완료")
 
 cfg = load_config()
@@ -86,6 +96,7 @@ async def lifespan(app: FastAPI):
 
     safety_service = SafetyService(db_path=cfg.local_db_path)
     app.state.safety_service = safety_service
+    app.state.location_service = LocationService(kakao_rest_api_key=cfg.kakao_rest_api_key)
 
     weather_service: WeatherService | None = None
     if cfg.kma_api_key:
@@ -120,9 +131,13 @@ async def lifespan(app: FastAPI):
     app.state.auth_service = auth_service
 
     # 백그라운드 태스크
-    bg_tasks = [asyncio.create_task(_midnight_close_loop(safety_service))]
+    bg_tasks = [asyncio.create_task(_midnight_close_loop(safety_service, weather_service))]
     if weather_service:
-        bg_tasks.append(asyncio.create_task(_weather_loop(weather_service)))
+        bg_tasks.append(
+            asyncio.create_task(
+                _weather_loop(weather_service, cfg.weather_refresh_interval_sec)
+            )
+        )
     else:
         logger.warning("KMA_API_KEY 미설정 - 기상 감점 비활성화")
 

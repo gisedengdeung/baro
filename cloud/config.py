@@ -29,6 +29,8 @@ class CloudConfig:
     aws_region: str
     kma_api_key: str | None
     kma_asos_station_no: str
+    weather_refresh_interval_sec: int
+    kakao_rest_api_key: str | None
     openai_api_key: str | None
 
 
@@ -94,5 +96,7 @@ def load_config() -> CloudConfig:
         aws_region=os.getenv("AWS_REGION", "ap-northeast-2").strip() or "ap-northeast-2",
         kma_api_key=(os.getenv("KMA_API_KEY") or "").strip() or None,
         kma_asos_station_no=_parse_env_value(os.getenv("KMA_ASOS_STATION_NO"), "119"),  # 기본: 경기 수원
+        weather_refresh_interval_sec=int(os.getenv("WEATHER_REFRESH_INTERVAL_SEC", "600")),
+        kakao_rest_api_key=(os.getenv("KAKAO_REST_API_KEY") or "").strip() or None,
         openai_api_key=(os.getenv("OPENAI_API_KEY") or "").strip() or None,
     )
