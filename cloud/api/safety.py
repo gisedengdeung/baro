@@ -22,6 +22,7 @@ from cloud.services.weather_service import WeatherService
 
 router = APIRouter()
 KST = ZoneInfo("Asia/Seoul")
+DAILY_REPORT_EVENT_RISK_LEVELS = {"CRITICAL"}
 
 
 class ConfigUpdateRequest(BaseModel):
@@ -67,6 +68,8 @@ def get_daily_report(
     )
     events_by_date: dict[str, list[dict[str, Any]]] = {}
     for event in events:
+        if event.get("log_risk_level") not in DAILY_REPORT_EVENT_RISK_LEVELS:
+            continue
         day = str(event.get("timestamp", ""))[:10]
         events_by_date.setdefault(day, []).append(event)
 
