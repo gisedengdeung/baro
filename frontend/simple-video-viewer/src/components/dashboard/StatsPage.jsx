@@ -33,6 +33,12 @@ const EVENT_LABELS = {
   LOG_CRITICAL_SENSOR: "화재 감지",
 };
 
+function scoreColor(score) {
+  if (score >= 80) return "ok";
+  if (score >= 60) return "warning";
+  return "danger";
+}
+
 function formatEventTime(timestamp) {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
@@ -72,47 +78,50 @@ function DailySafetyReport({ report }) {
         </div>
       </div>
       <div className="sp2-daily-list">
-        {report.map((day) => (
-          <div key={day.date} className="sp2-daily-row">
-            <div className="sp2-daily-main">
-              <div className="sp2-daily-date">{day.date}</div>
-              <div className="sp2-daily-score">{day.score}<span>점</span></div>
-              <div className="sp2-daily-weather">
-                <strong>{day.daily_weather?.station_name || "기상 기록"}</strong>
-                <span>{weatherText(day.daily_weather)}</span>
+        {report.map((day) => {
+          const color = scoreColor(day.score);
+          return (
+            <div key={day.date} className="sp2-daily-row">
+              <div className="sp2-daily-main">
+                <div className="sp2-daily-date">{day.date}</div>
+                <div className={`sp2-daily-score sp2-score-${color}`}>{day.score}<span>점</span></div>
+                <div className="sp2-daily-weather">
+                  <strong>{day.daily_weather?.station_name || "기상 기록"}</strong>
+                  <span>{weatherText(day.daily_weather)}</span>
+                </div>
+              </div>
+              <div className="sp2-daily-events">
+                {day.events?.length ? (
+                  day.events.slice(0, 5).map((event) => (
+                    <div key={event.id} className="sp2-daily-event">
+                      <span className="sp2-event-time">{formatEventTime(event.timestamp)}</span>
+                      <span className="sp2-event-label">
+                        {EVENT_LABELS[event.event_type] || event.event_type}
+                      </span>
+                      {event.has_clip ? (
+                        <a
+                          className="sp2-clip-link"
+                          href={`${runtimeConfig.apiBaseUrl}/api/logs/${event.id}/clip`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          영상
+                        </a>
+                      ) : (
+                        <span className="sp2-clip-missing">영상 없음</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="sp2-daily-empty">이벤트 없음</div>
+                )}
+                {day.events?.length > 5 && (
+                  <div className="sp2-daily-more">외 {day.events.length - 5}건 더 있음</div>
+                )}
               </div>
             </div>
-            <div className="sp2-daily-events">
-              {day.events?.length ? (
-                day.events.slice(0, 5).map((event) => (
-                  <div key={event.id} className="sp2-daily-event">
-                    <span className="sp2-event-time">{formatEventTime(event.timestamp)}</span>
-                    <span className="sp2-event-label">
-                      {EVENT_LABELS[event.event_type] || event.event_type}
-                    </span>
-                    {event.has_clip ? (
-                      <a
-                        className="sp2-clip-link"
-                        href={`${runtimeConfig.apiBaseUrl}/api/logs/${event.id}/clip`}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        영상
-                      </a>
-                    ) : (
-                      <span className="sp2-clip-missing">영상 없음</span>
-                    )}
-                  </div>
-                ))
-              ) : (
-                <div className="sp2-daily-empty">이벤트 없음</div>
-              )}
-              {day.events?.length > 5 && (
-                <div className="sp2-daily-more">외 {day.events.length - 5}건 더 있음</div>
-              )}
-            </div>
-          </div>
-        ))}
+          );
+        })}
       </div>
     </div>
   );

@@ -381,6 +381,7 @@ class SafetyService:
         ]
 
     def get_daily_report(self, days: int = 30) -> list[dict[str, Any]]:
+        today = datetime.now(KST).date().isoformat()
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
                 """
@@ -432,7 +433,11 @@ class SafetyService:
             report.append(
                 {
                     "date": row["date"],
-                    "score": row["final_score"],
+                    "score": (
+                        self._get_score_for_date(row["date"])["score"]
+                        if row["date"] == today
+                        else row["final_score"]
+                    ),
                     "accident_free_streak": row["accident_free_streak"],
                     "weather_deduction": row["weather_deduction"],
                     "weather_details": weather_details if isinstance(weather_details, list) else [],

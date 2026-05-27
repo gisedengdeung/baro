@@ -79,7 +79,18 @@
   font-family: "Bebas Neue", sans-serif;
   font-size: 32px;
   line-height: 1;
+}
+
+.sp2-score-ok {
   color: #10b981;
+}
+
+.sp2-score-warning {
+  color: #f59e0b;
+}
+
+.sp2-score-danger {
+  color: #ef4444;
 }
 
 .sp2-daily-score span {
