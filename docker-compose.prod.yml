@@ -61,18 +61,18 @@ services:
       - --external-ip=${TURN_PUBLIC_IP}
       - --listening-port=3478
       # Original TURN relay ports:
-      # - --min-port=49160
-      # - --max-port=49200
+      - --min-port=49160
+      - --max-port=49200
       # Local Windows workaround: avoid 49160-49200 because it can be reserved by the OS/Hyper-V.
-      - --min-port=51000
-      - --max-port=51100
+      #- --min-port=51000
+      #- --max-port=51100
       - --no-cli
     ports:
       - "3478:3478/tcp"
       - "3478:3478/udp"
       # Original TURN relay port mapping:
-      # - "49160-49200:49160-49200/udp"
-      - "51000-51100:51000-51100/udp"
+      - "49160-49200:49160-49200/udp"
+      #- "51000-51100:51000-51100/udp"
     restart: unless-stopped
 
 volumes:
