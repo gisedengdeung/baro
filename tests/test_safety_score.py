@@ -8,6 +8,7 @@ from datetime import datetime
 from pathlib import Path
 from unittest.mock import patch
 
+from cloud.api.safety import _annotate_event_deductions
 from cloud.db import get_connection, init_db
 from cloud.services import safety_service as safety_module
 from cloud.services.safety_service import SafetyService
@@ -46,7 +47,7 @@ class SafetyScoreTest(unittest.TestCase):
 
             with get_connection(db_path) as conn:
                 yesterday = conn.execute(
-                    "SELECT final_score, accident_free_streak FROM safety_score_daily WHERE date = ?",
+                    "SELECT final_score, accident_free_streak, closed_at FROM safety_score_daily WHERE date = ?",
                     ("2026-05-19",),
                 ).fetchone()
                 today = conn.execute(
@@ -56,6 +57,7 @@ class SafetyScoreTest(unittest.TestCase):
 
             self.assertEqual(yesterday["final_score"], 100)
             self.assertEqual(yesterday["accident_free_streak"], 3)
+            self.assertIsNotNone(yesterday["closed_at"])
             self.assertIsNone(today)
 
     def test_weather_refresh_failure_preserves_existing_risk(self):
@@ -81,6 +83,293 @@ class SafetyScoreTest(unittest.TestCase):
 
             self.assertEqual(row["weather_deduction"], 5)
             self.assertEqual(json.loads(row["deductions_json"]), existing_details)
+
+    def test_sensor_pinch_events_are_deducted_with_daily_cap(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                for minute in range(3):
+                    conn.execute(
+                        """
+                        INSERT INTO event_logs
+                            (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                        VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', ?)
+                        """,
+                        (f"2026-05-22T11:0{minute}:00",),
+                    )
+                conn.commit()
+
+            score_data = service._get_score_for_date("2026-05-22")
+            event_deduction = score_data["event_deduction"]
+            event = event_deduction["events"][0]
+
+            self.assertEqual(event_deduction["base"], 40)
+            self.assertLess(score_data["score"], 100)
+            self.assertEqual(event["event_type"], "LOG_CRITICAL_SENSOR")
+            self.assertEqual(event["label"], "끼임 감지")
+            self.assertEqual(event["points_per"], 20)
+            self.assertEqual(event["daily_cap"], 2)
+            self.assertEqual(event["count"], 3)
+
+    def test_daily_report_event_deduction_annotations_respect_time_order_and_cap(self):
+        events = [
+            {"id": 3, "event_type": "LOG_CRITICAL_SENSOR", "timestamp": "2026-05-22T11:02:00"},
+            {"id": 1, "event_type": "LOG_CRITICAL_SENSOR", "timestamp": "2026-05-22T11:00:00"},
+            {"id": 2, "event_type": "LOG_CRITICAL_SENSOR", "timestamp": "2026-05-22T11:01:00"},
+        ]
+
+        _annotate_event_deductions(events, 1.25)
+        by_id = {event["id"]: event for event in events}
+
+        self.assertEqual(by_id[1]["deduction_points"], 20)
+        self.assertEqual(by_id[1]["deduction_adjusted_points"], 25)
+        self.assertEqual(by_id[1]["deduction_multiplier"], 1.25)
+        self.assertTrue(by_id[1]["deduction_applied"])
+        self.assertEqual(by_id[2]["deduction_points"], 20)
+        self.assertEqual(by_id[2]["deduction_adjusted_points"], 25)
+        self.assertTrue(by_id[2]["deduction_applied"])
+        self.assertEqual(by_id[3]["deduction_points"], 0)
+        self.assertEqual(by_id[3]["deduction_adjusted_points"], 0)
+        self.assertFalse(by_id[3]["deduction_applied"])
+
+    def test_daily_report_recalculates_past_scores_from_events(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO daily_weather_summary
+                        (date, station_no, station_name, summary_json, created_at, updated_at)
+                    VALUES ('2026-05-22', '119', '수원', '{}', '2026-05-23T00:00:00', '2026-05-23T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertLess(report[0]["score"], 100)
+
+    def test_daily_report_keeps_past_default_score_without_weather_summary(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertEqual(report[0]["score"], 100)
+            self.assertIsNone(report[0]["daily_weather"])
+
+    def test_daily_report_recalculates_today_score_without_weather_summary(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 22, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertLess(report[0]["score"], 100)
+            self.assertIsNone(report[0]["daily_weather"])
+
+    def test_daily_report_preserves_finalized_past_scores(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 72, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertEqual(report[0]["score"], 72)
+
+    def test_daily_report_preserves_closed_default_scores(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at, closed_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00', '2026-05-23T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO daily_weather_summary
+                        (date, station_no, station_name, summary_json, created_at, updated_at)
+                    VALUES ('2026-05-22', '119', '수원', '{}', '2026-05-23T00:00:00', '2026-05-23T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertEqual(report[0]["score"], 100)
+            self.assertEqual(report[0]["closed_at"], "2026-05-23T00:00:00")
+
+    def test_finalize_backfilled_day_closes_past_unclosed_score(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 23, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-21', 100, '[]', 0, 2, '2026-05-21T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                result = service.finalize_backfilled_day("2026-05-22")
+
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT final_score, accident_free_streak, closed_at FROM safety_score_daily WHERE date = ?",
+                    ("2026-05-22",),
+                ).fetchone()
+
+            self.assertTrue(result["finalized"])
+            self.assertLess(row["final_score"], 100)
+            self.assertEqual(row["accident_free_streak"], 0)
+            self.assertIsNotNone(row["closed_at"])
+
+    def test_finalize_backfilled_day_does_not_close_today(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 22, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                result = service.finalize_backfilled_day("2026-05-22")
+
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT closed_at FROM safety_score_daily WHERE date = ?",
+                    ("2026-05-22",),
+                ).fetchone()
+
+            self.assertFalse(result["finalized"])
+            self.assertEqual(result["reason"], "today_or_future")
+            self.assertIsNone(row)
 
     def test_ultra_short_nowcast_weather_risk_uses_grid_location(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:

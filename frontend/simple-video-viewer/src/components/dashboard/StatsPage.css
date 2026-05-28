@@ -119,6 +119,32 @@
   overflow-wrap: anywhere;
 }
 
+.sp2-daily-weather .sp2-weather-meta {
+  color: #64748b;
+  font-size: 10px;
+}
+
+.sp2-asos-refresh {
+  width: fit-content;
+  border: 1px solid rgba(245, 158, 11, 0.8);
+  border-radius: 6px;
+  background: transparent;
+  color: #f59e0b;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 700;
+  padding: 4px 8px;
+}
+
+.sp2-asos-refresh:hover:not(:disabled) {
+  background: rgba(245, 158, 11, 0.12);
+}
+
+.sp2-asos-refresh:disabled {
+  cursor: wait;
+  opacity: 0.65;
+}
+
 .sp2-daily-events {
   display: grid;
   gap: 6px;
@@ -126,7 +152,7 @@
 
 .sp2-daily-event {
   display: grid;
-  grid-template-columns: 54px minmax(0, 1fr) 68px;
+  grid-template-columns: 54px minmax(0, 1fr) 42px 68px;
   align-items: center;
   gap: 8px;
   min-height: 28px;
@@ -138,10 +164,24 @@
 
 .sp2-event-time,
 .sp2-clip-missing,
-.sp2-daily-empty,
-.sp2-daily-more {
+.sp2-daily-empty {
   font-size: 11px;
   color: #64748b;
+}
+
+.sp2-daily-more {
+  justify-self: start;
+  border: 0;
+  background: transparent;
+  color: #64748b;
+  cursor: pointer;
+  font-size: 11px;
+  padding: 0;
+}
+
+.sp2-daily-more:hover {
+  color: #f59e0b;
+  text-decoration: underline;
 }
 
 .sp2-event-label {
@@ -153,11 +193,26 @@
   white-space: nowrap;
 }
 
+.sp2-event-deduction {
+  justify-self: end;
+  color: #ef4444;
+  font-size: 11px;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.sp2-event-deduction-muted {
+  color: #94a3b8;
+  font-weight: 700;
+}
+
 .sp2-clip-link {
   justify-self: end;
   border: 1px solid #f59e0b;
   border-radius: 6px;
+  background: transparent;
   color: #f59e0b;
+  cursor: pointer;
   font-size: 11px;
   font-weight: 700;
   padding: 4px 10px;
@@ -166,6 +221,82 @@
 
 .sp2-clip-link:hover {
   background: rgba(245, 158, 11, 0.12);
+}
+
+.sp2-clip-link.playing {
+  background: #f59e0b;
+  color: #0f172a;
+}
+
+.sp2-clip-player-panel {
+  overflow: hidden;
+  margin-bottom: 12px;
+  background: #000;
+  border: 1px solid #334155;
+  border-radius: 8px;
+}
+
+.sp2-clip-player-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #1f2937;
+  border-bottom: 1px solid #334155;
+}
+
+.sp2-clip-player-info {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.sp2-clip-player-title {
+  overflow: hidden;
+  color: #f59e0b;
+  font-size: 13px;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sp2-clip-player-time {
+  color: #94a3b8;
+  font-size: 11px;
+}
+
+.sp2-clip-player-close {
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #94a3b8;
+  cursor: pointer;
+  font-size: 16px;
+  line-height: 1;
+  padding: 6px 8px;
+}
+
+.sp2-clip-player-close:hover {
+  background: rgba(239, 68, 68, 0.15);
+  color: #ef4444;
+}
+
+.sp2-clip-player-body {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: clamp(260px, 46vh, 620px);
+  background: #000;
+}
+
+.sp2-clip-video {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
 }
 
 /* ── 검색 바 ── */
