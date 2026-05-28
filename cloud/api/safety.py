@@ -161,17 +161,13 @@ async def refresh_daily_weather_summary(
     if target_day >= datetime.now(KST).date():
         raise HTTPException(status_code=400, detail="ASOS 일별 기록은 과거 날짜만 조회할 수 있습니다")
 
-    closed_at = safety.get_closed_at(target_date)
-    if closed_at:
-        return {
-            "status": "skipped",
-            "reason": "already_closed",
-            "date": target_date,
-            "closed_at": closed_at,
-        }
-
     result = await weather.save_daily_asos_summary(target_date)
-    finalize_result = safety.finalize_backfilled_day(target_date)
+    closed_at = safety.get_closed_at(target_date)
+    finalize_result = (
+        {"finalized": False, "reason": "already_closed", "closed_at": closed_at}
+        if closed_at
+        else safety.finalize_backfilled_day(target_date)
+    )
     return {"status": "ok", "data": result, "finalize": finalize_result}
 
 
