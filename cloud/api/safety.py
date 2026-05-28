@@ -17,7 +17,7 @@ from cloud.dependencies import (
 from cloud.services.db_service import DBService
 from cloud.services.llm_service import LLMService
 from cloud.services.location_service import LocationService
-from cloud.services.safety_service import SafetyService
+from cloud.services.safety_service import DEDUCTION_RULES, SafetyService
 from cloud.services.weather_service import WeatherService
 
 router = APIRouter()
@@ -28,6 +28,33 @@ DAILY_REPORT_EVENT_RISK_LEVELS = {"CRITICAL"}
 class ConfigUpdateRequest(BaseModel):
     key: str
     value: str
+
+
+def _annotate_event_deductions(
+    events: list[dict[str, Any]],
+    multiplier: float = 1.0,
+) -> list[dict[str, Any]]:
+    counts: dict[str, int] = {}
+    for event in sorted(events, key=lambda item: str(item.get("timestamp", ""))):
+        event_type = event.get("event_type")
+        rule = DEDUCTION_RULES.get(event_type)
+        if not rule:
+            event["deduction_points"] = 0
+            event["deduction_adjusted_points"] = 0
+            event["deduction_multiplier"] = multiplier
+            event["deduction_applied"] = False
+            event["deduction_daily_cap"] = 0
+            continue
+
+        counts[event_type] = counts.get(event_type, 0) + 1
+        applied = counts[event_type] <= rule["daily_cap"]
+        base_points = rule["points"] if applied else 0
+        event["deduction_points"] = base_points
+        event["deduction_adjusted_points"] = round(base_points * multiplier, 1)
+        event["deduction_multiplier"] = multiplier
+        event["deduction_applied"] = applied
+        event["deduction_daily_cap"] = rule["daily_cap"]
+    return events
 
 
 @router.get("/score")
@@ -75,6 +102,8 @@ def get_daily_report(
 
     for item in report:
         item_events = events_by_date.get(item["date"], [])
+        multiplier = float(item.get("difficulty", {}).get("multiplier", 1.0))
+        _annotate_event_deductions(item_events, multiplier)
         counts: dict[str, int] = {}
         for event in item_events:
             event_type = event.get("event_type", "UNKNOWN")

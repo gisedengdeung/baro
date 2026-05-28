@@ -147,9 +147,17 @@ def init_db(db_path: str) -> None:
                 deductions_json TEXT NOT NULL DEFAULT '[]',
                 weather_deduction INTEGER NOT NULL DEFAULT 0,
                 accident_free_streak INTEGER NOT NULL DEFAULT 0,
-                created_at TEXT NOT NULL
+                created_at TEXT NOT NULL,
+                closed_at TEXT
             );
             """
+        )
+        _ensure_columns(
+            conn,
+            "safety_score_daily",
+            [
+                "closed_at TEXT",
+            ],
         )
 
         # 7. 일별 ASOS 기상 요약 테이블

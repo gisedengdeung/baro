@@ -257,6 +257,12 @@ export const safetyAPI = {
     const response = await apiClient.post('/api/safety/weather/refresh');
     return response.data;
   },
+  refreshDailyWeather: async (date) => {
+    const response = await apiClient.post('/api/safety/weather/daily-summary', null, {
+      params: date ? { date } : {},
+    });
+    return response.data;
+  },
   explain: async () => {
     const response = await apiClient.post('/api/safety/explain');
     return response.data;

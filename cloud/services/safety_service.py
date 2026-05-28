@@ -14,11 +14,13 @@ KST = ZoneInfo("Asia/Seoul")
 DEDUCTION_RULES: dict[str, dict] = {
     "LOG_CRITICAL_FALLING":   {"points": 20, "label": "넘어짐 감지",   "daily_cap": 2},
     "LOG_INTRUSION_SLOWDOWN": {"points": 10, "label": "위험구역 진입", "daily_cap": 2},
+    "LOG_CRITICAL_SENSOR":    {"points": 20, "label": "끼임 감지",     "daily_cap": 2},
 }
 
 EVENT_TYPE_TO_PUBLIC_LABEL: dict[str, str] = {
     "LOG_CRITICAL_FALLING": "낙상감지",
     "LOG_INTRUSION_SLOWDOWN": "위험구역진입",
+    "LOG_CRITICAL_SENSOR": "끼임감지",
 }
 
 ACCIDENT_FREE_THRESHOLD  = 80   # 무사고 유지 기준 점수
@@ -39,6 +41,7 @@ class SafetyService:
             "event_mapping": {
                 "낙상감지": "떨어짐",
                 "위험구역진입": "끼임",
+                "끼임감지": "끼임",
             },
             "industry_weights": {
                 "제조업_전체": {
@@ -252,6 +255,25 @@ class SafetyService:
             return []
         return details if isinstance(details, list) else []
 
+    def _has_deductible_events(self, date_str: str) -> bool:
+        date_start = f"{date_str}T00:00:00"
+        date_end = f"{date_str}T23:59:59"
+        placeholders = ",".join("?" for _ in DEDUCTION_RULES)
+        params = [date_start, date_end, *DEDUCTION_RULES.keys()]
+        with get_connection(self.db_path) as conn:
+            row = conn.execute(
+                f"""
+                SELECT 1
+                FROM event_logs
+                WHERE timestamp >= ?
+                  AND timestamp <= ?
+                  AND event_type IN ({placeholders})
+                LIMIT 1
+                """,
+                params,
+            ).fetchone()
+        return row is not None
+
     def _get_difficulty(self, weather_risk: int, weather_details: list[dict[str, Any]]) -> dict[str, Any]:
         industry = self._get_industry_name()
         worker_count = self._get_worker_count()
@@ -353,9 +375,16 @@ class SafetyService:
         new_streak  = prev_streak + 1 if final_score >= ACCIDENT_FREE_THRESHOLD else 0
 
         with get_connection(self.db_path) as conn:
+            closed_at = datetime.now(KST).isoformat()
             conn.execute(
-                "UPDATE safety_score_daily SET final_score = ?, accident_free_streak = ? WHERE date = ?",
-                (final_score, new_streak, target_date),
+                """
+                UPDATE safety_score_daily
+                SET final_score = ?,
+                    accident_free_streak = ?,
+                    closed_at = ?
+                WHERE date = ?
+                """,
+                (final_score, new_streak, closed_at, target_date),
             )
             conn.commit()
 
@@ -381,7 +410,6 @@ class SafetyService:
         ]
 
     def get_daily_report(self, days: int = 30) -> list[dict[str, Any]]:
-        today = datetime.now(KST).date().isoformat()
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
                 """
@@ -391,6 +419,7 @@ class SafetyService:
                     s.accident_free_streak,
                     s.weather_deduction,
                     s.deductions_json,
+                    s.closed_at,
                     w.station_no,
                     w.station_name,
                     w.avg_temp,
@@ -430,18 +459,27 @@ class SafetyService:
                     "max_wind": row["max_wind"],
                     "total_rain": row["total_rain"],
                 }
+            score = row["final_score"]
+            difficulty = self._get_difficulty(row["weather_deduction"], weather_details)
+            # closed_at 도입 전 생성된 100점 기본 레코드만 표시용으로 보정한다.
+            if (
+                not row["closed_at"]
+                and
+                float(score) == 100.0
+                and weather_summary
+                and self._has_deductible_events(row["date"])
+            ):
+                score = self._get_score_for_date(row["date"])["score"]
             report.append(
                 {
                     "date": row["date"],
-                    "score": (
-                        self._get_score_for_date(row["date"])["score"]
-                        if row["date"] == today
-                        else row["final_score"]
-                    ),
+                    "score": score,
                     "accident_free_streak": row["accident_free_streak"],
                     "weather_deduction": row["weather_deduction"],
                     "weather_details": weather_details if isinstance(weather_details, list) else [],
+                    "difficulty": difficulty,
                     "daily_weather": weather_summary,
+                    "closed_at": row["closed_at"],
                 }
             )
         return report

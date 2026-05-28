@@ -1,5 +1,5 @@
 // src/components/dashboard/StatsPage.jsx
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import { runtimeConfig, safetyAPI } from "../../services/api";
 import "./StatsPage.css";
 
@@ -12,7 +12,7 @@ const ALL_EVENT_IDS = [
 const EVENT_TYPES = [
   { id: "LOG_CRITICAL_FALLING", label: "넘어짐 감지", color: "#8b5cf6" },
   { id: "LOG_INTRUSION_SLOWDOWN", label: "위험구역 접근", color: "#ef4444" },
-  { id: "LOG_CRITICAL_SENSOR", label: "화재 감지", color: "#f59e0b" },
+  { id: "LOG_CRITICAL_SENSOR", label: "끼임 감지", color: "#f59e0b" },
 ];
 
 const ZONE_PALETTE = [
@@ -30,7 +30,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i);
 const EVENT_LABELS = {
   LOG_CRITICAL_FALLING: "넘어짐 감지",
   LOG_INTRUSION_SLOWDOWN: "위험구역 접근",
-  LOG_CRITICAL_SENSOR: "화재 감지",
+  LOG_CRITICAL_SENSOR: "끼임 감지",
 };
 
 function scoreColor(score) {
@@ -59,7 +59,27 @@ function weatherText(weather) {
   return parts.length > 0 ? parts.join(" · ") : "ASOS 값 없음";
 }
 
-function DailySafetyReport({ report }) {
+function formatDeduction(value) {
+  const num = Number(value ?? 0);
+  if (!Number.isFinite(num)) return "0";
+  return Number.isInteger(num) ? String(num) : num.toFixed(1);
+}
+
+function DailySafetyReport({ report, onRefreshAsos, refreshingAsosDate }) {
+  const [expandedDates, setExpandedDates] = useState(() => new Set());
+
+  const toggleExpandedDate = (date) => {
+    setExpandedDates((prev) => {
+      const next = new Set(prev);
+      if (next.has(date)) {
+        next.delete(date);
+      } else {
+        next.add(date);
+      }
+      return next;
+    });
+  };
+
   if (!report.length) {
     return (
       <div className="sp2-card">
@@ -80,6 +100,10 @@ function DailySafetyReport({ report }) {
       <div className="sp2-daily-list">
         {report.map((day) => {
           const color = scoreColor(day.score);
+          const events = day.events || [];
+          const isExpanded = expandedDates.has(day.date);
+          const visibleEvents = isExpanded ? events : events.slice(0, 5);
+          const hiddenCount = Math.max(events.length - 5, 0);
           return (
             <div key={day.date} className="sp2-daily-row">
               <div className="sp2-daily-main">
@@ -88,15 +112,32 @@ function DailySafetyReport({ report }) {
                 <div className="sp2-daily-weather">
                   <strong>{day.daily_weather?.station_name || "기상 기록"}</strong>
                   <span>{weatherText(day.daily_weather)}</span>
+                  {!day.daily_weather && onRefreshAsos && (
+                    <button
+                      type="button"
+                      className="sp2-asos-refresh"
+                      onClick={() => onRefreshAsos(day.date)}
+                      disabled={refreshingAsosDate === day.date}
+                    >
+                      {refreshingAsosDate === day.date ? "조회 중" : "ASOS 조회"}
+                    </button>
+                  )}
                 </div>
               </div>
               <div className="sp2-daily-events">
-                {day.events?.length ? (
-                  day.events.slice(0, 5).map((event) => (
+                {events.length ? (
+                  visibleEvents.map((event) => (
                     <div key={event.id} className="sp2-daily-event">
                       <span className="sp2-event-time">{formatEventTime(event.timestamp)}</span>
                       <span className="sp2-event-label">
                         {EVENT_LABELS[event.event_type] || event.event_type}
+                      </span>
+                      <span
+                        className={`sp2-event-deduction ${
+                          event.deduction_applied ? "" : "sp2-event-deduction-muted"
+                        }`}
+                      >
+                        -{formatDeduction(event.deduction_adjusted_points ?? event.deduction_points)}점
                       </span>
                       {event.has_clip ? (
                         <a
@@ -115,8 +156,14 @@ function DailySafetyReport({ report }) {
                 ) : (
                   <div className="sp2-daily-empty">이벤트 없음</div>
                 )}
-                {day.events?.length > 5 && (
-                  <div className="sp2-daily-more">외 {day.events.length - 5}건 더 있음</div>
+                {hiddenCount > 0 && (
+                  <button
+                    type="button"
+                    className="sp2-daily-more"
+                    onClick={() => toggleExpandedDate(day.date)}
+                  >
+                    {isExpanded ? "접기" : `외 ${hiddenCount}건 더 보기`}
+                  </button>
                 )}
               </div>
             </div>
@@ -357,11 +404,28 @@ export default function StatsPage({ logs = [] }) {
   const [activeFilters, setActiveFilters] = useState(new Set(ALL_EVENT_IDS));
   const [chartHeight, setChartHeight] = useState(220);
   const [dailyReport, setDailyReport] = useState([]);
+  const [refreshingAsosDate, setRefreshingAsosDate] = useState("");
   const barChartRef = useRef(null);
 
-  useEffect(() => {
+  const loadDailyReport = useCallback(() => {
     safetyAPI.getDailyReport(30).then(setDailyReport).catch(() => setDailyReport([]));
   }, []);
+
+  useEffect(() => {
+    loadDailyReport();
+  }, [loadDailyReport]);
+
+  const handleRefreshAsos = async (date) => {
+    setRefreshingAsosDate(date);
+    try {
+      await safetyAPI.refreshDailyWeather(date);
+      loadDailyReport();
+    } catch {
+      window.alert("ASOS 기록을 조회하지 못했습니다.");
+    } finally {
+      setRefreshingAsosDate("");
+    }
+  };
 
   /* 적용된 날짜 필터 */
   const parsedFrom = applied.from ? new Date(applied.from + "T00:00:00") : null;
@@ -531,7 +595,11 @@ export default function StatsPage({ logs = [] }) {
           </div>
         </div>
 
-        <DailySafetyReport report={dailyReport} />
+        <DailySafetyReport
+          report={dailyReport}
+          onRefreshAsos={handleRefreshAsos}
+          refreshingAsosDate={refreshingAsosDate}
+        />
 
         {/* 전체 감지내역 카드 */}
         <div className="sp2-card">
@@ -583,7 +651,7 @@ export default function StatsPage({ logs = [] }) {
               color="#ef4444"
             />
             <SemiGauge
-              label="화재 감지"
+              label="끼임 감지"
               value={summary.sensor}
               total={Math.max(summary.total, 1)}
               color="#f59e0b"

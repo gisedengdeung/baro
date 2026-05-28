@@ -5,7 +5,7 @@ const API_BASE = process.env.REACT_APP_API_BASE_URL || "http://localhost:8000";
 
 const EVENT_CONFIG = {
   LOG_CRITICAL_FALLING: { label: "넘어짐 감지", type: "critical", icon: "🔥" },
-  LOG_CRITICAL_SENSOR: { label: "센서 경고", type: "critical", icon: "🔥" },
+  LOG_CRITICAL_SENSOR: { label: "끼임 감지", type: "critical", icon: "🔥" },
   LOG_INTRUSION_SLOWDOWN: { label: "위험 구역 침입", type: "warn", icon: "⚠️" },
   LOG_CROUCHING_WARN: { label: "웅크린 자세", type: "medium", icon: "❗" },
   LOG_LOTO_ACTIVE: { label: "LOTO 활성", type: "warn", icon: "🔒" },
