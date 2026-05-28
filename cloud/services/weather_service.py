@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import re
 from datetime import datetime, timedelta
 from typing import Any
 from zoneinfo import ZoneInfo
@@ -325,5 +326,7 @@ class WeatherService:
             return 0.5
         if "~" in text:
             text = text.split("~", 1)[0]
-        text = text.replace("mm", "").strip()
-        return float(text)
+        match = re.search(r"[-+]?\d+(?:\.\d+)?", text)
+        if match is None:
+            raise ValueError(f"invalid rain value: {value!r}")
+        return float(match.group(0))
