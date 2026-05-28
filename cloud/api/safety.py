@@ -153,11 +153,26 @@ async def refresh_weather(
 @router.post("/weather/daily-summary")
 async def refresh_daily_weather_summary(
     date: str | None = None,
+    safety: SafetyService = Depends(get_safety_service),
     weather: WeatherService = Depends(get_weather_service),
 ) -> dict[str, Any]:
     target_date = date or (datetime.now(KST).date() - timedelta(days=1)).isoformat()
+    target_day = datetime.fromisoformat(target_date).date()
+    if target_day >= datetime.now(KST).date():
+        raise HTTPException(status_code=400, detail="ASOS 일별 기록은 과거 날짜만 조회할 수 있습니다")
+
+    closed_at = safety.get_closed_at(target_date)
+    if closed_at:
+        return {
+            "status": "skipped",
+            "reason": "already_closed",
+            "date": target_date,
+            "closed_at": closed_at,
+        }
+
     result = await weather.save_daily_asos_summary(target_date)
-    return {"status": "ok", "data": result}
+    finalize_result = safety.finalize_backfilled_day(target_date)
+    return {"status": "ok", "data": result, "finalize": finalize_result}
 
 
 @router.post("/explain")

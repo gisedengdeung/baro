@@ -298,6 +298,79 @@ class SafetyScoreTest(unittest.TestCase):
             self.assertEqual(report[0]["score"], 100)
             self.assertEqual(report[0]["closed_at"], "2026-05-23T00:00:00")
 
+    def test_finalize_backfilled_day_closes_past_unclosed_score(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 23, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-21', 100, '[]', 0, 2, '2026-05-21T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                result = service.finalize_backfilled_day("2026-05-22")
+
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT final_score, accident_free_streak, closed_at FROM safety_score_daily WHERE date = ?",
+                    ("2026-05-22",),
+                ).fetchone()
+
+            self.assertTrue(result["finalized"])
+            self.assertLess(row["final_score"], 100)
+            self.assertEqual(row["accident_free_streak"], 0)
+            self.assertIsNotNone(row["closed_at"])
+
+    def test_finalize_backfilled_day_does_not_close_today(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 22, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                result = service.finalize_backfilled_day("2026-05-22")
+
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT closed_at FROM safety_score_daily WHERE date = ?",
+                    ("2026-05-22",),
+                ).fetchone()
+
+            self.assertFalse(result["finalized"])
+            self.assertEqual(result["reason"], "today_or_future")
+            self.assertIsNone(row)
+
     def test_ultra_short_nowcast_weather_risk_uses_grid_location(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db_path = self._db_path(tmpdir)

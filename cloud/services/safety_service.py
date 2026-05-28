@@ -388,6 +388,60 @@ class SafetyService:
             )
             conn.commit()
 
+    def get_closed_at(self, target_date: str) -> str | None:
+        with get_connection(self.db_path) as conn:
+            row = conn.execute(
+                "SELECT closed_at FROM safety_score_daily WHERE date = ?",
+                (target_date,),
+            ).fetchone()
+        return row["closed_at"] if row else None
+
+    def finalize_backfilled_day(self, target_date: str) -> dict[str, Any]:
+        """ASOS 사후 조회가 끝난 과거 날짜를 최종 점수로 확정합니다."""
+        target_day = datetime.fromisoformat(target_date).date()
+        today = datetime.now(KST).date()
+        if target_day >= today:
+            return {"finalized": False, "reason": "today_or_future"}
+
+        self._ensure_today_record(target_date)
+        closed_at = self.get_closed_at(target_date)
+        if closed_at:
+            return {"finalized": False, "reason": "already_closed", "closed_at": closed_at}
+
+        previous_date = (target_day - timedelta(days=1)).isoformat()
+        score_data = self._get_score_for_date(target_date)
+        final_score = score_data["score"]
+
+        with get_connection(self.db_path) as conn:
+            prev_row = conn.execute(
+                "SELECT accident_free_streak FROM safety_score_daily WHERE date = ?",
+                (previous_date,),
+            ).fetchone()
+        prev_streak = int(prev_row["accident_free_streak"]) if prev_row else 0
+        new_streak = prev_streak + 1 if final_score >= ACCIDENT_FREE_THRESHOLD else 0
+        closed_at = datetime.now(KST).isoformat()
+
+        with get_connection(self.db_path) as conn:
+            conn.execute(
+                """
+                UPDATE safety_score_daily
+                SET final_score = ?,
+                    accident_free_streak = ?,
+                    closed_at = ?
+                WHERE date = ?
+                """,
+                (final_score, new_streak, closed_at, target_date),
+            )
+            conn.commit()
+
+        return {
+            "finalized": True,
+            "date": target_date,
+            "final_score": final_score,
+            "accident_free_streak": new_streak,
+            "closed_at": closed_at,
+        }
+
     def get_history(self, days: int = 7) -> list[dict[str, Any]]:
         with get_connection(self.db_path) as conn:
             rows = conn.execute(
