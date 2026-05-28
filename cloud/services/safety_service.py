@@ -461,12 +461,14 @@ class SafetyService:
                 }
             score = row["final_score"]
             difficulty = self._get_difficulty(row["weather_deduction"], weather_details)
-            # closed_at 도입 전 생성된 100점 기본 레코드만 표시용으로 보정한다.
+            today = datetime.now(KST).date().isoformat()
+            # 오늘은 대시보드와 같은 실시간 점수를 보여준다.
+            # 과거의 close_day 이전 기본 100점 레코드는 ASOS 일별 기록이 있을 때만 보정한다.
             if (
                 not row["closed_at"]
                 and
                 float(score) == 100.0
-                and weather_summary
+                and (row["date"] == today or weather_summary)
                 and self._has_deductible_events(row["date"])
             ):
                 score = self._get_score_for_date(row["date"])["score"]

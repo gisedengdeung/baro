@@ -43,7 +43,26 @@ function formatEventTime(timestamp) {
   if (!timestamp) return "-";
   const date = new Date(timestamp);
   if (Number.isNaN(date.getTime())) return timestamp;
-  return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+  return date.toLocaleTimeString("ko-KR", {
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function formatDateTime24(timestamp) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return date.toLocaleString("ko-KR", {
+    year: "numeric",
+    month: "numeric",
+    day: "numeric",
+    hour12: false,
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+  });
 }
 
 function weatherText(weather) {
@@ -59,14 +78,55 @@ function weatherText(weather) {
   return parts.length > 0 ? parts.join(" · ") : "ASOS 값 없음";
 }
 
+function todayDateString() {
+  return new Date().toLocaleDateString("sv-SE");
+}
+
+function isTodayReport(date) {
+  return date === todayDateString();
+}
+
+function findWeatherObservation(day) {
+  const details = day.weather_details || day.difficulty?.factors?.weather?.details || [];
+  return details.find((item) => item?.key === "weather_observation");
+}
+
+function weatherValueText(value, fallback = "-") {
+  return value === null || value === undefined || value === "" ? fallback : value;
+}
+
+function currentWeatherText(observation) {
+  if (!observation) return "초단기 실황 기록 없음";
+  const values = observation.values || {};
+  return [
+    `기온 ${weatherValueText(values.temp_c)}도`,
+    `습도 ${weatherValueText(values.humidity_pct)}%`,
+    `풍속 ${weatherValueText(values.wind_mps)}m/s`,
+    `강수 ${weatherValueText(values.rain_mm)}mm`,
+  ].join(" · ");
+}
+
 function formatDeduction(value) {
   const num = Number(value ?? 0);
   if (!Number.isFinite(num)) return "0";
   return Number.isInteger(num) ? String(num) : num.toFixed(1);
 }
 
-function DailySafetyReport({ report, onRefreshAsos, refreshingAsosDate }) {
+function DailySafetyReport({
+  report,
+  onRefreshAsos,
+  onRefreshCurrentWeather,
+  refreshingAsosDate,
+  refreshingCurrentWeather,
+}) {
   const [expandedDates, setExpandedDates] = useState(() => new Set());
+  const [selectedClipEvent, setSelectedClipEvent] = useState(null);
+
+  const selectedClipUrl = selectedClipEvent
+    ? `${runtimeConfig.apiBaseUrl}/api/logs/${selectedClipEvent.id}/clip`
+    : null;
+
+  const closeClipPlayer = () => setSelectedClipEvent(null);
 
   const toggleExpandedDate = (date) => {
     setExpandedDates((prev) => {
@@ -97,6 +157,39 @@ function DailySafetyReport({ report, onRefreshAsos, refreshingAsosDate }) {
           <p className="sp2-card-sub">날짜별 안전점수, ASOS 날씨, 이벤트와 영상 매핑</p>
         </div>
       </div>
+      {selectedClipEvent && (
+        <div className="sp2-clip-player-panel">
+          <div className="sp2-clip-player-header">
+            <div className="sp2-clip-player-info">
+              <span className="sp2-clip-player-title">
+                {EVENT_LABELS[selectedClipEvent.event_type] || selectedClipEvent.event_type} 영상
+              </span>
+              <span className="sp2-clip-player-time">
+                {formatDateTime24(selectedClipEvent.timestamp)}
+              </span>
+            </div>
+            <button
+              type="button"
+              className="sp2-clip-player-close"
+              onClick={closeClipPlayer}
+              aria-label="영상 닫기"
+            >
+              ✕
+            </button>
+          </div>
+          <div className="sp2-clip-player-body">
+            <video
+              key={selectedClipUrl}
+              controls
+              autoPlay
+              className="sp2-clip-video"
+              onError={() => window.alert("영상을 불러올 수 없습니다.")}
+            >
+              <source src={selectedClipUrl} type="video/mp4" />
+            </video>
+          </div>
+        </div>
+      )}
       <div className="sp2-daily-list">
         {report.map((day) => {
           const color = scoreColor(day.score);
@@ -104,15 +197,38 @@ function DailySafetyReport({ report, onRefreshAsos, refreshingAsosDate }) {
           const isExpanded = expandedDates.has(day.date);
           const visibleEvents = isExpanded ? events : events.slice(0, 5);
           const hiddenCount = Math.max(events.length - 5, 0);
+          const isToday = isTodayReport(day.date);
+          const currentWeather = isToday ? findWeatherObservation(day) : null;
+          const weatherTitle = isToday
+            ? currentWeather?.location_name || currentWeather?.station_name || "현재 초단기 실황"
+            : day.daily_weather?.station_name || "기상 기록";
+          const weatherBody = isToday
+            ? currentWeatherText(currentWeather)
+            : weatherText(day.daily_weather);
           return (
             <div key={day.date} className="sp2-daily-row">
               <div className="sp2-daily-main">
                 <div className="sp2-daily-date">{day.date}</div>
                 <div className={`sp2-daily-score sp2-score-${color}`}>{day.score}<span>점</span></div>
                 <div className="sp2-daily-weather">
-                  <strong>{day.daily_weather?.station_name || "기상 기록"}</strong>
-                  <span>{weatherText(day.daily_weather)}</span>
-                  {!day.daily_weather && onRefreshAsos && (
+                  <strong>{weatherTitle}</strong>
+                  <span>{weatherBody}</span>
+                  {isToday && currentWeather?.observed_at && (
+                    <span className="sp2-weather-meta">
+                      {currentWeather.observed_at} 기준 · 격자 {currentWeather.nx ?? "-"}, {currentWeather.ny ?? "-"}
+                    </span>
+                  )}
+                  {isToday && onRefreshCurrentWeather && (
+                    <button
+                      type="button"
+                      className="sp2-asos-refresh"
+                      onClick={onRefreshCurrentWeather}
+                      disabled={refreshingCurrentWeather}
+                    >
+                      {refreshingCurrentWeather ? "조회 중" : "초단기 조회"}
+                    </button>
+                  )}
+                  {!isToday && !day.daily_weather && onRefreshAsos && (
                     <button
                       type="button"
                       className="sp2-asos-refresh"
@@ -140,14 +256,15 @@ function DailySafetyReport({ report, onRefreshAsos, refreshingAsosDate }) {
                         -{formatDeduction(event.deduction_adjusted_points ?? event.deduction_points)}점
                       </span>
                       {event.has_clip ? (
-                        <a
-                          className="sp2-clip-link"
-                          href={`${runtimeConfig.apiBaseUrl}/api/logs/${event.id}/clip`}
-                          target="_blank"
-                          rel="noreferrer"
+                        <button
+                          type="button"
+                          className={`sp2-clip-link ${
+                            selectedClipEvent?.id === event.id ? "playing" : ""
+                          }`}
+                          onClick={() => setSelectedClipEvent(event)}
                         >
                           영상
-                        </a>
+                        </button>
                       ) : (
                         <span className="sp2-clip-missing">영상 없음</span>
                       )}
@@ -405,6 +522,7 @@ export default function StatsPage({ logs = [] }) {
   const [chartHeight, setChartHeight] = useState(220);
   const [dailyReport, setDailyReport] = useState([]);
   const [refreshingAsosDate, setRefreshingAsosDate] = useState("");
+  const [refreshingCurrentWeather, setRefreshingCurrentWeather] = useState(false);
   const barChartRef = useRef(null);
 
   const loadDailyReport = useCallback(() => {
@@ -424,6 +542,18 @@ export default function StatsPage({ logs = [] }) {
       window.alert("ASOS 기록을 조회하지 못했습니다.");
     } finally {
       setRefreshingAsosDate("");
+    }
+  };
+
+  const handleRefreshCurrentWeather = async () => {
+    setRefreshingCurrentWeather(true);
+    try {
+      await safetyAPI.refreshWeather();
+      loadDailyReport();
+    } catch {
+      window.alert("초단기 기상 실황을 조회하지 못했습니다.");
+    } finally {
+      setRefreshingCurrentWeather(false);
     }
   };
 
@@ -598,7 +728,9 @@ export default function StatsPage({ logs = [] }) {
         <DailySafetyReport
           report={dailyReport}
           onRefreshAsos={handleRefreshAsos}
+          onRefreshCurrentWeather={handleRefreshCurrentWeather}
           refreshingAsosDate={refreshingAsosDate}
+          refreshingCurrentWeather={refreshingCurrentWeather}
         />
 
         {/* 전체 감지내역 카드 */}

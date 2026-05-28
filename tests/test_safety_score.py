@@ -170,7 +170,7 @@ class SafetyScoreTest(unittest.TestCase):
             self.assertEqual(report[0]["date"], "2026-05-22")
             self.assertLess(report[0]["score"], 100)
 
-    def test_daily_report_keeps_default_score_without_weather_summary(self):
+    def test_daily_report_keeps_past_default_score_without_weather_summary(self):
         with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
             db_path = self._db_path(tmpdir)
             init_db(db_path)
@@ -197,6 +197,41 @@ class SafetyScoreTest(unittest.TestCase):
 
             self.assertEqual(report[0]["date"], "2026-05-22")
             self.assertEqual(report[0]["score"], 100)
+            self.assertIsNone(report[0]["daily_weather"])
+
+    def test_daily_report_recalculates_today_score_without_weather_summary(self):
+        class _TodayDateTime(datetime):
+            @classmethod
+            def now(cls, tz=None):
+                return datetime(2026, 5, 22, 12, 0, tzinfo=tz)
+
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            with get_connection(db_path) as conn:
+                conn.execute(
+                    """
+                    INSERT INTO safety_score_daily
+                        (date, final_score, deductions_json, weather_deduction, accident_free_streak, created_at)
+                    VALUES ('2026-05-22', 100, '[]', 0, 0, '2026-05-22T00:00:00')
+                    """
+                )
+                conn.execute(
+                    """
+                    INSERT INTO event_logs
+                        (edge_id, event_type, details_json, log_risk_level, operation_mode, timestamp)
+                    VALUES ('edge-default', 'LOG_CRITICAL_SENSOR', '{}', 'CRITICAL', 'RUNNING', '2026-05-22T11:00:00')
+                    """
+                )
+                conn.commit()
+
+            with patch.object(safety_module, "datetime", _TodayDateTime):
+                report = service.get_daily_report(days=1)
+
+            self.assertEqual(report[0]["date"], "2026-05-22")
+            self.assertLess(report[0]["score"], 100)
             self.assertIsNone(report[0]["daily_weather"])
 
     def test_daily_report_preserves_finalized_past_scores(self):
