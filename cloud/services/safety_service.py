@@ -379,3 +379,69 @@ class SafetyService:
             }
             for row in rows
         ]
+
+    def get_daily_report(self, days: int = 30) -> list[dict[str, Any]]:
+        today = datetime.now(KST).date().isoformat()
+        with get_connection(self.db_path) as conn:
+            rows = conn.execute(
+                """
+                SELECT
+                    s.date,
+                    s.final_score,
+                    s.accident_free_streak,
+                    s.weather_deduction,
+                    s.deductions_json,
+                    w.station_no,
+                    w.station_name,
+                    w.avg_temp,
+                    w.max_temp,
+                    w.min_temp,
+                    w.avg_humidity,
+                    w.max_wind,
+                    w.total_rain,
+                    w.summary_json
+                FROM safety_score_daily s
+                LEFT JOIN daily_weather_summary w ON w.date = s.date
+                ORDER BY s.date DESC
+                LIMIT ?
+                """,
+                (days,),
+            ).fetchall()
+
+        report: list[dict[str, Any]] = []
+        for row in rows:
+            weather_details = []
+            try:
+                weather_details = json.loads(row["deductions_json"] or "[]")
+            except json.JSONDecodeError:
+                weather_details = []
+            try:
+                weather_summary = json.loads(row["summary_json"] or "{}") if row["summary_json"] else None
+            except json.JSONDecodeError:
+                weather_summary = None
+            if not weather_summary and row["station_no"]:
+                weather_summary = {
+                    "station_no": row["station_no"],
+                    "station_name": row["station_name"],
+                    "avg_temp": row["avg_temp"],
+                    "max_temp": row["max_temp"],
+                    "min_temp": row["min_temp"],
+                    "avg_humidity": row["avg_humidity"],
+                    "max_wind": row["max_wind"],
+                    "total_rain": row["total_rain"],
+                }
+            report.append(
+                {
+                    "date": row["date"],
+                    "score": (
+                        self._get_score_for_date(row["date"])["score"]
+                        if row["date"] == today
+                        else row["final_score"]
+                    ),
+                    "accident_free_streak": row["accident_free_streak"],
+                    "weather_deduction": row["weather_deduction"],
+                    "weather_details": weather_details if isinstance(weather_details, list) else [],
+                    "daily_weather": weather_summary,
+                }
+            )
+        return report

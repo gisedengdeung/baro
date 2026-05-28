@@ -31,7 +31,7 @@ def get_log_clip(
     if not event:
         raise HTTPException(status_code=404, detail="Log not found.")
 
-    if event.get("clip_status") != "READY" or not event.get("clip_path"):
+    if event.get("clip_status") not in {"READY", "EXPIRED"} or not event.get("clip_path"):
         raise HTTPException(status_code=404, detail="Clip not ready.")
 
     clip_path_str = event["clip_path"]

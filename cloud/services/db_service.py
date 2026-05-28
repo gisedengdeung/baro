@@ -26,7 +26,7 @@ class DBService:
             details = {}
 
         clip_status = row["clip_status"] if row["clip_status"] else "NONE"
-        has_clip = bool(clip_status == "READY" and row["clip_path"])
+        has_clip = bool(clip_status in {"READY", "EXPIRED"} and row["clip_path"])
 
         payload = {
             "id": row["id"],
@@ -158,6 +158,44 @@ class DBService:
                     (limit,),
                 ).fetchall()
 
+        return [self._row_to_event(row) for row in rows]
+
+    def get_events_between(
+        self,
+        start_iso: str,
+        end_iso: str,
+        edge_id: str | None = None,
+    ) -> List[Dict[str, Any]]:
+        with get_connection(self.db_path) as conn:
+            if edge_id is not None:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    WHERE timestamp >= ?
+                      AND timestamp <= ?
+                      AND edge_id = ?
+                    ORDER BY timestamp DESC
+                    """,
+                    (start_iso, end_iso, edge_id),
+                ).fetchall()
+            else:
+                rows = conn.execute(
+                    """
+                    SELECT id, edge_id, event_type, details_json,
+                           log_risk_level, operation_mode, timestamp,
+                           event_uid, clip_status, clip_path, clip_started_at,
+                           clip_ended_at, clip_duration_sec, clip_created_at
+                    FROM event_logs
+                    WHERE timestamp >= ?
+                      AND timestamp <= ?
+                    ORDER BY timestamp DESC
+                    """,
+                    (start_iso, end_iso),
+                ).fetchall()
         return [self._row_to_event(row) for row in rows]
 
     def get_event_by_id(self, log_id: int, include_internal: bool = False) -> Optional[Dict[str, Any]]:
@@ -304,8 +342,7 @@ class DBService:
             cursor = conn.execute(
                 f"""
                 UPDATE event_logs
-                SET clip_status = 'EXPIRED',
-                    clip_path = NULL
+                SET clip_status = 'EXPIRED'
                 WHERE id IN ({placeholders})
                 """,
                 tuple(log_ids),

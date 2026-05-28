@@ -9,6 +9,7 @@ from cloud.services.command_queue import CommandQueueService
 from cloud.services.db_service import DBService
 from cloud.services.edge_auth import EdgeAuthService
 from cloud.services.llm_service import LLMService
+from cloud.services.location_service import LocationService
 from cloud.services.safety_service import SafetyService
 from cloud.services.signaling_store import SignalingStore
 from cloud.services.status_store import StatusStore
@@ -68,6 +69,10 @@ def get_llm_service(request: Request) -> LLMService:
             detail="AI 분석 서비스 비활성화 (OPENAI_API_KEY 미설정)",
         )
     return svc
+
+
+def get_location_service(request: Request) -> LocationService:
+    return _get_state_attr(request, "location_service")
 
 
 def get_weather_service(request: Request) -> WeatherService:

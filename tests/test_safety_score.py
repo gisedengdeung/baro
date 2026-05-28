@@ -67,7 +67,7 @@ class SafetyScoreTest(unittest.TestCase):
             service.update_weather_deduction(5, existing_details)
 
             class FailingWeatherService(WeatherService):
-                async def _fetch_asos_hourly(self):
+                async def _fetch_ultra_short_nowcast(self):
                     raise RuntimeError("timeout")
 
             asyncio.run(FailingWeatherService("api-key", "119", service).refresh())
@@ -81,6 +81,93 @@ class SafetyScoreTest(unittest.TestCase):
 
             self.assertEqual(row["weather_deduction"], 5)
             self.assertEqual(json.loads(row["deductions_json"]), existing_details)
+
+    def test_ultra_short_nowcast_weather_risk_uses_grid_location(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+            service.set_config("factory_location_label", "서울")
+            service.set_config("location_nx", "60")
+            service.set_config("location_ny", "127")
+
+            class StubWeatherService(WeatherService):
+                async def _fetch_ultra_short_nowcast(self):
+                    nx, ny, label = self._get_grid_location()
+                    return {
+                        "source": "ultra_short_nowcast",
+                        "location_label": label,
+                        "nx": nx,
+                        "ny": ny,
+                        "tm": "2026-05-20 15:00",
+                        "ta": "34",
+                        "hm": "25",
+                        "ws": "15",
+                        "rn": "1mm 미만",
+                    }
+
+            asyncio.run(StubWeatherService("api-key", "119", service).refresh())
+
+            today = datetime.now(safety_module.KST).date().isoformat()
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT weather_deduction, deductions_json FROM safety_score_daily WHERE date = ?",
+                    (today,),
+                ).fetchone()
+
+            details = json.loads(row["deductions_json"])
+            observation = details[0]
+            self.assertEqual(row["weather_deduction"], 15)
+            self.assertEqual(observation["source"], "ultra_short_nowcast")
+            self.assertEqual(observation["location_name"], "서울")
+            self.assertEqual(observation["nx"], "60")
+            self.assertEqual(observation["ny"], "127")
+            self.assertEqual(observation["values"]["rain_mm"], 0.5)
+
+    def test_ultra_short_nowcast_upper_bound_rain_label_applies_risk(self):
+        with tempfile.TemporaryDirectory(ignore_cleanup_errors=True) as tmpdir:
+            db_path = self._db_path(tmpdir)
+            init_db(db_path)
+            service = SafetyService(db_path)
+
+            class StubWeatherService(WeatherService):
+                async def _fetch_ultra_short_nowcast(self):
+                    return {
+                        "source": "ultra_short_nowcast",
+                        "tm": "2026-05-20 15:00",
+                        "ta": "20",
+                        "hm": "60",
+                        "ws": "1",
+                        "rn": "50.0mm 이상",
+                    }
+
+            asyncio.run(StubWeatherService("api-key", "119", service).refresh())
+
+            today = datetime.now(safety_module.KST).date().isoformat()
+            with get_connection(db_path) as conn:
+                row = conn.execute(
+                    "SELECT weather_deduction, deductions_json FROM safety_score_daily WHERE date = ?",
+                    (today,),
+                ).fetchone()
+
+            details = json.loads(row["deductions_json"])
+            observation = details[0]
+            self.assertEqual(row["weather_deduction"], 3)
+            self.assertEqual(observation["values"]["rain_mm"], 50.0)
+            self.assertEqual(details[1]["key"], "heavy_rain")
+
+    def test_ultra_short_nowcast_base_time_uses_40_minute_delay(self):
+        base_date, base_time = WeatherService._get_ultra_short_base(
+            datetime(2026, 5, 25, 16, 39, tzinfo=safety_module.KST)
+        )
+        self.assertEqual(base_date, "20260525")
+        self.assertEqual(base_time, "1500")
+
+        base_date, base_time = WeatherService._get_ultra_short_base(
+            datetime(2026, 5, 25, 16, 40, tzinfo=safety_module.KST)
+        )
+        self.assertEqual(base_date, "20260525")
+        self.assertEqual(base_time, "1600")
 
 
 if __name__ == "__main__":

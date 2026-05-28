@@ -237,12 +237,20 @@ export const safetyAPI = {
     const response = await apiClient.get('/api/safety/history', { params: { days } });
     return response.data;
   },
+  getDailyReport: async (days = 30) => {
+    const response = await apiClient.get('/api/safety/daily-report', { params: { days } });
+    return response.data;
+  },
   getConfig: async () => {
     const response = await apiClient.get('/api/safety/config');
     return response.data;
   },
   updateConfig: async (key, value) => {
     const response = await apiClient.patch('/api/safety/config', { key, value });
+    return response.data;
+  },
+  searchLocation: async (query) => {
+    const response = await apiClient.get('/api/safety/location/search', { params: { query } });
     return response.data;
   },
   refreshWeather: async () => {

@@ -1,5 +1,6 @@
 // src/components/dashboard/StatsPage.jsx
 import React, { useState, useEffect, useRef, useMemo } from "react";
+import { runtimeConfig, safetyAPI } from "../../services/api";
 import "./StatsPage.css";
 
 const ALL_EVENT_IDS = [
@@ -25,6 +26,106 @@ const ZONE_PALETTE = [
 ];
 const DAYS = ["일", "월", "화", "수", "목", "금", "토"];
 const HOURS = Array.from({ length: 24 }, (_, i) => i);
+
+const EVENT_LABELS = {
+  LOG_CRITICAL_FALLING: "넘어짐 감지",
+  LOG_INTRUSION_SLOWDOWN: "위험구역 접근",
+  LOG_CRITICAL_SENSOR: "화재 감지",
+};
+
+function scoreColor(score) {
+  if (score >= 80) return "ok";
+  if (score >= 60) return "warning";
+  return "danger";
+}
+
+function formatEventTime(timestamp) {
+  if (!timestamp) return "-";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return timestamp;
+  return date.toLocaleTimeString("ko-KR", { hour: "2-digit", minute: "2-digit" });
+}
+
+function weatherText(weather) {
+  if (!weather) return "ASOS 기록 없음";
+  const parts = [];
+  if (weather.avg_temp !== null && weather.avg_temp !== undefined) parts.push(`평균 ${weather.avg_temp}도`);
+  if (weather.min_temp !== null && weather.min_temp !== undefined && weather.max_temp !== null && weather.max_temp !== undefined) {
+    parts.push(`${weather.min_temp}~${weather.max_temp}도`);
+  }
+  if (weather.avg_humidity !== null && weather.avg_humidity !== undefined) parts.push(`습도 ${weather.avg_humidity}%`);
+  if (weather.max_wind !== null && weather.max_wind !== undefined) parts.push(`최대풍속 ${weather.max_wind}m/s`);
+  if (weather.total_rain !== null && weather.total_rain !== undefined) parts.push(`강수 ${weather.total_rain}mm`);
+  return parts.length > 0 ? parts.join(" · ") : "ASOS 값 없음";
+}
+
+function DailySafetyReport({ report }) {
+  if (!report.length) {
+    return (
+      <div className="sp2-card">
+        <h3 className="sp2-card-title">일별 안전 리포트</h3>
+        <p className="sp2-card-sub">아직 일별 안전점수 기록이 없습니다.</p>
+      </div>
+    );
+  }
+
+  return (
+    <div className="sp2-card">
+      <div className="sp2-card-top">
+        <div>
+          <h3 className="sp2-card-title">일별 안전 리포트</h3>
+          <p className="sp2-card-sub">날짜별 안전점수, ASOS 날씨, 이벤트와 영상 매핑</p>
+        </div>
+      </div>
+      <div className="sp2-daily-list">
+        {report.map((day) => {
+          const color = scoreColor(day.score);
+          return (
+            <div key={day.date} className="sp2-daily-row">
+              <div className="sp2-daily-main">
+                <div className="sp2-daily-date">{day.date}</div>
+                <div className={`sp2-daily-score sp2-score-${color}`}>{day.score}<span>점</span></div>
+                <div className="sp2-daily-weather">
+                  <strong>{day.daily_weather?.station_name || "기상 기록"}</strong>
+                  <span>{weatherText(day.daily_weather)}</span>
+                </div>
+              </div>
+              <div className="sp2-daily-events">
+                {day.events?.length ? (
+                  day.events.slice(0, 5).map((event) => (
+                    <div key={event.id} className="sp2-daily-event">
+                      <span className="sp2-event-time">{formatEventTime(event.timestamp)}</span>
+                      <span className="sp2-event-label">
+                        {EVENT_LABELS[event.event_type] || event.event_type}
+                      </span>
+                      {event.has_clip ? (
+                        <a
+                          className="sp2-clip-link"
+                          href={`${runtimeConfig.apiBaseUrl}/api/logs/${event.id}/clip`}
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          영상
+                        </a>
+                      ) : (
+                        <span className="sp2-clip-missing">영상 없음</span>
+                      )}
+                    </div>
+                  ))
+                ) : (
+                  <div className="sp2-daily-empty">이벤트 없음</div>
+                )}
+                {day.events?.length > 5 && (
+                  <div className="sp2-daily-more">외 {day.events.length - 5}건 더 있음</div>
+                )}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 /* ── 반원 게이지 ── */
 function SemiGauge({ label, value, total, color }) {
@@ -255,7 +356,12 @@ export default function StatsPage({ logs = [] }) {
   const [selectedYear, setSelectedYear] = useState(today.getFullYear());
   const [activeFilters, setActiveFilters] = useState(new Set(ALL_EVENT_IDS));
   const [chartHeight, setChartHeight] = useState(220);
+  const [dailyReport, setDailyReport] = useState([]);
   const barChartRef = useRef(null);
+
+  useEffect(() => {
+    safetyAPI.getDailyReport(30).then(setDailyReport).catch(() => setDailyReport([]));
+  }, []);
 
   /* 적용된 날짜 필터 */
   const parsedFrom = applied.from ? new Date(applied.from + "T00:00:00") : null;
@@ -424,6 +530,8 @@ export default function StatsPage({ logs = [] }) {
             </div>
           </div>
         </div>
+
+        <DailySafetyReport report={dailyReport} />
 
         {/* 전체 감지내역 카드 */}
         <div className="sp2-card">

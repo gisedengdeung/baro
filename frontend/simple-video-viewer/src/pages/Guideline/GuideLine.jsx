@@ -304,9 +304,21 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
     industry_type: config.industry_type || "제조업_전체",
     worker_count: config.worker_count || "80",
     location_label: currentLocation.label,
+    factory_address: config.factory_address || "",
+    location_lat: config.location_lat || "",
+    location_lon: config.location_lon || "",
+    location_nx: config.location_nx || currentLocation.nx,
+    location_ny: config.location_ny || currentLocation.ny,
+    kma_asos_station_no: config.kma_asos_station_no || currentLocation.stationNo,
+    kma_asos_station_name: config.kma_asos_station_name || ASOS_STATION_NAMES[currentLocation.stationNo] || currentLocation.label,
   });
+  const [addressQuery, setAddressQuery] = useState(config.factory_address || "");
+  const [addressResults, setAddressResults] = useState([]);
+  const [addressLoading, setAddressLoading] = useState(false);
+  const [addressError, setAddressError] = useState("");
   const [isDirty, setIsDirty] = useState(false);
   const lastSaveVersionRef = useRef(saveVersion);
+  const displayLocation = form.factory_address || form.location_label;
 
   useEffect(() => {
     if (isDirty) return;
@@ -318,7 +330,15 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
       industry_type: config.industry_type || "제조업_전체",
       worker_count: normalizeWorkerCount(config.worker_count || "80"),
       location_label: nextLocation.label,
+      factory_address: config.factory_address || "",
+      location_lat: config.location_lat || "",
+      location_lon: config.location_lon || "",
+      location_nx: config.location_nx || nextLocation.nx,
+      location_ny: config.location_ny || nextLocation.ny,
+      kma_asos_station_no: config.kma_asos_station_no || nextLocation.stationNo,
+      kma_asos_station_name: config.kma_asos_station_name || ASOS_STATION_NAMES[nextLocation.stationNo] || nextLocation.label,
     });
+    setAddressQuery(config.factory_address || "");
   }, [config, isDirty]);
 
   useEffect(() => {
@@ -326,6 +346,46 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
     lastSaveVersionRef.current = saveVersion;
     setIsDirty(false);
   }, [saveVersion]);
+
+  const handleAddressSearch = async () => {
+    const query = addressQuery.trim();
+    if (!query) {
+      setAddressError("주소를 입력하세요.");
+      return;
+    }
+    setAddressLoading(true);
+    setAddressError("");
+    try {
+      const results = await safetyAPI.searchLocation(query);
+      setAddressResults(results);
+      if (results.length === 0) {
+        setAddressError("검색 결과가 없습니다.");
+      }
+    } catch (searchError) {
+      setAddressResults([]);
+      setAddressError(searchError?.response?.data?.detail || "주소 검색에 실패했습니다.");
+    } finally {
+      setAddressLoading(false);
+    }
+  };
+
+  const applyAddressResult = (result) => {
+    setIsDirty(true);
+    setForm((prev) => ({
+      ...prev,
+      location_label: result.label,
+      factory_address: result.address,
+      location_lat: String(result.lat),
+      location_lon: String(result.lon),
+      location_nx: String(result.nx),
+      location_ny: String(result.ny),
+      kma_asos_station_no: result.kma_asos_station_no,
+      kma_asos_station_name: result.kma_asos_station_name,
+    }));
+    setAddressQuery(result.address);
+    setAddressResults([]);
+    setAddressError("");
+  };
 
   const handleSubmit = (event) => {
     event.preventDefault();
@@ -335,10 +395,14 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
     onSave({
       industry_type: form.industry_type,
       worker_count: form.worker_count,
-      factory_location_label: selectedLocation.label,
-      kma_asos_station_no: selectedLocation.stationNo,
-      location_nx: selectedLocation.nx,
-      location_ny: selectedLocation.ny,
+      factory_location_label: form.location_label || selectedLocation.label,
+      factory_address: form.factory_address,
+      location_lat: form.location_lat,
+      location_lon: form.location_lon,
+      kma_asos_station_no: form.kma_asos_station_no || selectedLocation.stationNo,
+      kma_asos_station_name: form.kma_asos_station_name || ASOS_STATION_NAMES[selectedLocation.stationNo] || selectedLocation.label,
+      location_nx: form.location_nx || selectedLocation.nx,
+      location_ny: form.location_ny || selectedLocation.ny,
     });
   };
 
@@ -348,7 +412,7 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
         <div>
           <div className="gl-panel-title">사업장 설정</div>
           <div className="gl-config-summary">
-            {form.industry_type} · {form.worker_count || "-"}인 · {form.location_label}
+            {form.industry_type} · {form.worker_count || "-"}인 · {displayLocation}
           </div>
         </div>
         <button className="gl-config-save" type="submit" disabled={saving}>
@@ -387,20 +451,50 @@ function FactoryConfigPanel({ config, saving, message, error, saveVersion, onSav
             }}
           />
         </label>
-        <label className="gl-config-field">
+        <div className="gl-config-field">
           <span>위치</span>
-          <select
-            value={form.location_label}
-            onChange={(event) => {
-              setIsDirty(true);
-              setForm((prev) => ({ ...prev, location_label: event.target.value }));
-            }}
-          >
-            {LOCATION_OPTIONS.map((location) => (
-              <option key={location.stationNo} value={location.label}>{location.label}</option>
-            ))}
-          </select>
-        </label>
+          <div className="gl-location-readout">{displayLocation}</div>
+        </div>
+        <div className="gl-config-field gl-address-field">
+          <span>사업장 주소</span>
+          <div className="gl-address-search">
+            <input
+              type="text"
+              value={addressQuery}
+              placeholder="도로명주소를 입력하세요"
+              onChange={(event) => {
+                setIsDirty(true);
+                setAddressQuery(event.target.value);
+              }}
+              onKeyDown={(event) => {
+                if (event.key === "Enter") {
+                  event.preventDefault();
+                  handleAddressSearch();
+                }
+              }}
+            />
+            <button type="button" onClick={handleAddressSearch} disabled={addressLoading}>
+              {addressLoading ? "검색 중" : "검색"}
+            </button>
+          </div>
+          {addressError && <div className="gl-address-error">{addressError}</div>}
+          {addressResults.length > 0 && (
+            <div className="gl-address-results">
+              {addressResults.map((result) => (
+                <button
+                  type="button"
+                  key={`${result.address}-${result.nx}-${result.ny}`}
+                  onClick={() => applyAddressResult(result)}
+                >
+                  <strong>{result.label}</strong>
+                  <span>
+                    격자 {result.nx}, {result.ny} · ASOS {result.kma_asos_station_name}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </div>
       </div>
       {(message || error) && (
         <div className={`gl-config-message${error ? " gl-config-error" : ""}`}>
@@ -452,9 +546,14 @@ function SafetyContent({
   );
   const weatherValues = weatherObservation?.values || {};
   const weatherStationName =
+    weatherObservation?.location_name ||
     weatherObservation?.station_name ||
     ASOS_STATION_NAMES[weatherObservation?.station_no] ||
     (weatherObservation?.station_no ? `관측소 ${weatherObservation.station_no}` : "지역 대기");
+  const weatherLocationMeta =
+    weatherObservation?.source === "ultra_short_nowcast"
+      ? `격자 ${weatherObservation.nx ?? "-"}, ${weatherObservation.ny ?? "-"}`
+      : `관측소 ${weatherObservation?.station_no ?? "-"}`;
   const weatherObservedAt = formatWeatherTime(weatherObservation?.observed_at);
   const weatherSummary = getWeatherSummary(weatherValues, weatherAlerts);
 
@@ -523,7 +622,7 @@ function SafetyContent({
                 <span>{weatherStationName}</span>
               </div>
               <div className="gl-weather-meta">
-                관측소 {weatherObservation.station_no} · {weatherObservedAt} 기준
+                {weatherLocationMeta} · {weatherObservedAt} 기준
               </div>
               <div className="gl-weather-values">
                 <span>기온 {weatherValues.temp_c ?? "-"}도</span>
@@ -786,11 +885,16 @@ export default function GuideLine() {
         safetyAPI.updateConfig("industry_type", nextConfig.industry_type),
         safetyAPI.updateConfig("worker_count", String(workerCount)),
         safetyAPI.updateConfig("factory_location_label", nextConfig.factory_location_label),
+        safetyAPI.updateConfig("factory_address", nextConfig.factory_address || ""),
+        safetyAPI.updateConfig("location_lat", nextConfig.location_lat || ""),
+        safetyAPI.updateConfig("location_lon", nextConfig.location_lon || ""),
         safetyAPI.updateConfig("kma_asos_station_no", nextConfig.kma_asos_station_no),
+        safetyAPI.updateConfig("kma_asos_station_name", nextConfig.kma_asos_station_name || ""),
         safetyAPI.updateConfig("location_nx", nextConfig.location_nx),
         safetyAPI.updateConfig("location_ny", nextConfig.location_ny),
       ]);
       setConfigMessage("설정이 저장되었습니다.");
+      await safetyAPI.refreshWeather().catch(() => {});
       await fetchSafety();
       setConfigSaveVersion((version) => version + 1);
     } catch (error) {

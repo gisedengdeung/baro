@@ -152,7 +152,27 @@ def init_db(db_path: str) -> None:
             """
         )
 
-        # 7. 공장 설정값 테이블
+        # 7. 일별 ASOS 기상 요약 테이블
+        conn.execute(
+            """
+            CREATE TABLE IF NOT EXISTS daily_weather_summary (
+                date TEXT PRIMARY KEY,
+                station_no TEXT NOT NULL,
+                station_name TEXT NOT NULL,
+                avg_temp REAL,
+                max_temp REAL,
+                min_temp REAL,
+                avg_humidity REAL,
+                max_wind REAL,
+                total_rain REAL,
+                summary_json TEXT NOT NULL DEFAULT '{}',
+                created_at TEXT NOT NULL,
+                updated_at TEXT NOT NULL
+            );
+            """
+        )
+
+        # 8. 공장 설정값 테이블
         conn.execute(
             """
             CREATE TABLE IF NOT EXISTS factory_config (
@@ -175,8 +195,14 @@ def init_db(db_path: str) -> None:
         for key, value in [
             ("industry_type", "식료품제조업"),
             ("worker_count", "80"),    # 총 근무자 수
+            ("factory_location_label", "수원"),
+            ("factory_address", ""),
+            ("location_lat", ""),
+            ("location_lon", ""),
             ("location_nx", "60"),     # 기상청 격자 X (경기 수원 기준 더미)
             ("location_ny", "121"),    # 기상청 격자 Y (경기 수원 기준 더미)
+            ("kma_asos_station_no", "119"),
+            ("kma_asos_station_name", "수원"),
         ]:
             conn.execute(
                 """
