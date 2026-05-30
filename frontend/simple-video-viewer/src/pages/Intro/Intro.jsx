@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import "./Intro.css";
 import { useNavigate, Link, useLocation } from "react-router-dom";
 import { useInView } from "react-intersection-observer";
+import { useTheme } from "../../hooks/useTheme";
 
 // 스크롤 시 섹션이 애니메이션으로 등장하도록 처리하는 컴포넌트
 const AnimatedSection = ({ children, reverse = false }) => {
@@ -24,6 +25,7 @@ function Intro() {
   const navigate = useNavigate();
   const currentLocation = useLocation();
   const [scrolled, setScrolled] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   useEffect(() => {
     const handleScroll = () => {
@@ -81,9 +83,14 @@ function Intro() {
               AI 위험 감지
             </a>
           </nav>
-          <button className="login-btn" onClick={() => navigate("/login")}>
-            로그인
-          </button>
+          <div className="intro-header-right">
+            <button className="intro-theme-btn" onClick={toggleTheme} aria-label="테마 변경">
+              {theme === "dark" ? "☀️" : "🌙"}
+            </button>
+            <button className="login-btn" onClick={() => navigate("/login")}>
+              로그인
+            </button>
+          </div>
         </div>
       </header>
 
