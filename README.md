@@ -95,8 +95,8 @@ WebRTC의 offer·answer·ICE 교환은 Cloud의 REST API가 중계합니다. 배
 | 박정현 | 기획 / 문서 | [@jaypower199](https://github.com/jaypower199) |
 | 정헌용 | 하드웨어 | [@combo124](https://github.com/combo124) |
 | 이동현 | 프론트엔드 | [@ldh0784](https://github.com/ldh0784) |
-| 김명진 | 기획 / 문서 | — |
-| 최형우 | 백엔드 | — |
+| 김명진 | 기획 / 문서 | [@kmj8575](https://github.com/kmj8575) |
+| 최형우 | 백엔드 | [@vvater00](https://github.com/vvater00) |
 | 김동하 | 백엔드 | [@EastHA2403](https://github.com/EastHA2403) |
 
 ## 저장소 구조
