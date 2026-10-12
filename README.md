@@ -6,6 +6,14 @@ BARO는 컨베이어 주변 작업자의 위험구역 진입과 낙상을 카메
 
 우리는 **감지 → 판단 → 대응 → 기록**을 하나의 흐름으로 연결하는 데 집중했습니다. 영상 분석과 설비 제어는 현장의 Edge가 맡고, Cloud는 인증·이력·운영 데이터를 관리하며, Frontend는 관리자가 상황을 이해하고 조작하는 인터페이스를 제공합니다.
 
+## 프로젝트 소개 영상
+
+[![BARO 프로젝트 소개 영상](https://img.youtube.com/vi/2WTDW4HqQLo/hqdefault.jpg)](https://www.youtube.com/watch?v=2WTDW4HqQLo)
+
+썸네일을 클릭하면 YouTube에서 소개 영상을 볼 수 있습니다.
+
+**[소개 영상 보기](https://www.youtube.com/watch?v=2WTDW4HqQLo)**
+
 ## 해결하려는 문제
 
 컨베이어 주변에서는 작업자의 접근, 낙상, 정비 중 진입처럼 서로 다른 상황에 서로 다른 대응이 필요합니다. 영상을 보여주는 것만으로는 감속이나 정지가 이루어지지 않고, 센서가 설비를 멈추더라도 당시 상황을 설명할 기록이 부족할 수 있습니다.
@@ -77,6 +85,18 @@ WebRTC의 offer·answer·ICE 교환은 Cloud의 REST API가 중계합니다. 배
 | 웹 | React 19, React Router, Zustand, Axios, Create React App |
 | 인증 | HttpOnly 쿠키 기반 JWT 세션, 비밀번호 해시, Edge 요청의 HMAC 서명 |
 | 저장·배포 | Amazon S3, Docker Compose, Nginx, Caddy, coturn |
+
+## 팀원과 역할
+
+GitHub 프로필과 저장소의 커밋 이력에서 확인할 수 있는 팀원별 주요 기여를 정리했습니다.
+
+| 팀원 | GitHub | 주요 기여 영역 | 구현 내용 |
+| --- | --- | --- | --- |
+| soomin | [@barcybarcy](https://github.com/barcybarcy) | 시스템 통합 · Cloud · 배포 | Cloud·Edge·Frontend 통합, 로그인·회원가입과 세션 인증, 이벤트 클립 저장·재생 흐름, Docker/EC2 배포 구성, Edge 요청 인증. |
+| 이동현 | [@ldh0784](https://github.com/ldh0784) | Frontend · 운영 화면 | React 대시보드와 인트로 UI, WebRTC 연결과 장치 선택, 위험구역·운전·정비 제어 화면, 이벤트 로그·통계·안전점수 표시. |
+| 김동하 | [@EastHA2403](https://github.com/EastHA2403) | AI 감지 · Edge/Cloud 연동 | YOLO Pose·DDNet 낙상 감지, S3 클립 저장 연동, 장치별 WebSocket 메시지 분리, WebRTC 시그널링과 장치·로그 API. |
+| guddn | [@vvater00](https://github.com/vvater00) | Cloud 배포 · 영상/로그 연동 | EC2 설치·연결 스크립트와 배포 문서, 이벤트 클립 자동 생성·재생, 카메라 화질 조정, 한국 시간 기준 이벤트 로그 동기화. |
+| combo124 | [@combo124](https://github.com/combo124) | 안전점수 · 외부 API · 통계 | 안전점수와 위험도 산정, 업종·규모·기상 기반 가이드라인, 기상청·Kakao 위치 연동, 일일 점수 마감과 통계, 관련 단위 테스트. |
 
 ## 저장소 구조
 
