@@ -6,6 +6,14 @@ BARO는 컨베이어 주변 작업자의 위험구역 진입과 낙상을 카메
 
 우리는 **감지 → 판단 → 대응 → 기록**을 하나의 흐름으로 연결하는 데 집중했습니다. 영상 분석과 설비 제어는 현장의 Edge가 맡고, Cloud는 인증·이력·운영 데이터를 관리하며, Frontend는 관리자가 상황을 이해하고 조작하는 인터페이스를 제공합니다.
 
+## 프로젝트 소개 영상
+
+[![BARO 프로젝트 소개 영상](https://img.youtube.com/vi/2WTDW4HqQLo/hqdefault.jpg)](https://www.youtube.com/watch?v=2WTDW4HqQLo)
+
+썸네일을 클릭하면 YouTube에서 소개 영상을 볼 수 있습니다.
+
+**[소개 영상 보기](https://www.youtube.com/watch?v=2WTDW4HqQLo)**
+
 ## 해결하려는 문제
 
 컨베이어 주변에서는 작업자의 접근, 낙상, 정비 중 진입처럼 서로 다른 상황에 서로 다른 대응이 필요합니다. 영상을 보여주는 것만으로는 감속이나 정지가 이루어지지 않고, 센서가 설비를 멈추더라도 당시 상황을 설명할 기록이 부족할 수 있습니다.
@@ -77,6 +85,19 @@ WebRTC의 offer·answer·ICE 교환은 Cloud의 REST API가 중계합니다. 배
 | 웹 | React 19, React Router, Zustand, Axios, Create React App |
 | 인증 | HttpOnly 쿠키 기반 JWT 세션, 비밀번호 해시, Edge 요청의 HMAC 서명 |
 | 저장·배포 | Amazon S3, Docker Compose, Nginx, Caddy, coturn |
+
+## 팀원과 역할
+
+| 팀원 | 담당 역할 | GitHub |
+| --- | --- | --- |
+| 조수민 | 팀장 | [@barcybarcy](https://github.com/barcybarcy) |
+| 이지혜 | PM | [@jihye20030320](https://github.com/jihye20030320) |
+| 박정현 | 기획 / 문서 | [@jaypower199](https://github.com/jaypower199) |
+| 정헌용 | 하드웨어 | [@combo124](https://github.com/combo124) |
+| 이동현 | 프론트엔드 | [@ldh0784](https://github.com/ldh0784) |
+| 김명진 | 기획 / 문서 | [@kmj8575](https://github.com/kmj8575) |
+| 최형우 | 백엔드 | [@vvater00](https://github.com/vvater00) |
+| 김동하 | 백엔드 | [@EastHA2403](https://github.com/EastHA2403) |
 
 ## 저장소 구조
 
