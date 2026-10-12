@@ -88,15 +88,16 @@ WebRTC의 offer·answer·ICE 교환은 Cloud의 REST API가 중계합니다. 배
 
 ## 팀원과 역할
 
-GitHub 프로필과 저장소의 커밋 이력에서 확인할 수 있는 팀원별 주요 기여를 정리했습니다.
-
-| 팀원 | GitHub | 주요 기여 영역 | 구현 내용 |
-| --- | --- | --- | --- |
-| soomin | [@barcybarcy](https://github.com/barcybarcy) | 시스템 통합 · Cloud · 배포 | Cloud·Edge·Frontend 통합, 로그인·회원가입과 세션 인증, 이벤트 클립 저장·재생 흐름, Docker/EC2 배포 구성, Edge 요청 인증. |
-| 이동현 | [@ldh0784](https://github.com/ldh0784) | Frontend · 운영 화면 | React 대시보드와 인트로 UI, WebRTC 연결과 장치 선택, 위험구역·운전·정비 제어 화면, 이벤트 로그·통계·안전점수 표시. |
-| 김동하 | [@EastHA2403](https://github.com/EastHA2403) | AI 감지 · Edge/Cloud 연동 | YOLO Pose·DDNet 낙상 감지, S3 클립 저장 연동, 장치별 WebSocket 메시지 분리, WebRTC 시그널링과 장치·로그 API. |
-| guddn | [@vvater00](https://github.com/vvater00) | Cloud 배포 · 영상/로그 연동 | EC2 설치·연결 스크립트와 배포 문서, 이벤트 클립 자동 생성·재생, 카메라 화질 조정, 한국 시간 기준 이벤트 로그 동기화. |
-| combo124 | [@combo124](https://github.com/combo124) | 안전점수 · 외부 API · 통계 | 안전점수와 위험도 산정, 업종·규모·기상 기반 가이드라인, 기상청·Kakao 위치 연동, 일일 점수 마감과 통계, 관련 단위 테스트. |
+| 팀원 | 담당 역할 | GitHub |
+| --- | --- | --- |
+| 조수민 | 팀장 | [@barcybarcy](https://github.com/barcybarcy) |
+| 이지혜 | PM | [@jihye20030320](https://github.com/jihye20030320) |
+| 박정현 | 기획 / 문서 | [@jaypower199](https://github.com/jaypower199) |
+| 정헌용 | 하드웨어 | [@combo124](https://github.com/combo124) |
+| 이동현 | 프론트엔드 | [@ldh0784](https://github.com/ldh0784) |
+| 김명진 | 기획 / 문서 | — |
+| 최형우 | 백엔드 | — |
+| 김동하 | 백엔드 | [@EastHA2403](https://github.com/EastHA2403) |
 
 ## 저장소 구조
 
