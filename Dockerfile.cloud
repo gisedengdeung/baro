@@ -1,0 +1,12 @@
+FROM python:3.11-slim
+
+WORKDIR /app
+
+COPY requirements-cloud.txt /app/requirements-cloud.txt
+RUN pip install --no-cache-dir -r /app/requirements-cloud.txt
+
+COPY cloud /app/cloud
+COPY shared /app/shared
+COPY config /app/config
+
+CMD ["uvicorn", "cloud.main:app", "--host", "0.0.0.0", "--port", "8000"]

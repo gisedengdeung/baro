@@ -1,0 +1,9 @@
+loguru==0.7.2
+numpy==1.24.3
+opencv_python==4.8.1.78
+pyserial==3.5
+ultralytics==8.0.196
+httpx==0.27.2
+aiortc==1.9.0
+av==12.0.0
+pydantic==2.5.3

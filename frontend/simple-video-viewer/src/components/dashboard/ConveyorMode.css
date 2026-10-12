@@ -1,0 +1,35 @@
+/* src/pages/Dashboard/ControlBoard.css */
+.control-board {
+  background: #fff;
+  border-radius: 8px;
+  padding: 16px;
+  box-shadow: 0 0 6px rgba(0,0,0,0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.control-board h3 {
+  margin: 0 0 12px;
+}
+.control-board button {
+  background: #333;
+  color: #fff;
+  border: none;
+  padding: 10px;
+  border-radius: 6px;
+  font-size: 14px;
+  cursor: pointer;
+  transition: background 0.2s, opacity 0.2s;
+}
+.control-board button:hover:not(:disabled) {
+  background: #666;
+}
+.control-board button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.status-line {
+  text-align: center;
+  color: #333;
+  font-size: 14px;
+}
